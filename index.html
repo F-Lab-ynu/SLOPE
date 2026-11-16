@@ -2811,6 +2811,7 @@ async function boot() {
   var s = await sb.auth.getSession(), session = s.data && s.data.session;
   if (!session) { gate('login'); return; }
   S.me = session.user.id;
+  if (location.hash || location.search) history.replaceState(null, '', location.pathname);
   try { await loadAll(); } catch (e) { gate('error', e.message); return; }
   if (!S.self) { gate('error', 'アカウント情報が見つかりません。管理者に連絡してください'); return; }
   if (!S.self.approved) {
