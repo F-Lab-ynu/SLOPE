@@ -5,7 +5,7 @@
 var SB_URL = 'https://addvjcwwlklwmkwhhsjv.supabase.co';
 var SB_KEY = 'sb_publishable_L8VP_h67F3FupHwqC_3pTw_YRbBVghw';
 var sb = window.supabase.createClient(SB_URL, SB_KEY);
-var PREF_KEYS = ['view', 'wtab', 'depth', 'fold', 'view2', 'zoom', 'lw', 'lwN', 'showEnded', 'mtab'];
+var PREF_KEYS = ['view', 'wtab', 'depth', 'fold', 'view2', 'zoom', 'lw', 'lwN', 'showEnded', 'mtab', 'fmode', 'fcur', 'sideC', 'ftreeC', 'tkC', 'cur'];
 var SYNC = { nodes: {}, profiles: {}, busy: Promise.resolve(), ready: false, pendingRemote: false };
 S.pending = [];
 
@@ -18,10 +18,12 @@ function savePrefs() { var p = {}; PREF_KEYS.forEach(function (k) { if (S[k] !==
 function save() { savePrefs(); if (SYNC.ready) queueSync(); }
 
 // ---------- ツリー ⇄ 行 ----------
+var DKEYS = ['leads', 'memo', 'folder', 'purpose', 'place', 'review', 'links'];
+function cleanData(d) { var o = {}; DKEYS.forEach(function (k) { var v = d && d[k]; if (v == null || v === '' || v === false || (Array.isArray(v) && !v.length)) return; o[k] = v; }); return o; }
 function norm(r) {
   return { id: r.id, parent_id: r.parent_id || null, pos: +r.pos || 0, title: r.title || '', kind: r.kind || null, announce: r.announce || null,
     reg: r.reg == null ? null : +r.reg, unit: r.unit || null, who: r.who || null, team: (r.team || []).filter(Boolean),
-    start_date: r.start_date, end_date: r.end_date, done: !!r.done };
+    start_date: r.start_date, end_date: r.end_date, done: !!r.done, data: cleanData(r.data) };
 }
 function rowsFromTree() {
   var out = {};
@@ -29,8 +31,10 @@ function rowsFromTree() {
     list.forEach(function (n, i) {
       var t = (d === 0 ? n.name : n.title) || '';
       if (n.fresh && !t) return; // 入力途中の空行はまだ送らない
-      out[n.id] = norm({ id: n.id, parent_id: par, pos: i, title: t, who: n.who, team: n.team, start_date: n.start, end_date: n.end, done: !kids(n).length && !n.tasks ? n.done : false,
-        kind: d === 0 ? (n.kind || 'event') : null, announce: d === 0 ? (n.announce || 'before') : null, reg: d === 0 ? (n.reg || 0) : null, unit: d === 0 ? (n.unit || '') : null });
+      var ev = n.kind === 'event', fo = isFolder(n);
+      out[n.id] = norm({ id: n.id, parent_id: par, pos: i, title: t, who: n.who, team: n.team, start_date: n.start, end_date: n.end, done: !fo ? n.done : false,
+        kind: ev ? 'event' : (fo ? 'folder' : null), announce: ev ? (n.announce || 'before') : null, reg: ev ? (n.reg || 0) : null, unit: ev ? (n.unit || '') : null,
+        data: { leads: n.leads, memo: n.memo, folder: fo && d > 0, purpose: n.purpose, place: n.place, review: n.review, links: n.links } });
       each(kids(n), n.id, d + 1);
     });
   })(S.projects, null, 0);
@@ -41,10 +45,15 @@ function buildTree(rows) {
   rows.forEach(function (r) { if (r.parent_id) (ch[r.parent_id] = ch[r.parent_id] || []).push(r); else roots.push(r); });
   var byPos = function (a, b) { return a.pos - b.pos; };
   function mk(r, d) {
-    var ks = (ch[r.id] || []).sort(byPos);
-    if (d === 0) return { id: r.id, name: r.title, kind: r.kind || 'event', announce: r.announce || 'before', reg: r.reg || 0, unit: r.unit || '', who: r.who || '', team: r.team || [], start: r.start_date, end: r.end_date, tasks: ks.map(function (k) { return mk(k, 1); }) };
-    var n = { id: r.id, title: r.title, who: r.who || '', team: r.team || [], start: r.start_date, end: r.end_date, done: r.done };
-    if (ks.length) { n.kids = ks.map(function (k) { return mk(k, d + 1); }); delete n.done; }
+    var ks = (ch[r.id] || []).sort(byPos), dt = r.data || {}, n;
+    if (d === 0) n = { id: r.id, name: r.title, kind: r.kind || 'folder', who: r.who || '', team: r.team || [], start: r.start_date, end: r.end_date, tasks: ks.map(function (k) { return mk(k, 1); }) };
+    else {
+      n = { id: r.id, title: r.title, who: r.who || '', team: r.team || [], start: r.start_date, end: r.end_date, done: r.done };
+      if (r.kind) n.kind = r.kind;
+      if (ks.length || dt.folder) { n.kids = ks.map(function (k) { return mk(k, d + 1); }); n.folder = true; delete n.done; }
+    }
+    if (r.kind === 'event') { n.announce = r.announce || 'before'; n.reg = r.reg || 0; n.unit = r.unit || ''; }
+    DKEYS.forEach(function (k) { if (k !== 'folder' && dt[k] != null) n[k] = Array.isArray(dt[k]) ? dt[k].slice() : dt[k]; });
     return n;
   }
   return roots.sort(byPos).map(function (r) { return mk(r, 0); });
@@ -142,10 +151,10 @@ function renderChrome() {
   var m = me(), c = counts();
   document.getElementById('nav').innerHTML = navItems().map(function (v) {
     var SH = { dash: 'ホーム', tracks: '教材', notices: '告知', board: '掲示板', projects: '業務', perms: 'メンバー' };
-    return '<button data-act="go" data-view="' + v.id + '"' + (S.view === v.id ? ' aria-current="page"' : '') + '>' + ic(v.id) + '<span class="full">' + v.name + '</span><span class="short">' + (SH[v.id] || v.name) + '</span>' + (c[v.id] ? '<span class="n">' + c[v.id] + '</span>' : '') + '</button>';
+    return '<button data-act="go" data-view="' + v.id + '"' + (S.view === v.id ? ' aria-current="page"' : '') + '>' + ic(v.id) + '<span class="full">' + v.name + '</span><span class="short">' + (SH[v.id] || v.name) + '</span>' + (c[v.id] ? '<span class="n" title="' + ((typeof BADGE !== 'undefined' && BADGE[v.id]) || (v.id === 'perms' ? '承認待ち' : '')) + ' ' + c[v.id] + '件">' + c[v.id] + '</span>' : '') + '</button>';
   }).join('');
   document.getElementById('acct').innerHTML = '<div class="mode"><span>運営</span><button class="msw on" data-to="./" role="switch" aria-checked="true" aria-label="部員画面に切り替える"><i></i></button></div>' + '<button data-act="acct" aria-haspopup="true" aria-expanded="' + UI.acct + '">' + av(m.id, 'lg') + '<span class="who"><b>' + esc(m.name) + '</b><span>' + esc(m.unit === '—' ? '部員' : m.unit) + '</span></span>' + ic('chev') + '</button>' +
-    (UI.acct ? '<div class="menu" role="menu"><div class="mh">' + esc(m.email || '') + '</div><button role="menuitem" data-act="logout"><span>ログアウト</span></button></div>' : '');
+    (UI.acct ? '<div class="menu" role="menu"><div class="msm">' + (isAdmin() ? '<button role="menuitem" data-act="go" data-view="perms">' + ic('perms') + '<span>メンバー</span></button>' : '') + '<button role="menuitem" data-act="toMember">' + ic('back') + '<span>部員画面に切り替える</span></button></div><div class="mh">' + esc(m.email || '') + '</div><button role="menuitem" data-act="logout"><span>ログアウト</span></button></div>' : '');
 }
 function counts() {
   return {
@@ -171,12 +180,12 @@ viewPerms = function () {
 member = function (id) { return S.members.filter(function (m) { return m.id === id; })[0] || (S.pending || []).filter(function (m) { return m.id === id; })[0]; };
 
 document.addEventListener('click', function (e) {
-  var b = e.target.closest && e.target.closest('[data-act="logout"],[data-act="approve"],[data-act="reject"],[data-act="glogin"],[data-act="gsave"]'); if (!b) return;
+  var b = e.target.closest && e.target.closest('[data-act="logout"],[data-act="approve"],[data-act="reject"],[data-act="glogin"],[data-act="gprof"]'); if (!b) return;
   e.stopImmediatePropagation(); e.preventDefault();
   var a = b.dataset.act;
   if (a === 'logout') { sb.auth.signOut().then(function () { location.replace(location.pathname); }); return; }
   if (a === 'glogin') { b.disabled = true; sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } }).then(function (r) { if (r.error) { b.disabled = false; gateMsg(r.error.message); } }); return; }
-  if (a === 'gsave') {
+  if (a === 'gprof') {
     var nm = document.getElementById('gName').value.trim(), gr = document.getElementById('gGrade').value.trim();
     if (!nm) { gateMsg('名前を入力してください'); return; }
     sb.from('profiles').update({ name: nm, grade: gr }).eq('id', S.me).then(function (r) { gateMsg(r.error ? '保存できませんでした：' + r.error.message : '保存しました。承認されるまでお待ちください', !r.error); });
@@ -210,7 +219,7 @@ function gate(kind, extra) {
   if (kind === 'pending') body = '<h1>承認待ち</h1><p class="gsub">運営（代表）が承認すると使えるようになります。名前と学部・学年を入れておいてください。</p>' +
     '<label class="gf">名前<input id="gName" class="input" value="' + esc(extra && extra.name || '') + '"></label>' +
     '<label class="gf">学部・学年<input id="gGrade" class="input" placeholder="例：経営 1年" value="' + esc(extra && extra.grade || '') + '"></label>' +
-    '<button class="btn primary" data-act="gsave" style="width:100%;height:40px">保存</button><button class="btn ghost" data-act="logout" style="width:100%;margin-top:8px">ログアウト</button>';
+    '<button class="btn primary" data-act="gprof" style="width:100%;height:40px">保存</button><button class="btn ghost" data-act="logout" style="width:100%;margin-top:8px">ログアウト</button>';
   if (kind === 'error') body = '<h1>読み込めませんでした</h1><p class="gsub">' + esc(extra || '') + '</p><button class="btn" onclick="location.reload()">再読み込み</button> <button class="btn ghost" data-act="logout">ログアウト</button>';
   g.innerHTML = '<div class="gcard">' + logo + body + '<p class="gmsg" id="gmsg" role="status"></p></div>';
 }
@@ -294,3 +303,10 @@ viewTracks = function () {
 };
 var _renderMap0 = renderMap; renderMap = function () { if (!S.tracks.length) return { units: [], errs: [], by: {} }; return _renderMap0.apply(this, arguments); };
 var _renderDetail0 = renderDetail; renderDetail = function () { if (!S.tracks.length) return; return _renderDetail0.apply(this, arguments); };
+
+// 本番ではトラックが0本でも表示できるので、最後の1本も削除できる
+delTrack = function (id) {
+  var t = S.tracks.filter(function (x) { return x.id === id; })[0]; if (!t) return;
+  snap(); S.tracks = S.tracks.filter(function (x) { return x.id !== id; }); if (S.cur === id) { S.cur = S.tracks[0] ? S.tracks[0].id : null; S.sel = null; }
+  save(); render(); toastUndo('トラック「' + t.name + '」を削除しました');
+};

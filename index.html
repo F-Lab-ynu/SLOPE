@@ -164,7 +164,7 @@ body.wide #wchrome{display:block}
     units: function (t) { return (t.list || []).filter(function (u) { return u && u.title; }).map(function (u) { return { code: u.code, title: u.title, tags: u.tags || [], deps: u.deps || [] }; }); },
     unitData: function (t, code) { return (t.units || {})[code] || {}; },
     events: function () {
-      return NODES.filter(function (n) { return !n.parent_id && n.kind === 'event' && n.announce === 'done'; })
+      return NODES.filter(function (n) { return n.kind === 'event' && n.announce === 'done'; })
         .sort(function (a, b) { return a.end_date < b.end_date ? -1 : 1; })
         .map(function (n) { return { id: n.id, title: n.title, start: n.start_date, end: n.end_date, unit: n.unit || '' }; });
     },
@@ -179,8 +179,8 @@ body.wide #wchrome{display:block}
     myTasks: function () {
       var by = {}; NODES.forEach(function (n) { by[n.id] = n; });
       var hasKids = {}; NODES.forEach(function (n) { if (n.parent_id) hasKids[n.parent_id] = 1; });
-      var root = function (n) { while (n && n.parent_id && by[n.parent_id]) n = by[n.parent_id]; return n; };
-      return NODES.filter(function (n) { return n.who === DB.me && !n.done && !hasKids[n.id] && n.parent_id; })
+      var root = function (n) { var x = n && by[n.parent_id]; while (x) { if (x.kind === 'event') return x; x = by[x.parent_id]; } return by[n.parent_id] || n; };
+      return NODES.filter(function (n) { return n.who === DB.me && !n.done && !hasKids[n.id] && n.parent_id && !(n.data && n.data.folder); })
         .sort(function (a, b) { return a.end_date < b.end_date ? -1 : 1; })
         .map(function (n) { return { id: n.id, title: n.title, end: n.end_date, event: (root(n) || {}).title || '', parent: by[n.parent_id] }; });
     },
@@ -218,7 +218,7 @@ body.wide #wchrome{display:block}
       sb.from('profiles').select('*'),
       sb.from('items').select('*').order('created_at', { ascending: false }),
       sb.from('reactions').select('item_id,kind,user_id'),
-      sb.from('nodes').select('id,parent_id,title,kind,announce,unit,who,team,start_date,end_date,done'),
+      sb.from('nodes').select('id,parent_id,title,kind,announce,unit,who,team,start_date,end_date,done,data'),
       sb.from('notifications').select('*').eq('to_id', DB.me).order('created_at', { ascending: false }).limit(30)
     ]);
     for (var i = 0; i < res.length; i++) if (res[i].error) throw res[i].error;

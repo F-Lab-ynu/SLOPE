@@ -9,8 +9,8 @@ def rep(a, b, c=1):
 rep("var KEY = 'slope-admin-v10';", "var KEY = 'slope-prod-v1';")
 rep("""try { S = JSON.parse(localStorage.getItem(KEY)); } catch (e) { S = null; }
 if (!S || !S.projects) S = sample();""", """S = { view: 'dash', me: null, projects: [], members: [], pending: [], notifs: [], tracks: [], notices: [], posts: [], offers: [], manualOrder: true };""")
-rep("""    ks.push(kpi('未対応', rep + off, '通報 ' + rep + '・情報提供 ' + off, false, rep ? 'board' : 'notices'));""",
-    """    ks.push(kpi('承認待ち', (S.pending || []).length, 'メンバー画面で承認', false, 'perms'));""")
+rep("""    var tn = todo.reduce""", """    if (isAdmin() && (S.pending || []).length) todo.unshift(['perms', '承認待ち', S.pending.length]);
+    var tn = todo.reduce""")
 rep('<div class="msw on" data-to="./"', '<div class="msw on" data-to="./"', 0) if False else None
 i = s.rindex("\nrender();")
 s = s[:i] + "\n" + js + "\nboot();" + s[i + len("\nrender();"):]
