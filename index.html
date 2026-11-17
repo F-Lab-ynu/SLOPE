@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '7e7f0f3bfd', FILE = 'index.ver';
+  var VER = 'c314a4cd79', FILE = 'index.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -189,12 +189,15 @@ body.wide .app > main > .crspg{max-width:1160px}
     events: function () {
       return NODES.filter(function (n) { return n.kind === 'event' && n.announce === 'done'; })
         .sort(function (a, b) { return a.end_date < b.end_date ? -1 : 1; })
-        .map(function (n) { return { id: n.id, title: n.title, start: n.start_date, end: n.end_date, unit: n.unit || '' }; });
+        .map(function (n) { var d = n.data || {}; return { id: n.id, title: n.title, start: n.start_date, end: n.end_date, unit: d.place || n.unit || '', desc: d.purpose || '' }; });
     },
     calendar: function () {
       var out = DB.events().map(function (e) { return { date: e.end, type: '部内', title: e.title, time: e.start === e.end ? '' : '期間 ' + e.start.slice(5).replace('-', '.') + '〜', place: e.unit, joinId: e.id, joinKind: 'join' }; });
       ITEMS.filter(function (x) { return (x.kind === 'notice' || x.kind === 'offer') && DB.mine(x.id, 'plan'); }).forEach(function (x) {
         var d = x.data || {}; if (/^\d{4}-\d{2}-\d{2}$/.test(d.due || '')) out.push({ date: d.due, type: '外部', title: d.title, time: '締切', place: d.host || '', joinId: x.id, joinKind: 'plan' });
+      });
+      ITEMS.filter(function (x) { return x.kind === 'cal' && x.state === 'ok' && (x.data || {}).state === 'pub'; }).forEach(function (x) {
+        var d = x.data || {}; if (/^\d{4}-\d{2}-\d{2}$/.test(d.date || '')) out.push({ date: d.date, type: '部内', title: d.title, time: d.time || '', place: d.place || '', joinId: null });
       });
       DB.myTasks().filter(function (t) { return !t.nodate; }).forEach(function (t) { out.push({ date: t.end, type: '教育', title: t.title + '（期限）', time: '', place: t.event, joinId: null }); });
       return out;
