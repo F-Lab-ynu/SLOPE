@@ -278,3 +278,8 @@ function memberExtras(v) {
     setLq: function (e) { self.setState({ lq: e.target.value }); }, setUq: function (e) { self.setState({ uq: e.target.value }); }
   };
 }
+
+// スマホ：ピンチで画面全体が拡大・縮小しないようにする
+document.addEventListener('touchmove', function (e) { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+document.addEventListener('gesturestart', function (e) { e.preventDefault(); }, { passive: false });
+document.addEventListener('gesturechange', function (e) { e.preventDefault(); }, { passive: false });
