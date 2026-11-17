@@ -185,7 +185,7 @@
     const curT = PT.find((t) => t.id === s.course) || PT.find((t) => t.mine && t.kind === 'choose') || PT[0];
     window.__PROG = { tracks: PT, cur: curT ? curT.id : null, key: D.ver ? D.ver() : JSON.stringify(PT.map((t) => [t.id, t.tree, Object.keys(t.units).map((c) => t.units[c].st)])),
       openTrack: (id) => this.setState({ sub: 'course', course: id, cnode: null }), openUnit: (tid, code) => this.setState({ sub: 'unit', unitT: tid, unitC: code, ufrom: 'course' }) };
-    const KN = { all: '全員が受ける', choose: 'ロールトラック', opt: '必要になったら' };
+    const KN = { all: '全員', choose: '選択', opt: '任意' };
     const crsKind = curT ? KN[curT.kind] : '', crsName = curT ? curT.name : '', crsJp = curT ? curT.jp : '', crsTot = curT ? Object.keys(curT.units).length : 0,
       crsDone = curT ? Object.keys(curT.units).filter((c) => curT.units[c].st === 'done').length : 0, crsMine = curT ? curT.mine : false;
 

@@ -116,10 +116,10 @@ rep('<span class="chip">前提：ST1 社会情勢と業界 ✓</span><span class
 rep('<sc-for list="{{ materials }}" as="m" hint-placeholder-count="3">\n<div class="card" style="padding: 14px 16px; border-radius: 8px; display: flex; align-items: center; gap: 12px">',
     '<sc-if value="{{ unit.noMaterials }}"><div style="font-size: 14px; color: #A3A19B">教材はまだ登録されていません</div></sc-if>\n<sc-for list="{{ materials }}" as="m" hint-placeholder-count="3">\n<button onClick="{{ m.go }}" class="card" style="padding: 14px 16px; border-radius: 8px; display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; color: #F3F1EC">')
 rep('<span class="chip" style="border-color: {{ m.color }}; color: {{ m.color }}">{{ m.src }}</span>\n</div>\n</sc-for>', '<span class="chip" style="border-color: {{ m.color }}; color: {{ m.color }}">開く ↗</span>\n</button>\n</sc-for>')
-rline('>LUNAの事業でポジショニングを描く</div>', '<div style="font-weight: 700; font-size: 17px; line-height: 1.4; word-break: auto-phrase">{{ unit.practiceTitle }}</div>')
-rline('LUNAで扱った事業の競合', '<div style="font-size: 14px; color: #D2CFC8; line-height: 1.7; white-space: pre-wrap">{{ unit.practice }}</div>')
-rline('<span>締切 11.20 FRI 23:59</span><span>提出 9 / 14</span>', '<span></span>')
-rline('font-size: 16px">提出する</button>', '<button onClick="{{ unit.toggle }}" style="height: 48px; border: 1px solid #F3F1EC; border-radius: 8px; background: {{ unit.doneBg }}; color: {{ unit.doneFg }}; font-weight: 700; font-size: 16px">{{ unit.doneLabel }}</button>')
+# (演習は廃止) rline('>LUNAの事業でポジショニングを描く</div>', '<div style="font-weight: 700; font-size: 17px; line-height: 1.4; word-break: auto-phrase">{{ unit.practiceTitle }}</div>')
+# (演習は廃止) rline('LUNAで扱った事業の競合', '<div style="font-size: 14px; color: #D2CFC8; line-height: 1.7; white-space: pre-wrap">{{ unit.practice }}</div>')
+# (演習は廃止) rline('<span>締切 11.20 FRI 23:59</span><span>提出 9 / 14</span>', '<span></span>')
+rline('font-size: 16px">修了にする</button>', '<button onClick="{{ unit.toggle }}" style="height: 48px; border: 1px solid #F3F1EC; border-radius: 8px; background: {{ unit.doneBg }}; color: {{ unit.doneFg }}; font-weight: 700; font-size: 16px">{{ unit.doneLabel }}</button>')
 rep('<span style="font-weight: 500">ST-02 競争優位の源泉を説明できる</span>', '<span style="font-weight: 500">{{ unit.milestone }}</span>')
 # 路線図：選んだ単元を開く
 # (学ぶタブ作り替えで不要) rep('<span style="color: #A3A19B">後続</span><span style="color: #E9E6DF">{{ cSel.next }}</span>\n</div>', '<span style="color: #A3A19B">後続</span><span style="color: #E9E6DF">{{ cSel.next }}</span>\n</div>\n<sc-if value="{{ cSel.isUnit }}"><button onClick="{{ cSel.open }}" style="height: 44px; border: 0; border-radius: 8px; background: #F3F1EC; color: #070707; font-weight: 700; font-size: 15px">単元を開く</button></sc-if>')
