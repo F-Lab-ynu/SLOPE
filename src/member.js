@@ -42,6 +42,7 @@
     units: function (t) { return (t.list || []).filter(function (u) { return u && u.title; }).map(function (u) { return { code: u.code, title: u.title, tags: u.tags || [], deps: u.deps || [] }; }); },
     unitData: function (t, code) { return (t.units || {})[code] || {}; },
     events: function () {
+      return []; // 業務のイベントは部員に公開しない（部員に出すイベントは学ぶのプログラムのものだけ）
       return NODES.filter(function (n) { return n.kind === 'event' && n.announce === 'done'; })
         .sort(function (a, b) { return a.end_date < b.end_date ? -1 : 1; })
         .map(function (n) { var d = n.data || {}; return { id: n.id, title: n.title, start: n.start_date, end: n.end_date, unit: d.place || n.unit || '', desc: d.purpose || '' }; });
