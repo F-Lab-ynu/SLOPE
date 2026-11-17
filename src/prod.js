@@ -154,7 +154,7 @@ function renderChrome() {
     return '<button data-act="go" data-view="' + v.id + '"' + (S.view === v.id ? ' aria-current="page"' : '') + '>' + ic(v.id) + '<span class="full">' + v.name + '</span><span class="short">' + (SH[v.id] || v.name) + '</span>' + (c[v.id] ? '<span class="n" title="' + ((typeof BADGE !== 'undefined' && BADGE[v.id]) || (v.id === 'perms' ? '承認待ち' : '')) + ' ' + c[v.id] + '件">' + c[v.id] + '</span>' : '') + '</button>';
   }).join('');
   document.getElementById('acct').innerHTML = '<div class="mode"><span>運営</span><button class="msw on" data-to="./" role="switch" aria-checked="true" aria-label="部員画面に切り替える"><i></i></button></div>' + '<button data-act="acct" aria-haspopup="true" aria-expanded="' + UI.acct + '">' + av(m.id, 'lg') + '<span class="who"><b>' + esc(m.name) + '</b><span>' + esc(m.unit === '—' ? '部員' : m.unit) + '</span></span>' + ic('chev') + '</button>' +
-    (UI.acct ? '<div class="menu" role="menu"><div class="msm">' + (isAdmin() ? '<button role="menuitem" data-act="go" data-view="perms">' + ic('perms') + '<span>メンバー</span></button>' : '') + '<button role="menuitem" data-act="toMember">' + ic('back') + '<span>部員画面に切り替える</span></button></div><div class="mh">' + esc(m.email || '') + '</div><button role="menuitem" data-act="logout"><span>ログアウト</span></button></div>' : '');
+    (UI.acct ? '<div class="menu" role="menu"><div class="msm">' + (isAdmin() ? '<button role="menuitem" data-act="go" data-view="perms">' + ic('perms') + '<span>メンバー</span></button>' : '') + '</div><div class="mh">' + esc(m.email || '') + '</div><button role="menuitem" data-act="logout"><span>ログアウト</span></button></div>' : '');
 }
 function counts() {
   return {
