@@ -275,7 +275,9 @@ function itemsIn(items, reports) {
     var reason = rs.slice().sort(function (a, b) { return rs.filter(function (v) { return v === b; }).length - rs.filter(function (v) { return v === a; }).length; })[0] || '';
     return { id: x.id, kind: x.kind, text: d.title || d.text || '', who: whoLabel(x.author), time: fmtAt(x.created_at), on: par ? '「' + ((par.data || {}).title || (par.data || {}).text || '').slice(0, 20) + '」' : '', tab: x.kind === 'other' ? (d.tag || 'その他') : KIND_LABEL[x.kind], reports: rs.length, reason: reason, state: x.state };
   });
+  S.patches = items.filter(function (x) { return x.kind === 'patch' && x.state !== 'deleted'; }).sort(function (a, b) { return a.pos - b.pos; }).map(function (x) { return Object.assign({ date: '', title: '', note: '', state: 'done' }, x.data, { id: x.id }); });
   SYNC.items = {};
+  S.patches.forEach(function (x, i) { SYNC.items[x.id] = JSON.stringify(trackData(x, i)); });
   S.tracks.forEach(function (t, i) { SYNC.items[t.id] = JSON.stringify(trackData(t, i)); });
   S.notices.forEach(function (n) { SYNC.items[n.id] = JSON.stringify(noticeData(n)); });
   S.offers.forEach(function (o) { SYNC.items[o.id] = o.state; });
@@ -292,6 +294,7 @@ function itemChanges() {
   };
   S.tracks.forEach(function (t, i) { put('track', t.id, trackData(t, i), can('tracks')); });
   S.notices.forEach(function (n) { put('notice', n.id, noticeData(n), can('notices')); });
+  (S.patches || []).forEach(function (x, i) { put('patch', x.id, trackData(x, i), isAdmin()); });
   S.offers.forEach(function (o) {
     seen[o.id] = 1; if (SYNC.items[o.id] === o.state || !can('notices')) return; SYNC.items[o.id] = o.state;
     ops.push(function () { return sb.from('items').select('data').eq('id', o.id).single().then(function (r) { if (r.error) return r.error; return sb.from('items').update({ data: Object.assign({}, r.data.data, { state: o.state }) }).eq('id', o.id).then(function (u) { return u.error; }); }); });
