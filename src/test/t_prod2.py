@@ -12,7 +12,8 @@ SEED = {'profiles': [
   {'id': A, 'name': '池内 完輔', 'email': 'a@x', 'grade': '経営 1年', 'post': '代表', 'roles': [], 'approved': True, 'created_at': '2026-01-01'},
   {'id': B, 'name': '部長 太郎', 'email': 'b@x', 'grade': '', 'post': '教育部', 'roles': [], 'approved': True, 'created_at': '2026-01-02'},
   {'id': C, 'name': '新入 花子', 'email': 'c@x', 'grade': '', 'post': '—', 'roles': [], 'approved': False, 'created_at': '2026-01-03'}],
-  'nodes': [], 'notifications': []}
+  'nodes': [], 'notifications': [],
+  'items': [{'id': 'T1', 'kind': 'track', 'author': A, 'data': {'name': '基礎教育', 'text': 'U1 あ', 'status': 'pub', 'units': {}}, 'state': 'ok', 'pos': 0, 'created_at': '2026-11-16'}]}
 async def page_as(b, me, vp, errs, path='admin.html'):
     pg = await b.new_page(viewport=vp)
     pg.on('pageerror', lambda e: errs.append(str(e)))
