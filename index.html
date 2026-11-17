@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '247a8af55d', FILE = 'index.ver';
+  var VER = '95eb535a97', FILE = 'index.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -320,15 +320,20 @@ a.pgn{color:inherit}
       (function w(a) { a.forEach(function (n) { if (n.out) return; if (n.k === 'e' && /^\d{4}-\d{2}-\d{2}$/.test(n.from || '')) out.push({ id: 'pe:' + n.id, title: n.name, start: n.from, end: n.to || n.from, todo: n.todo || '', link: n.link || '', pub: !!n.pub }); if (n.items) w(n.items); }); })(tree);
       return out.sort(function (a, b) { return a.start < b.start ? -1 : 1; });
     },
+    clubEvents: function () { // 部内イベント：告知で公開した学ぶのイベント＋部内の予定
+      var out = DB.progEvents().filter(function (e) { return e.pub; }).map(function (e) { return { id: e.id, title: e.title, start: e.start, end: e.end, sub: e.todo || '学ぶ' }; });
+      ITEMS.filter(function (x) { return x.kind === 'cal' && x.state === 'ok' && (x.data || {}).state === 'pub'; }).forEach(function (x) { var d = x.data || {}; if (/^\d{4}-\d{2}-\d{2}$/.test(d.date || '')) out.push({ id: x.id, title: d.title, start: d.date, end: d.date, sub: [d.time, d.place].filter(Boolean).join(' · ') }); });
+      return out.sort(function (a, b) { return a.start < b.start ? -1 : 1; });
+    },
     calendar: function () {
       var out = DB.events().map(function (e) { return { date: e.end, type: '部内', title: e.title, time: e.start === e.end ? '' : '期間 ' + e.start.slice(5).replace('-', '.') + '〜', place: e.unit, joinId: e.id, joinKind: 'join' }; });
       ITEMS.filter(function (x) { return (x.kind === 'notice' || x.kind === 'offer') && DB.mine(x.id, 'plan'); }).forEach(function (x) {
         var d = x.data || {}; if (/^\d{4}-\d{2}-\d{2}$/.test(d.due || '')) out.push({ date: d.due, type: '外部', title: d.title, time: '締切', place: d.host || '', joinId: x.id, joinKind: 'plan' });
       });
       ITEMS.filter(function (x) { return x.kind === 'cal' && x.state === 'ok' && (x.data || {}).state === 'pub'; }).forEach(function (x) {
-        var d = x.data || {}; if (/^\d{4}-\d{2}-\d{2}$/.test(d.date || '')) out.push({ date: d.date, type: '部内', title: d.title, time: d.time || '', place: d.place || '', joinId: null });
+        var d = x.data || {}; if (/^\d{4}-\d{2}-\d{2}$/.test(d.date || '')) out.push({ date: d.date, type: '部内', title: d.title, time: d.time || '', place: d.place || '', joinId: x.id, joinKind: 'join' });
       });
-      DB.progEvents().forEach(function (e) { out.push({ date: e.end, type: '教育', title: e.title, time: e.start === e.end ? '' : '期間 ' + e.start.slice(5).replace('-', '.') + '〜', place: e.todo, joinId: e.pub ? e.id : null, joinKind: 'join' }); });
+      DB.progEvents().filter(function (e) { return e.pub; }).forEach(function (e) { out.push({ date: e.end, type: '部内', title: e.title, time: e.start === e.end ? '' : '期間 ' + e.start.slice(5).replace('-', '.') + '〜', place: e.todo, joinId: e.pub ? e.id : null, joinKind: 'join' }); });
       DB.myTasks().filter(function (t) { return !t.nodate; }).forEach(function (t) { out.push({ date: t.end, type: '教育', title: t.title + '（期限）', time: '', place: t.event, joinId: null }); });
       return out;
     },
@@ -456,7 +461,7 @@ function memberExtras(v) {
   var self0 = D.self || { name: '', grade: '', roles: [] };
 
   // ホーム
-  var nextEv = D.events().concat(D.progEvents()).filter(function (e) { return e.end >= today; }).sort(function (a, b) { return a.end < b.end ? -1 : 1; })[0];
+  var nextEv = D.clubEvents().filter(function (e) { return e.end >= today; }).sort(function (a, b) { return a.end < b.end ? -1 : 1; })[0];
   var tasks = D.myTasks().map(function (t, i, arr) { var dl = t.nodate ? 999 : daysTo(t.end); return { title: t.title, event: t.event, due: t.nodate ? '期間未定' : md(t.end) + ' ' + wd(t.end), dueColor: dl < 0 ? '#FF5C66' : (dl <= 3 ? RT : '#BDBAB3'), late: dl < 0, sep: i < arr.length - 1 ? '1px solid #252524' : '0', done: function () { D.complete(t); } }; });
   var weekEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (6 - now.getDay()));
   var we = weekEnd.getFullYear() + '-' + String(weekEnd.getMonth() + 1).padStart(2, '0') + '-' + String(weekEnd.getDate()).padStart(2, '0');
@@ -507,11 +512,15 @@ function memberExtras(v) {
     todayLabel: WDJ[now.getDay()] + ' · ' + (now.getMonth() + 1) + '.' + now.getDate(), hello: 'こんにちは、' + (self0.name || '') + 'さん',
     next: nextEv ? { has: true, label: 'NEXT · 部内イベント', title: nextEv.title, when: md(nextEv.end) + ' ' + wd(nextEv.end), left: String(Math.max(0, daysTo(nextEv.end))) } : { has: false, label: 'NEXT', title: '予定されているイベントはありません', when: '', left: '—' },
     learnCard: { n: rN ? rD + '/' + rN : '—', dash: (ring * pct).toFixed(1) + ' ' + ring.toFixed(1), track: myRole || 'ロール未設定', next: nextU ? nextU.code + '\n' + nextU.title : (roleT ? '全単元修了' : 'マイページでロールを選ぶ') },
+    clubEvents: D.clubEvents().filter(function (e) { return e.end >= today; }).map(function (e) { var on = D.mine(e.id, 'join'), p = e.start.split('-');
+      return { mon: ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][+p[1] - 1], d: String(+p[2]), title: e.title, sub: (e.end !== e.start ? '〜' + md(e.end) + ' · ' : '') + e.sub,
+        joinLabel: on ? '✓ 登録済み' : '参加登録', joinBd: on ? 'transparent' : '#474744', joinFg: on ? '#7D7B76' : '#D2CFC8', toggle: function () { D.toggle(e.id, 'join'); } }; }),
+    noClubEvents: !D.clubEvents().some(function (e) { return e.end >= today; }),
     tasks: tasks, hasTasks: tasks.length > 0,
     // ホームの右上のカード：業務を担当している人は「自分の業務」、それ以外は「参加予定」（参加登録したこれからのイベント）
     card2: (function () {
       if (tasks.length) return { label: '自分の業務', n: String(tasks.length), note: '次の期限 ' + tasks[0].due, go: function () { var el = document.querySelector('#stage .h2'); if (el) el.scrollIntoView({ behavior: 'smooth' }); } };
-      var js = D.events().concat(D.progEvents()).filter(function (e) { return e.end >= today && D.mine(e.id, 'join'); }).sort(function (a, b) { return a.start < b.start ? -1 : 1; });
+      var js = D.clubEvents().filter(function (e) { return e.end >= today && D.mine(e.id, 'join'); }).sort(function (a, b) { return a.start < b.start ? -1 : 1; });
       return { label: '参加予定', n: String(js.length), note: js.length ? '次 ' + md(js[0].start || js[0].end) + ' ' + js[0].title : '予定タブから参加登録', go: function () { self.setState({ tab: 'cal', sub: null }); } };
     })(),
     weekCount: String(weekEv.length), boardNew: { n: String(recent.length), inis: inis.map(function (i) { return { i: i }; }), note: '募集・意見 ' + nr + ' · ペイン ' + np },
@@ -1580,6 +1589,23 @@ setInterval(window.__chrome, 400);
 </sc-if>
 </div>
 
+<div style="display: flex; flex-direction: column; gap: 10px">
+<h2 class="h2">部内イベント</h2>
+<sc-for list="{{ clubEvents }}" as="e" hint-placeholder-count="2">
+<div class="card" style="padding: 14px 16px; display: flex; align-items: center; gap: 14px">
+<span style="flex: none; width: 44px; display: flex; flex-direction: column; align-items: center; gap: 2px"><span class="en" style="font-size: 12px; color: #A3A19B">{{ e.mon }}</span><span class="en" style="font-size: 22px; font-weight: 700; line-height: 1">{{ e.d }}</span></span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+<span style="font-weight: 700; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ e.title }}</span>
+<span style="font-size: 12px; color: #A3A19B; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ e.sub }}</span>
+</span>
+<button onClick="{{ e.toggle }}" style="flex: none; height: 30px; padding: 0 10px; border-radius: 6px; border: 1px solid {{ e.joinBd }}; background: transparent; color: {{ e.joinFg }}; font-size: 12px; font-weight: 700; font-family: inherit">{{ e.joinLabel }}</button>
+</div>
+</sc-for>
+<sc-if value="{{ noClubEvents }}" hint-placeholder-val="{{ false }}">
+<div class="card" style="padding: 18px; font-size: 14px; color: #A3A19B; text-align: center">これからの部内イベントはありません</div>
+</sc-if>
+</div>
+
 
 </div>
 </sc-if>
@@ -1987,6 +2013,7 @@ class Component extends DCLogic {
         pick: () => { if (inMonth) this.setState({ calSel: { y: cy, m: cm, d: d } }); } });
     }
     const WD = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+    const clubEvents = []; // 本番では member.js が上書き
     const dayEvents = evIn(cy, cm, selDay).map((e) => {
       const on = e.joinId ? D.mine(e.joinId, e.joinKind) : false;
       return Object.assign({}, e, { color: typeColor[e.type], joinLabel: e.joinId ? (on ? (e.joinKind === 'join' ? '登録済み' : '予定に追加済み') : (e.joinKind === 'join' ? '参加登録' : '予定に追加')) : '—',
@@ -2268,7 +2295,7 @@ class Component extends DCLogic {
       libItems: libItems, libFilters: libFilters, libCount: libItems.length,
       lenses: lenses, comments: comments, noComments: comments.length === 0, survey: survey,
       srcOpts: srcOpts, sevOpts: sevOpts, anon: anon,
-      days: days, dayEvents: dayEvents, noEvents: dayEvents.length === 0,
+      days: days, dayEvents: dayEvents, noEvents: dayEvents.length === 0, clubEvents: clubEvents, noClubEvents: clubEvents.length === 0,
       dayTitle: '11.' + s.day + ' ' + WD[(s.day - 1) % 7],
       newsItems: newsItems, newsFilters: newsFilters, newsHome: newsHome, curNews: curNews,
       newsCm: newsCm, newsCmN: newsCm.length, noNewsCm: newsCm.length === 0, meAv: meAv,

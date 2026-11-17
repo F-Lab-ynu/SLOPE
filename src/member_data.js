@@ -98,6 +98,7 @@
         pick: () => { if (inMonth) this.setState({ calSel: { y: cy, m: cm, d: d } }); } });
     }
     const WD = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+    const clubEvents = []; // 本番では member.js が上書き
     const dayEvents = evIn(cy, cm, selDay).map((e) => {
       const on = e.joinId ? D.mine(e.joinId, e.joinKind) : false;
       return Object.assign({}, e, { color: typeColor[e.type], joinLabel: e.joinId ? (on ? (e.joinKind === 'join' ? '登録済み' : '予定に追加済み') : (e.joinKind === 'join' ? '参加登録' : '予定に追加')) : '—',
