@@ -16,5 +16,15 @@ i = s.rindex("\nrender();")
 s = s[:i] + "\n" + js + "\nboot();" + s[i + len("\nrender();"):]
 rep("</style>", css + "</style>")
 rep("<head>", "<head>\n<script src=\"https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js\"></script>")
+SNIP = "\n<script>\n// 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）\n(function () {\n  var VER = '__VER__', FILE = '__FILE__';\n  function check() {\n    fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {\n      v = (v || '').trim(); if (!v || v === VER) return;\n      var q = new URLSearchParams(location.search); if (q.get('v') === v) return;\n      location.replace(location.pathname + '?v=' + v + location.hash);\n    }).catch(function () {});\n  }\n  check(); document.addEventListener('visibilitychange', function () { if (!document.hidden) check(); });\n})();\n</script>\n"
+
+import hashlib
+def stamp(s, page, verfile):
+    v = hashlib.sha1(s.encode()).hexdigest()[:10]
+    s = s.replace('<head>', '<head>' + SNIP.replace('__VER__', v).replace('__FILE__', verfile), 1)
+    open(verfile, 'w').write(v + '\n')
+    return s
+
+s = stamp(s, 'admin.html', 'admin.ver')
 open('admin.html', 'w').write(s)
 print('built admin.html', len(s))

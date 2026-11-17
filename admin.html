@@ -1,6 +1,21 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+<script>
+// 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
+(function () {
+  var VER = 'd80c148b42', FILE = 'admin.ver';
+  function check() {
+    fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
+      v = (v || '').trim(); if (!v || v === VER) return;
+      var q = new URLSearchParams(location.search); if (q.get('v') === v) return;
+      location.replace(location.pathname + '?v=' + v + location.hash);
+    }).catch(function () {});
+  }
+  check(); document.addEventListener('visibilitychange', function () { if (!document.hidden) check(); });
+})();
+</script>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
