@@ -46,6 +46,12 @@
         .sort(function (a, b) { return a.end_date < b.end_date ? -1 : 1; })
         .map(function (n) { var d = n.data || {}; return { id: n.id, title: n.title, start: n.start_date, end: n.end_date, unit: d.place || n.unit || '', desc: d.purpose || '' }; });
     },
+    progEvents: function () { // 学ぶ（プログラム）のイベント。日程があるものだけ
+      var pg = ITEMS.filter(function (x) { return x.kind === 'program' && x.state === 'ok'; })[0], out = [];
+      var tree = pg && pg.data && pg.data.v2; if (!tree) return out;
+      (function w(a) { a.forEach(function (n) { if (n.out) return; if (n.k === 'e' && /^\d{4}-\d{2}-\d{2}$/.test(n.from || '')) out.push({ id: 'pe:' + n.id, title: n.name, start: n.from, end: n.to || n.from, todo: n.todo || '', link: n.link || '' }); if (n.items) w(n.items); }); })(tree);
+      return out.sort(function (a, b) { return a.start < b.start ? -1 : 1; });
+    },
     calendar: function () {
       var out = DB.events().map(function (e) { return { date: e.end, type: '部内', title: e.title, time: e.start === e.end ? '' : '期間 ' + e.start.slice(5).replace('-', '.') + '〜', place: e.unit, joinId: e.id, joinKind: 'join' }; });
       ITEMS.filter(function (x) { return (x.kind === 'notice' || x.kind === 'offer') && DB.mine(x.id, 'plan'); }).forEach(function (x) {
@@ -54,6 +60,7 @@
       ITEMS.filter(function (x) { return x.kind === 'cal' && x.state === 'ok' && (x.data || {}).state === 'pub'; }).forEach(function (x) {
         var d = x.data || {}; if (/^\d{4}-\d{2}-\d{2}$/.test(d.date || '')) out.push({ date: d.date, type: '部内', title: d.title, time: d.time || '', place: d.place || '', joinId: null });
       });
+      DB.progEvents().forEach(function (e) { out.push({ date: e.end, type: '教育', title: e.title, time: e.start === e.end ? '' : '期間 ' + e.start.slice(5).replace('-', '.') + '〜', place: e.todo, joinId: e.id, joinKind: 'join' }); });
       DB.myTasks().filter(function (t) { return !t.nodate; }).forEach(function (t) { out.push({ date: t.end, type: '教育', title: t.title + '（期限）', time: '', place: t.event, joinId: null }); });
       return out;
     },
@@ -181,7 +188,7 @@ function memberExtras(v) {
   var self0 = D.self || { name: '', grade: '', roles: [] };
 
   // ホーム
-  var nextEv = D.events().filter(function (e) { return e.end >= today; })[0];
+  var nextEv = D.events().concat(D.progEvents()).filter(function (e) { return e.end >= today; }).sort(function (a, b) { return a.end < b.end ? -1 : 1; })[0];
   var tasks = D.myTasks().map(function (t, i, arr) { var dl = t.nodate ? 999 : daysTo(t.end); return { title: t.title, event: t.event, due: t.nodate ? '期間未定' : md(t.end) + ' ' + wd(t.end), dueColor: dl < 0 ? '#FF5C66' : (dl <= 3 ? RT : '#BDBAB3'), late: dl < 0, sep: i < arr.length - 1 ? '1px solid #252524' : '0', done: function () { D.complete(t); } }; });
   var weekEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (6 - now.getDay()));
   var we = weekEnd.getFullYear() + '-' + String(weekEnd.getMonth() + 1).padStart(2, '0') + '-' + String(weekEnd.getDate()).padStart(2, '0');
@@ -236,7 +243,7 @@ function memberExtras(v) {
     // ホームの右上のカード：業務を担当している人は「自分の業務」、それ以外は「参加予定」（参加登録したこれからのイベント）
     card2: (function () {
       if (tasks.length) return { label: '自分の業務', n: String(tasks.length), note: '次の期限 ' + tasks[0].due, go: function () { var el = document.querySelector('#stage .h2'); if (el) el.scrollIntoView({ behavior: 'smooth' }); } };
-      var js = D.events().filter(function (e) { return e.end >= today && D.mine(e.id, 'join'); });
+      var js = D.events().concat(D.progEvents()).filter(function (e) { return e.end >= today && D.mine(e.id, 'join'); }).sort(function (a, b) { return a.start < b.start ? -1 : 1; });
       return { label: '参加予定', n: String(js.length), note: js.length ? '次 ' + md(js[0].start || js[0].end) + ' ' + js[0].title : '予定タブから参加登録', go: function () { self.setState({ tab: 'cal', sub: null }); } };
     })(),
     weekCount: String(weekEv.length), boardNew: { n: String(recent.length), inis: inis.map(function (i) { return { i: i }; }), note: '募集・意見 ' + nr + ' · ペイン ' + np },

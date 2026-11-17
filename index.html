@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '5027407ffc', FILE = 'index.ver';
+  var VER = '64295b33b1', FILE = 'index.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -232,6 +232,10 @@ body.wide .pgpb i{display:block;height:100%;background:#F3F1EC;border-radius:2px
 body.wide .pgsc{width:36px;text-align:right}
 body:not(.wide) #progList,body:not(.wide) #progOut{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
 
+.pgjoin{flex:none;height:32px;padding:0 12px;border-radius:6px;border:1px solid #F3F1EC;background:#F3F1EC;color:#070707;font:inherit;font-size:13px;font-weight:700;line-height:1;cursor:pointer}
+.pgjoin.on{background:transparent;color:#F3F1EC}
+a.pgn{color:inherit}
+
 #mgate{position:fixed;inset:0;z-index:1000;background:#070707;color:#F3F1EC;display:flex;align-items:center;justify-content:center;padding:24px;font-family:inherit}
 #mgate .gc{width:100%;max-width:360px;display:flex;flex-direction:column;gap:14px}
 #mgate .glg{display:flex;align-items:center;gap:10px;margin-bottom:18px}
@@ -299,6 +303,12 @@ body:not(.wide) #progList,body:not(.wide) #progOut{padding-bottom:calc(96px + en
         .sort(function (a, b) { return a.end_date < b.end_date ? -1 : 1; })
         .map(function (n) { var d = n.data || {}; return { id: n.id, title: n.title, start: n.start_date, end: n.end_date, unit: d.place || n.unit || '', desc: d.purpose || '' }; });
     },
+    progEvents: function () { // 学ぶ（プログラム）のイベント。日程があるものだけ
+      var pg = ITEMS.filter(function (x) { return x.kind === 'program' && x.state === 'ok'; })[0], out = [];
+      var tree = pg && pg.data && pg.data.v2; if (!tree) return out;
+      (function w(a) { a.forEach(function (n) { if (n.out) return; if (n.k === 'e' && /^\d{4}-\d{2}-\d{2}$/.test(n.from || '')) out.push({ id: 'pe:' + n.id, title: n.name, start: n.from, end: n.to || n.from, todo: n.todo || '', link: n.link || '' }); if (n.items) w(n.items); }); })(tree);
+      return out.sort(function (a, b) { return a.start < b.start ? -1 : 1; });
+    },
     calendar: function () {
       var out = DB.events().map(function (e) { return { date: e.end, type: '部内', title: e.title, time: e.start === e.end ? '' : '期間 ' + e.start.slice(5).replace('-', '.') + '〜', place: e.unit, joinId: e.id, joinKind: 'join' }; });
       ITEMS.filter(function (x) { return (x.kind === 'notice' || x.kind === 'offer') && DB.mine(x.id, 'plan'); }).forEach(function (x) {
@@ -307,6 +317,7 @@ body:not(.wide) #progList,body:not(.wide) #progOut{padding-bottom:calc(96px + en
       ITEMS.filter(function (x) { return x.kind === 'cal' && x.state === 'ok' && (x.data || {}).state === 'pub'; }).forEach(function (x) {
         var d = x.data || {}; if (/^\d{4}-\d{2}-\d{2}$/.test(d.date || '')) out.push({ date: d.date, type: '部内', title: d.title, time: d.time || '', place: d.place || '', joinId: null });
       });
+      DB.progEvents().forEach(function (e) { out.push({ date: e.end, type: '教育', title: e.title, time: e.start === e.end ? '' : '期間 ' + e.start.slice(5).replace('-', '.') + '〜', place: e.todo, joinId: e.id, joinKind: 'join' }); });
       DB.myTasks().filter(function (t) { return !t.nodate; }).forEach(function (t) { out.push({ date: t.end, type: '教育', title: t.title + '（期限）', time: '', place: t.event, joinId: null }); });
       return out;
     },
@@ -434,7 +445,7 @@ function memberExtras(v) {
   var self0 = D.self || { name: '', grade: '', roles: [] };
 
   // ホーム
-  var nextEv = D.events().filter(function (e) { return e.end >= today; })[0];
+  var nextEv = D.events().concat(D.progEvents()).filter(function (e) { return e.end >= today; }).sort(function (a, b) { return a.end < b.end ? -1 : 1; })[0];
   var tasks = D.myTasks().map(function (t, i, arr) { var dl = t.nodate ? 999 : daysTo(t.end); return { title: t.title, event: t.event, due: t.nodate ? '期間未定' : md(t.end) + ' ' + wd(t.end), dueColor: dl < 0 ? '#FF5C66' : (dl <= 3 ? RT : '#BDBAB3'), late: dl < 0, sep: i < arr.length - 1 ? '1px solid #252524' : '0', done: function () { D.complete(t); } }; });
   var weekEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (6 - now.getDay()));
   var we = weekEnd.getFullYear() + '-' + String(weekEnd.getMonth() + 1).padStart(2, '0') + '-' + String(weekEnd.getDate()).padStart(2, '0');
@@ -489,7 +500,7 @@ function memberExtras(v) {
     // ホームの右上のカード：業務を担当している人は「自分の業務」、それ以外は「参加予定」（参加登録したこれからのイベント）
     card2: (function () {
       if (tasks.length) return { label: '自分の業務', n: String(tasks.length), note: '次の期限 ' + tasks[0].due, go: function () { var el = document.querySelector('#stage .h2'); if (el) el.scrollIntoView({ behavior: 'smooth' }); } };
-      var js = D.events().filter(function (e) { return e.end >= today && D.mine(e.id, 'join'); });
+      var js = D.events().concat(D.progEvents()).filter(function (e) { return e.end >= today && D.mine(e.id, 'join'); }).sort(function (a, b) { return a.start < b.start ? -1 : 1; });
       return { label: '参加予定', n: String(js.length), note: js.length ? '次 ' + md(js[0].start || js[0].end) + ' ' + js[0].title : '予定タブから参加登録', go: function () { self.setState({ tab: 'cal', sub: null }); } };
     })(),
     weekCount: String(weekEv.length), boardNew: { n: String(recent.length), inis: inis.map(function (i) { return { i: i }; }), note: '募集・意見 ' + nr + ' · ペイン ' + np },
@@ -2051,7 +2062,7 @@ class Component extends DCLogic {
       return { id: t.id, name: t.name.replace(/^実務[：:・ ]*/, ''), jp: t.goal ? '到達：' + t.goal : '', kind: kindOf(t), mine: kindOf(t) === 'all' || myRoles.indexOf(t.name) >= 0, tree: t.tree || null, list: us, units: U }; });
     const curT = PT.find((t) => t.id === s.course) || PT.find((t) => t.mine && t.kind === 'choose') || PT[0];
     const progRow = D.items('program')[0], progTree = progRow && progRow.data && progRow.data.tree ? progRow.data.tree : null;
-    window.__PROG = { tracks: PT, program: progTree, roles: myRoles, v2: progRow && progRow.data && progRow.data.v2 ? progRow.data.v2 : null, today: new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10), cur: curT ? curT.id : null, key: JSON.stringify([progRow && progRow.data, PT.map((t) => [t.id, t.tree, Object.keys(t.units).map((c) => t.units[c].st)])]),
+    window.__PROG = { joined: (id) => D.mine(id, 'join'), join: (id) => D.toggle(id, 'join'), jkey: JSON.stringify(D.progEvents().map((e) => D.mine(e.id, 'join'))), tracks: PT, program: progTree, roles: myRoles, v2: progRow && progRow.data && progRow.data.v2 ? progRow.data.v2 : null, today: new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10), cur: curT ? curT.id : null, key: JSON.stringify([progRow && progRow.data, PT.map((t) => [t.id, t.tree, Object.keys(t.units).map((c) => t.units[c].st)])]),
       openTrack: (id) => this.setState({ sub: 'course', course: id, cnode: null }), openUnit: (tid, code) => this.setState({ sub: 'unit', unitT: tid, unitC: code }) };
     const KN = { all: '全員', choose: '選択', opt: '任意' };
     const crsKind = curT ? KN[curT.kind] : '', crsName = curT ? curT.name : '', crsJp = curT ? curT.jp : '', crsTot = curT ? Object.keys(curT.units).length : 0,
@@ -2371,8 +2382,11 @@ document.addEventListener('click',function(e){
   function leafRow(P, n, cur) {
     var isCur = n === cur, st = n._done ? 'done' : (n._lk ? 'locked' : 'open'), k = '';
     var dot = '<span class="pgd ' + st + '">' + (st === 'done' ? DOT.done : (st === 'locked' ? LOCK : '')) + '</span>';
-    if (n.k === 'e') { var when = n.from ? md(n.from) + (n.to && n.to !== n.from ? '–' + md(n.to) : '') : '';
-      return '<' + (n.link ? 'a href="' + esc(n.link) + '" target="_blank" rel="noopener"' : 'div') + ' class="pgu ev' + (isCur ? ' cur' : '') + '" data-st="' + st + '"><i class="nd ' + st + (isCur ? ' cur' : '') + '"></i>' + dot + '<span class="pgt">' + (when ? '<span class="pgc en">' + esc(when) + '</span>' : '') + '<span class="pgn en' + (/^[\x00-\x7F]+$/.test(n.name || '') ? ' lat' : '') + '">' + esc(n.name) + '</span>' + (n.todo && !n._done ? '<span class="pgm">' + esc(n.todo) + '</span>' : '') + '</span>' + (n.link ? CHEV : '') + '</' + (n.link ? 'a' : 'div') + '>'; }
+    if (n.k === 'e') { var when = n.from ? md(n.from) + (n.to && n.to !== n.from ? '–' + md(n.to) : '') : '', jid = 'pe:' + n.id, on = P.joined ? P.joined(jid) : false;
+      return '<div class="pgu ev' + (isCur ? ' cur' : '') + '" data-st="' + st + '"><i class="nd ' + st + (isCur ? ' cur' : '') + '"></i><span class="pgt">' + (when ? '<span class="pgc en">' + esc(when) + '</span>' : '') +
+        (n.link ? '<a class="pgn en' + (/^[\x00-\x7F]+$/.test(n.name || '') ? ' lat' : '') + '" href="' + esc(n.link) + '" target="_blank" rel="noopener">' + esc(n.name) + '</a>' : '<span class="pgn en' + (/^[\x00-\x7F]+$/.test(n.name || '') ? ' lat' : '') + '">' + esc(n.name) + '</span>') +
+        (n.todo && !n._done ? '<span class="pgm">' + esc(n.todo) + '</span>' : '') + '</span>' +
+        (!n._done && n.from && P.join ? '<button class="pgjoin' + (on ? ' on' : '') + '" data-pgj="' + esc(jid) + '">' + (on ? '登録済み' : '参加登録') + '</button>' : '') + '</div>'; }
     var u = tById(P, n.t).units[n.c];
     return '<button class="pgu' + (isCur ? ' cur' : '') + '" data-st="' + st + '" data-pgu="' + esc(n.c) + '" data-pgut="' + esc(n.t) + '"><i class="nd ' + st + (isCur ? ' cur' : '') + '"></i>' + dot + '<span class="pgt"><span class="pgc en">' + esc(n.c) + '</span><span class="pgn">' + esc(u.title) + '</span></span>' + CHEV + '</button>';
   }
@@ -2401,7 +2415,7 @@ document.addEventListener('click',function(e){
   function paint() {
     var P = window.__PROG; if (!P) return;
     var put = function (id, k, html) { var el = document.getElementById(id); if (el && el.dataset.k !== k) { el.dataset.k = k; el.innerHTML = html(); } };
-    P._v2 = null; put('progList', JSON.stringify([P.key, fold]), function () { return progHTML(P); });
+    P._v2 = null; put('progList', JSON.stringify([P.key, fold, P.jkey || '']), function () { return progHTML(P); });
     put('progOut', JSON.stringify([P.key, fold]), function () { return outHTML(P); });
     var t = tById(P, P.cur) || P.tracks[0]; if (t) put('progTree', JSON.stringify([P.key, P.cur, fold]), function () { return trackHTML(t); });
   }
@@ -2415,6 +2429,7 @@ document.addEventListener('click',function(e){
   new MutationObserver(function (ms) { var own = ms.every(function (m) { return m.target.classList && m.target.classList.contains('pgrail'); }); if (!own) paint(); }).observe(document.documentElement, { childList: true, subtree: true });
   document.addEventListener('click', function (e) {
     var f = e.target.closest && e.target.closest('[data-pgf]'), u = e.target.closest && e.target.closest('[data-pgu]'), c = e.target.closest && e.target.closest('[data-pgt]'), P = window.__PROG; if (!P) return;
+    var j = e.target.closest && e.target.closest('[data-pgj]'); if (j && P.join) { e.preventDefault(); P.join(j.dataset.pgj); return; }
     if (f) { e.preventDefault(); fold[f.dataset.pgf] = f.dataset.open ? f.dataset.open === 'true' : !fold[f.dataset.pgf]; paint(); return; }
     if (u) { e.preventDefault(); P.openUnit(u.dataset.pgut || P.cur, u.dataset.pgu); return; }
     if (c) { e.preventDefault(); P.openTrack(c.dataset.pgt); window.scrollTo(0, 0); }
