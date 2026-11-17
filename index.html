@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '67f47e9453', FILE = 'index.ver';
+  var VER = '5027407ffc', FILE = 'index.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -485,7 +485,13 @@ function memberExtras(v) {
     todayLabel: WDJ[now.getDay()] + ' · ' + (now.getMonth() + 1) + '.' + now.getDate(), hello: 'こんにちは、' + (self0.name || '') + 'さん',
     next: nextEv ? { has: true, label: 'NEXT · 部内イベント', title: nextEv.title, when: md(nextEv.end) + ' ' + wd(nextEv.end), left: String(Math.max(0, daysTo(nextEv.end))) } : { has: false, label: 'NEXT', title: '予定されているイベントはありません', when: '', left: '—' },
     learnCard: { n: rN ? rD + '/' + rN : '—', dash: (ring * pct).toFixed(1) + ' ' + ring.toFixed(1), track: myRole || 'ロール未設定', next: nextU ? nextU.code + '\n' + nextU.title : (roleT ? '全単元修了' : 'マイページでロールを選ぶ') },
-    tasks: tasks, hasTasks: tasks.length > 0, taskCount: String(tasks.length), taskNext: tasks.length ? '次の期限 ' + tasks[0].due : '担当中の業務はありません',
+    tasks: tasks, hasTasks: tasks.length > 0,
+    // ホームの右上のカード：業務を担当している人は「自分の業務」、それ以外は「参加予定」（参加登録したこれからのイベント）
+    card2: (function () {
+      if (tasks.length) return { label: '自分の業務', n: String(tasks.length), note: '次の期限 ' + tasks[0].due, go: function () { var el = document.querySelector('#stage .h2'); if (el) el.scrollIntoView({ behavior: 'smooth' }); } };
+      var js = D.events().filter(function (e) { return e.end >= today && D.mine(e.id, 'join'); });
+      return { label: '参加予定', n: String(js.length), note: js.length ? '次 ' + md(js[0].start || js[0].end) + ' ' + js[0].title : '予定タブから参加登録', go: function () { self.setState({ tab: 'cal', sub: null }); } };
+    })(),
     weekCount: String(weekEv.length), boardNew: { n: String(recent.length), inis: inis.map(function (i) { return { i: i }; }), note: '募集・意見 ' + nr + ' · ペイン ' + np },
     hasNews: false, notifs: notifs, hasNotifs: notifs.length > 0,
     level: { lv: String(Math.floor(allD / 4) + 1).padStart(2, '0'), track: myRole ? myRole + ' 受講中' : 'ロールを選んでください', ms: '修了 ' + allD + ' / ' + allN + ' 単元', w: (allN ? Math.round(allD / allN * 100) : 0) + '%' },
@@ -632,11 +638,11 @@ setInterval(window.__chrome, 400);
 </span>
 </button>
 
-<button onClick="{{ goHome }}" class="card" style="width: 100%; min-height: 148px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between; gap: 12px; text-align: left; color: #F3F1EC">
-<span style="display: flex; justify-content: space-between; align-items: center; width: 100%"><span style="font-size: 13px; font-weight: 700; color: #A3A19B">自分の業務</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5F5E5A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M7 17 17 7"></path><path d="M9 7h8v8"></path></svg></span>
+<button onClick="{{ card2.go }}" class="card" style="width: 100%; min-height: 148px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between; gap: 12px; text-align: left; color: #F3F1EC">
+<span style="display: flex; justify-content: space-between; align-items: center; width: 100%"><span style="font-size: 13px; font-weight: 700; color: #A3A19B">{{ card2.label }}</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5F5E5A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M7 17 17 7"></path><path d="M9 7h8v8"></path></svg></span>
 <span style="display: flex; flex-direction: column; gap: 6px">
-<span style="display: flex; align-items: baseline; gap: 4px"><span class="big" style="font-size: 46px; font-weight: 700; line-height: 0.9; color: #F2A93B">{{ taskCount }}</span><span style="font-size: 14px; color: #A3A19B">件</span></span>
-<span style="font-size: 13px; color: #BDBAB3">{{ taskNext }}</span>
+<span style="display: flex; align-items: baseline; gap: 4px"><span class="big" style="font-size: 46px; font-weight: 700; line-height: 0.9; color: #F2A93B">{{ card2.n }}</span><span style="font-size: 14px; color: #A3A19B">件</span></span>
+<span style="font-size: 13px; color: #BDBAB3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%">{{ card2.note }}</span>
 </span>
 </button>
 
@@ -2202,7 +2208,7 @@ class Component extends DCLogic {
       ti: { home: s.tab === 'home' ? RT : 'transparent', learn: s.tab === 'learn' ? RT : 'transparent', board: s.tab === 'board' ? RT : 'transparent', cal: s.tab === 'cal' ? RT : 'transparent', news: s.tab === 'news' ? RT : 'transparent' },
       tc: { home: s.tab === 'home' ? A : M, learn: s.tab === 'learn' ? A : M, board: s.tab === 'board' ? A : M, cal: s.tab === 'cal' ? A : M, news: s.tab === 'news' ? A : M },
       seg: { oBg: s.seg === 'other' ? '#F3F1EC' : 'transparent', oFg: s.seg === 'other' ? INK : '#BDBAB3', rBg: s.seg === 'recruit' ? '#F3F1EC' : 'transparent', rFg: s.seg === 'recruit' ? INK : '#BDBAB3', pBg: s.seg === 'pain' ? '#F3F1EC' : 'transparent', pFg: s.seg === 'pain' ? INK : '#BDBAB3', eBg: s.seg === 'event' ? '#F3F1EC' : 'transparent', eFg: s.seg === 'event' ? INK : '#BDBAB3' },
-      goHome: go('home'), goLearn: go('learn'), goBoard: () => { if (window.__track) window.__track('board'); this.setState({ tab: 'board', sub: null, seg: 'recruit' }); }, goCal: go('cal'), goMe: go('me'), goNews: go('news'), goPractice: () => this.setState({ tab: 'learn', sub: null, lseg: 'practice' }),
+      goHome: go('home'), goLearn: go('learn'), goBoard: () => { if (window.__track) window.__track('board'); this.setState({ tab: 'board', sub: null, seg: 'recruit' }); }, goCal: go('cal'), goJoin: go('cal'), goMe: go('me'), goNews: go('news'), goPractice: () => this.setState({ tab: 'learn', sub: null, lseg: 'practice' }),
       goBoardPain: () => this.setState({ tab: 'board', sub: null, seg: 'pain' }),
       back: () => this.setState({ sub: s.sub === 'unit' && s.ufrom === 'course' ? 'course' : null, ufrom: null }),
       openUnit: () => this.setState({ sub: 'unit' }),

@@ -232,7 +232,13 @@ function memberExtras(v) {
     todayLabel: WDJ[now.getDay()] + ' · ' + (now.getMonth() + 1) + '.' + now.getDate(), hello: 'こんにちは、' + (self0.name || '') + 'さん',
     next: nextEv ? { has: true, label: 'NEXT · 部内イベント', title: nextEv.title, when: md(nextEv.end) + ' ' + wd(nextEv.end), left: String(Math.max(0, daysTo(nextEv.end))) } : { has: false, label: 'NEXT', title: '予定されているイベントはありません', when: '', left: '—' },
     learnCard: { n: rN ? rD + '/' + rN : '—', dash: (ring * pct).toFixed(1) + ' ' + ring.toFixed(1), track: myRole || 'ロール未設定', next: nextU ? nextU.code + '\n' + nextU.title : (roleT ? '全単元修了' : 'マイページでロールを選ぶ') },
-    tasks: tasks, hasTasks: tasks.length > 0, taskCount: String(tasks.length), taskNext: tasks.length ? '次の期限 ' + tasks[0].due : '担当中の業務はありません',
+    tasks: tasks, hasTasks: tasks.length > 0,
+    // ホームの右上のカード：業務を担当している人は「自分の業務」、それ以外は「参加予定」（参加登録したこれからのイベント）
+    card2: (function () {
+      if (tasks.length) return { label: '自分の業務', n: String(tasks.length), note: '次の期限 ' + tasks[0].due, go: function () { var el = document.querySelector('#stage .h2'); if (el) el.scrollIntoView({ behavior: 'smooth' }); } };
+      var js = D.events().filter(function (e) { return e.end >= today && D.mine(e.id, 'join'); });
+      return { label: '参加予定', n: String(js.length), note: js.length ? '次 ' + md(js[0].start || js[0].end) + ' ' + js[0].title : '予定タブから参加登録', go: function () { self.setState({ tab: 'cal', sub: null }); } };
+    })(),
     weekCount: String(weekEv.length), boardNew: { n: String(recent.length), inis: inis.map(function (i) { return { i: i }; }), note: '募集・意見 ' + nr + ' · ペイン ' + np },
     hasNews: false, notifs: notifs, hasNotifs: notifs.length > 0,
     level: { lv: String(Math.floor(allD / 4) + 1).padStart(2, '0'), track: myRole ? myRole + ' 受講中' : 'ロールを選んでください', ms: '修了 ' + allD + ' / ' + allN + ' 単元', w: (allN ? Math.round(allD / allN * 100) : 0) + '%' },
