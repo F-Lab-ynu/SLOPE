@@ -225,13 +225,27 @@ function gate(kind, extra) {
 }
 function gateMsg(t, ok) { var m = document.getElementById('gmsg'); if (m) { m.textContent = t; m.className = 'gmsg' + (ok ? ' ok' : ''); } }
 
+// Googleから戻った直後にセッションの読み取りが遅れても、ログイン画面に戻さない
+async function getSessionSure() {
+  var s = await sb.auth.getSession(), session = s.data && s.data.session;
+  if (session) return session;
+  var h = new URLSearchParams(location.hash.slice(1)), q = new URLSearchParams(location.search);
+  if (h.get('error_description') || q.get('error_description')) { gate('login'); gateMsg(h.get('error_description') || q.get('error_description')); return null; }
+  if (h.get('access_token') && h.get('refresh_token')) {
+    var r = await sb.auth.setSession({ access_token: h.get('access_token'), refresh_token: h.get('refresh_token') });
+    if (r.data && r.data.session) return r.data.session;
+  }
+  if (q.get('code')) { var r2 = await sb.auth.exchangeCodeForSession(q.get('code')).catch(function () { return {}; }); if (r2.data && r2.data.session) return r2.data.session; }
+  for (var i = 0; i < 10 && (h.get('access_token') || q.get('code')); i++) { await new Promise(function (ok) { setTimeout(ok, 300); }); s = await sb.auth.getSession(); if (s.data && s.data.session) return s.data.session; }
+  return null;
+}
 async function boot() {
   try { var p = JSON.parse(localStorage.getItem(KEY + '-prefs')) || {}; Object.keys(p).forEach(function (k) { S[k] = p[k]; }); } catch (e) {}
   S.manualOrder = true;
   gate('loading');
-  var s = await sb.auth.getSession(), session = s.data && s.data.session;
+  var session = await getSessionSure();
   if (!session) { gate('login'); return; }
-  S.me = session.user.id;
+  if (S.me) return; S.me = session.user.id;
   if (location.hash || location.search) history.replaceState(null, '', location.pathname);
   try { await loadAll(); } catch (e) { gate('error', e.message); return; }
   if (!S.self) { gate('error', 'アカウント情報が見つかりません。管理者に連絡してください'); return; }
@@ -242,7 +256,7 @@ async function boot() {
   }
   gate(null); SYNC.ready = true; render(); subscribe();
 }
-sb.auth.onAuthStateChange(function (ev) { if (ev === 'SIGNED_OUT') location.replace(location.pathname); });
+sb.auth.onAuthStateChange(function (ev) { if (ev === 'SIGNED_OUT') location.replace(location.pathname); if (ev === 'SIGNED_IN' && !S.me && document.querySelector('[data-act=glogin]')) setTimeout(boot, 0); });
 
 
 // ---------- 教材・外部告知・掲示板（items 表） ----------

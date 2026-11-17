@@ -260,8 +260,13 @@ body.wide #wchrome{display:block}
   window.__memberBoot = async function () {
     gate('loading');
     var s = await sb.auth.getSession(), session = s.data && s.data.session;
+    if (!session) {
+      var h = new URLSearchParams(location.hash.slice(1));
+      if (h.get('access_token') && h.get('refresh_token')) { var r = await sb.auth.setSession({ access_token: h.get('access_token'), refresh_token: h.get('refresh_token') }); session = r.data && r.data.session; }
+      for (var i = 0; !session && i < 10 && h.get('access_token'); i++) { await new Promise(function (ok) { setTimeout(ok, 300); }); s = await sb.auth.getSession(); session = s.data && s.data.session; }
+    }
     if (!session) { gate('login'); return; }
-    DB.me = session.user.id;
+    if (DB.me) return; DB.me = session.user.id;
     if (location.hash) history.replaceState(null, '', location.pathname + location.search);
     try { await load(); } catch (e) { gate('error', e.message); return; }
     if (!DB.self) { gate('error', 'アカウント情報が見つかりません'); return; }
@@ -279,7 +284,7 @@ body.wide #wchrome{display:block}
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: 'to_id=eq.' + DB.me }, reload)
       .subscribe();
   };
-  sb.auth.onAuthStateChange(function (ev) { if (ev === 'SIGNED_OUT') location.replace(location.pathname); });
+  sb.auth.onAuthStateChange(function (ev) { if (ev === 'SIGNED_OUT') location.replace(location.pathname); if (ev === 'SIGNED_IN' && !DB.me && document.getElementById('gLogin')) setTimeout(window.__memberBoot, 0); });
 })();
 
 // ---------- 画面に追加で渡す値（ホーム・学習・予定・マイページ・投稿フォーム） ----------
