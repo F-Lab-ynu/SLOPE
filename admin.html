@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '5a02d2d8e7', FILE = 'admin.ver';
+  var VER = 'd4b861e2ec', FILE = 'admin.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -1472,6 +1472,9 @@ html,body{touch-action:manipulation}
 .anote{font-size:11px;color:var(--muted);padding:6px 14px 12px}
 .atab .hb .l{width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media (max-width:760px){ .acc{grid-template-columns:1fr} .abar em{font-size:9px} }
+.gl .check.wck{margin:0 4px 0 2px}
+.gr:not(.isf) .gname{cursor:pointer}
+.gr:not(.isf) .gname:hover{background:transparent;color:var(--accent);text-decoration:underline;text-underline-offset:3px}
 
 /* ===== 本番 ===== */
 [data-act="reset"]{display:none !important}
