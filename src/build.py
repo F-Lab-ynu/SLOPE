@@ -14,7 +14,7 @@ rep("""    var tn = todo.reduce""", """    if (isAdmin() && (S.pending || []).le
 rep('<div class="msw on" data-to="./"', '<div class="msw on" data-to="./"', 0) if False else None
 i = s.rindex("\nrender();")
 s = s[:i] + "\n" + js + "\nboot();" + s[i + len("\nrender();"):]
-rep("</style>", css + "</style>")
+s = s.replace("</style>", css + "</style>", 1)
 rep("<head>", "<head>\n<script src=\"https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js\"></script>")
 SNIP = "\n<script>\n// 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）\n(function () {\n  var VER = '__VER__', FILE = '__FILE__';\n  function check() {\n    fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {\n      v = (v || '').trim(); if (!v || v === VER) return;\n      var q = new URLSearchParams(location.search); if (q.get('v') === v) return;\n      location.replace(location.pathname + '?v=' + v + location.hash);\n    }).catch(function () {});\n  }\n  check(); document.addEventListener('visibilitychange', function () { if (!document.hidden) check(); });\n})();\n</script>\n"
 
@@ -26,5 +26,7 @@ def stamp(s, page, verfile):
     return s
 
 s = stamp(s, 'admin.html', 'admin.ver')
+s = s.replace('<html', '<html data-prod="1"', 1)  # 本番：起動ロゴは読み込みが終わるまで出す
 open('admin.html', 'w').write(s)
 print('built admin.html', len(s))
+

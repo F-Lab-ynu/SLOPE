@@ -130,11 +130,13 @@
   // ---------- ログイン前・承認待ち ----------
   function gate(kind, extra) {
     var g = document.getElementById('mgate');
+    if (kind === 'loading' && document.getElementById('boot')) return;
+    if (kind !== 'loading' && window.__bootDone) window.__bootDone();
     if (!kind) { if (g) g.remove(); return; }
     if (!g) { g = document.createElement('div'); g.id = 'mgate'; document.body.appendChild(g); }
     var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
     var body = '';
-    if (kind === 'loading') body = '<p class="gs">読み込み中…</p>';
+    if (kind === 'loading') { g.innerHTML = '<div id="boot" role="status" aria-label="読み込み中" style="--bootbg:#070707;--bootfg:#F3F1EC"><svg class="bootlogo" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4.5c5-1.4 13-1.4 18 0-.6 1.3-1.5 2.2-2.6 2.6-4.3-.7-8.5-.7-12.8 0C4.5 6.7 3.6 5.8 3 4.5z" fill="currentColor"/><path d="M7.3 9.2l7.2-.3-.6 1.9 3.6-.1-2.4 3.4-3.3.1L9.3 21z" fill="currentColor"/></svg></div>'; return; }
     if (kind === 'login') body = '<h1>ようこそ</h1><p class="gs">横浜国立大学 起業部のアプリです。</p><button class="gb" id="gLogin"><svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>Googleでログイン</button>';
     if (kind === 'pending') body = '<h1>承認待ち</h1><p class="gs">運営が承認すると使えるようになります。名前と学部・学年を入れておいてください。</p>' +
       '<label class="gf">名前<input id="gName" value="' + esc(extra && extra.name) + '"></label><label class="gf">学部・学年<input id="gGrade" placeholder="例：経営 1年" value="' + esc(extra && extra.grade) + '"></label>' +
