@@ -57,6 +57,11 @@ async def main():
         await pg.screenshot(path='/home/claude/audit/p_dash.png')
         await pg.click('[data-act=go][data-view=tracks]'); await pg.wait_for_timeout(300)
         await pg.screenshot(path='/home/claude/audit/p_tracks.png')
+        await pg.click('.p2tb [data-p2a=nf]'); await pg.wait_for_timeout(200); await pg.keyboard.type('仕上げ'); await pg.keyboard.press('Enter'); await pg.wait_for_timeout(200)
+        await pg.click('[data-p2a=nu]'); await pg.wait_for_timeout(200); await pg.keyboard.type('最終発表'); await pg.keyboard.press('Enter'); await pg.wait_for_timeout(1500)
+        print('program saved:', await pg.evaluate("(function(){var d=JSON.parse(localStorage.getItem('__fakedb')).items.filter(function(x){return x.kind==='program'})[0];return d?JSON.stringify(d.data.v2.map(function(n){return n.name||n.c})):'none'})()"))
+        print('unit saved:', await pg.evaluate("JSON.parse(localStorage.getItem('__fakedb')).items.filter(function(x){return x.kind==='track'}).map(function(x){return x.data.name+':'+(x.data.list||[]).map(function(u){return u.title}).join('/')}).join(' | ')"))
+        await pg.screenshot(path='/home/claude/audit/p_tracks2.png')
         # 部員画面
         m = await page_as(b, A, dict(width=390, height=844), errs, '')
         await m.wait_for_timeout(900)
