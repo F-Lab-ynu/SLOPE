@@ -51,7 +51,7 @@
       ITEMS.filter(function (x) { return (x.kind === 'notice' || x.kind === 'offer') && DB.mine(x.id, 'plan'); }).forEach(function (x) {
         var d = x.data || {}; if (/^\d{4}-\d{2}-\d{2}$/.test(d.due || '')) out.push({ date: d.due, type: '外部', title: d.title, time: '締切', place: d.host || '', joinId: x.id, joinKind: 'plan' });
       });
-      DB.myTasks().forEach(function (t) { out.push({ date: t.end, type: '教育', title: t.title + '（期限）', time: '', place: t.event, joinId: null }); });
+      DB.myTasks().filter(function (t) { return !t.nodate; }).forEach(function (t) { out.push({ date: t.end, type: '教育', title: t.title + '（期限）', time: '', place: t.event, joinId: null }); });
       return out;
     },
     myTasks: function () {
@@ -59,8 +59,8 @@
       var hasKids = {}; NODES.forEach(function (n) { if (n.parent_id) hasKids[n.parent_id] = 1; });
       var root = function (n) { var x = n && by[n.parent_id]; while (x) { if (x.kind === 'event') return x; x = by[x.parent_id]; } return by[n.parent_id] || n; };
       return NODES.filter(function (n) { return n.who === DB.me && !n.done && !hasKids[n.id] && n.parent_id && !(n.data && n.data.folder); })
-        .sort(function (a, b) { return a.end_date < b.end_date ? -1 : 1; })
-        .map(function (n) { return { id: n.id, title: n.title, end: n.end_date, event: (root(n) || {}).title || '', parent: by[n.parent_id] }; });
+        .sort(function (a, b) { var na = !!(a.data && a.data.nodate), nb = !!(b.data && b.data.nodate); if (na !== nb) return na ? 1 : -1; return a.end_date < b.end_date ? -1 : 1; })
+        .map(function (n) { return { id: n.id, title: n.title, end: n.end_date, nodate: !!(n.data && n.data.nodate), event: (root(n) || {}).title || '', parent: by[n.parent_id] }; });
     },
     notifs: function () { return NOTIFS; },
     flash: function (msg) {
@@ -179,7 +179,7 @@ function memberExtras(v) {
 
   // ホーム
   var nextEv = D.events().filter(function (e) { return e.end >= today; })[0];
-  var tasks = D.myTasks().map(function (t, i, arr) { var dl = daysTo(t.end); return { title: t.title, event: t.event, due: md(t.end) + ' ' + wd(t.end), dueColor: dl < 0 ? '#FF5C66' : (dl <= 3 ? RT : '#BDBAB3'), late: dl < 0, sep: i < arr.length - 1 ? '1px solid #252524' : '0', done: function () { D.complete(t); } }; });
+  var tasks = D.myTasks().map(function (t, i, arr) { var dl = t.nodate ? 999 : daysTo(t.end); return { title: t.title, event: t.event, due: t.nodate ? '期間未定' : md(t.end) + ' ' + wd(t.end), dueColor: dl < 0 ? '#FF5C66' : (dl <= 3 ? RT : '#BDBAB3'), late: dl < 0, sep: i < arr.length - 1 ? '1px solid #252524' : '0', done: function () { D.complete(t); } }; });
   var weekEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (6 - now.getDay()));
   var we = weekEnd.getFullYear() + '-' + String(weekEnd.getMonth() + 1).padStart(2, '0') + '-' + String(weekEnd.getDate()).padStart(2, '0');
   var weekEv = D.calendar().filter(function (e) { return e.date >= today && e.date <= we; });

@@ -39,7 +39,10 @@ async def main():
         await pg.click('.fadd'); await pg.click('.fadd [data-act=newF]'); await pg.wait_for_timeout(300)
         await pg.fill('#wT', 'MIRA 2026'); await pg.click('[data-act=wSave]'); await pg.wait_for_timeout(400)
         await pg.click('.fadd'); await pg.click('.fadd [data-act=newT]'); await pg.wait_for_timeout(300)
-        await pg.fill('#wT', '会場の予約'); await pg.fill('#wM', 'A会館に電話'); await pg.click('[data-act=wSave]'); await pg.wait_for_timeout(600)
+        await pg.fill('#wT', '会場の予約'); await pg.click('[data-act=wSave]'); await pg.wait_for_timeout(400)
+        await pg.click('.fcard:has-text("会場の予約")'); await pg.wait_for_timeout(300)
+        await pg.click('#fdoc'); await pg.keyboard.type('-'); await pg.keyboard.press('Space'); await pg.keyboard.type('A会館に電話'); await pg.click('.fh2'); await pg.wait_for_timeout(900)
+        await pg.click('.crumb button:has-text("2026起業部")'); await pg.wait_for_timeout(300)
         db = json.loads(await pg.evaluate("localStorage.getItem('__fakedb')"))
         rows = {n['title']: n for n in db['nodes']}
         print('nodes', sorted(rows), 'root kind', rows.get('2026起業部', {}).get('kind'), 'leads', rows.get('2026起業部', {}).get('data'), 'mira', rows.get('MIRA 2026', {}).get('data'), 'file memo', rows.get('会場の予約', {}).get('data'))
