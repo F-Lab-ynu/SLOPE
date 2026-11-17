@@ -177,6 +177,18 @@
       deps: (csn.deps || []).filter((d) => d !== 'in').length || (csn.ext || []).length ? (csn.deps || []).filter((d) => d !== 'in').map((d) => (cById[d] ? cById[d].n.label : d)).concat(csn.ext || []).join(' ＋ ') : 'なし（トラックの起点）',
       next: cKids.length ? cKids.join(' / ') : 'なし（トラックの終点）', isUnit: isUnit(csn), open: ck && isUnit(csn) ? openUnitBy(cc.t, csn.id) : () => {} };
 
+    // ---- プログラム（入れ子＋左のバー）に渡すデータ。種類は運営画面で選ぶ（名前では決めない） ----
+    const kindOf = (t) => t.kind || (isBase(t) ? 'all' : (isPrac(t) ? 'opt' : 'choose'));
+    const PT = T.map((t) => { const us = unitsOf(t), U = {};
+      us.forEach((u) => { const st = stOf(t, u); U[u.code] = { title: u.title, meta: (D.unitData(t, u.code).milestone || u.tags.join(' · ')), st: st }; });
+      return { id: t.id, name: t.name.replace(/^実務[：:・ ]*/, ''), jp: t.goal ? '到達：' + t.goal : '', kind: kindOf(t), mine: kindOf(t) === 'all' || myRoles.indexOf(t.name) >= 0, tree: t.tree || null, list: us, units: U }; });
+    const curT = PT.find((t) => t.id === s.course) || PT.find((t) => t.mine && t.kind === 'choose') || PT[0];
+    window.__PROG = { tracks: PT, cur: curT ? curT.id : null, key: D.ver ? D.ver() : JSON.stringify(PT.map((t) => [t.id, t.tree, Object.keys(t.units).map((c) => t.units[c].st)])),
+      openTrack: (id) => this.setState({ sub: 'course', course: id, cnode: null }), openUnit: (tid, code) => this.setState({ sub: 'unit', unitT: tid, unitC: code, ufrom: 'course' }) };
+    const KN = { all: '全員が受ける', choose: 'ロールトラック', opt: '必要になったら' };
+    const crsKind = curT ? KN[curT.kind] : '', crsName = curT ? curT.name : '', crsJp = curT ? curT.jp : '', crsTot = curT ? Object.keys(curT.units).length : 0,
+      crsDone = curT ? Object.keys(curT.units).filter((c) => curT.units[c].st === 'done').length : 0, crsMine = curT ? curT.mine : false;
+
     // ---- 実務教育・すべての単元 ----
     const pracGroups = pracTs.map((t) => { const us = unitsOf(t); return { name: t.name.replace(/^実務[：:・ ]*/, '') + ' · ' + us.length + ' 単元', items: us.map((u, i) => ({ code: u.code, title: u.title, sep: sep(i, us.length), open: openUnitBy(t, u.code) })) }; });
     const pracNote = pracTs.length ? pracTs.map((t) => t.name.replace(/^実務[：:・ ]*/, '') + ' ' + unitsOf(t).length).join(' · ') : 'まだありません';

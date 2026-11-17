@@ -96,13 +96,17 @@ async def main():
         # 学ぶ
         await pg.click('#stage nav button:has-text("学ぶ")'); await pg.wait_for_timeout(300)
         await pg.screenshot(path='/tmp/m7.png', full_page=True)
-        await pg.click('#stage button[aria-label="基礎教育を開閉"]'); await pg.wait_for_timeout(200)
+        await pg.click('#stage [data-pgt]'); await pg.wait_for_timeout(300)
+        await pg.screenshot(path='/tmp/m7b.png', full_page=True)
         await pg.click('#stage button:has-text("起業の地図")'); await pg.wait_for_timeout(300)
         await pg.click('#stage button:has-text("修了にする")'); await pg.wait_for_timeout(300)
         print('unit done:', [(r['item_id'], r['kind']) for r in await db(pg, 'reactions') if r['kind'] == 'done'])
         await pg.screenshot(path='/tmp/m8.png')
         # マイページ
         await pg.click('#stage button[aria-label="戻る"]'); await pg.wait_for_timeout(200)
+        print('after done rail:', await pg.locator('#stage .pgu .pgd.done').count())
+        await pg.click('#stage button[aria-label="戻る"]'); await pg.wait_for_timeout(200)
+        print('list cards:', await pg.locator('#stage [data-pgt]').count())
         await pg.click('#stage button[aria-label="マイページ"]'); await pg.wait_for_timeout(300)
         await pg.click('#stage button:has-text("Negotiator")'); await pg.wait_for_timeout(400)
         print('roles:', [p['roles'] for p in await db(pg, 'profiles') if p['id'] == B], 'ops section shown:', await pg.locator('#stage a[href="admin.html"]').count())

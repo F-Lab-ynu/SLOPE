@@ -88,16 +88,16 @@ TASKS = '''<sc-if value="{{ hasTasks }}">
 rep('<div style="display: flex; flex-direction: column; gap: 4px; padding: 4px 4px 0">\n<div class="tv" ref="{{ mk.homeRef }}"', TASKS + '<div style="display: flex; flex-direction: column; gap: 4px; padding: 4px 4px 0">\n<div class="tv" ref="{{ mk.homeRef }}"')
 
 # ---------- 学ぶ ----------
-rep('<span class="en" style="margin-left: 6px; font-size: 13px; padding: 1px 6px; border-radius: 6px; background: #F2A93B; color: #070707">2</span>', '<sc-if value="{{ hasPracBadge }}"><span class="en" style="margin-left: 6px; font-size: 13px; padding: 1px 6px; border-radius: 6px; background: #F2A93B; color: #070707">{{ pracBadge }}</span></sc-if>')
-rep('line-height: 1; color: #F3F1EC">02</span>', 'line-height: 1; color: #F3F1EC">{{ level.lv }}</span>')
-rep('<div style="font-weight: 700">Strategist 受講中</div>', '<div style="font-weight: 700">{{ level.track }}</div>')
-rep('color: #BDBAB3">マイルストーン 6 / 14 達成</div>', 'color: #BDBAB3">{{ level.ms }}</div>')
-rep('<div style="width: 43%; height: 100%; background: #F3F1EC"></div>', '<div style="width: {{ level.w }}; height: 100%; background: #F3F1EC"></div>')
-rep('color: #BDBAB3">8 / 8 修了 · LUNA 修了</span>', 'color: #BDBAB3">{{ baseNote }}</span>')
-rep('<span class="en" style="font-size: 16px; font-weight: 700; color: #F3F1EC">100%</span>', '<span class="en" style="font-size: 16px; font-weight: 700; color: #F3F1EC">{{ basePct }}</span>')
-rep('<div style="height: 3px; background: #222221"><div style="width: 100%; height: 100%; background: #F3F1EC"></div></div>', '<div style="height: 3px; background: #222221"><div style="width: {{ basePct }}; height: 100%; background: #F3F1EC"></div></div>')
-rep('<span class="lbl">受講中：Strategist</span>', '<span class="lbl">{{ roleNote }}</span>')
-rep('<span class="en" style="font-size: 16px; font-weight: 700; color: #F3F1EC">29%</span>', '<span class="en" style="font-size: 16px; font-weight: 700; color: #F3F1EC">{{ rolePct }}</span>')
+# (演習タブは廃止) rep('<span class="en" style="margin-left: 6px; font-size: 13px; padding: 1px 6px; border-radius: 6px; background: #F2A93B; color: #070707">2</span>', '<sc-if value="{{ hasPracBadge }}"><span class="en" style="margin-left: 6px; font-size: 13px; padding: 1px 6px; border-radius: 6px; background: #F2A93B; color: #070707">{{ pracBadge }}</span></sc-if>')
+# (学ぶタブ作り替えで不要) rep('line-height: 1; color: #F3F1EC">02</span>', 'line-height: 1; color: #F3F1EC">{{ level.lv }}</span>')
+# (学ぶタブ作り替えで不要) rep('<div style="font-weight: 700">Strategist 受講中</div>', '<div style="font-weight: 700">{{ level.track }}</div>')
+# (学ぶタブ作り替えで不要) rep('color: #BDBAB3">マイルストーン 6 / 14 達成</div>', 'color: #BDBAB3">{{ level.ms }}</div>')
+# (学ぶタブ作り替えで不要) rep('<div style="width: 43%; height: 100%; background: #F3F1EC"></div>', '<div style="width: {{ level.w }}; height: 100%; background: #F3F1EC"></div>')
+# (学ぶタブ作り替えで不要) rep('color: #BDBAB3">8 / 8 修了 · LUNA 修了</span>', 'color: #BDBAB3">{{ baseNote }}</span>')
+# (学ぶタブ作り替えで不要) rep('<span class="en" style="font-size: 16px; font-weight: 700; color: #F3F1EC">100%</span>', '<span class="en" style="font-size: 16px; font-weight: 700; color: #F3F1EC">{{ basePct }}</span>')
+# (学ぶタブ作り替えで不要) rep('<div style="height: 3px; background: #222221"><div style="width: 100%; height: 100%; background: #F3F1EC"></div></div>', '<div style="height: 3px; background: #222221"><div style="width: {{ basePct }}; height: 100%; background: #F3F1EC"></div></div>')
+# (学ぶタブ作り替えで不要) rep('<span class="lbl">受講中：Strategist</span>', '<span class="lbl">{{ roleNote }}</span>')
+# (学ぶタブ作り替えで不要) rep('<span class="en" style="font-size: 16px; font-weight: 700; color: #F3F1EC">29%</span>', '<span class="en" style="font-size: 16px; font-weight: 700; color: #F3F1EC">{{ rolePct }}</span>')
 # 単元を開くボタンは各行の単元へ
 lines = s.split('\n'); out = []; loopvar = None
 for l in lines:
@@ -122,7 +122,7 @@ rline('<span>締切 11.20 FRI 23:59</span><span>提出 9 / 14</span>', '<span></
 rline('font-size: 16px">提出する</button>', '<button onClick="{{ unit.toggle }}" style="height: 48px; border: 1px solid #F3F1EC; border-radius: 8px; background: {{ unit.doneBg }}; color: {{ unit.doneFg }}; font-weight: 700; font-size: 16px">{{ unit.doneLabel }}</button>')
 rep('<span style="font-weight: 500">ST-02 競争優位の源泉を説明できる</span>', '<span style="font-weight: 500">{{ unit.milestone }}</span>')
 # 路線図：選んだ単元を開く
-rep('<span style="color: #A3A19B">後続</span><span style="color: #E9E6DF">{{ cSel.next }}</span>\n</div>', '<span style="color: #A3A19B">後続</span><span style="color: #E9E6DF">{{ cSel.next }}</span>\n</div>\n<sc-if value="{{ cSel.isUnit }}"><button onClick="{{ cSel.open }}" style="height: 44px; border: 0; border-radius: 8px; background: #F3F1EC; color: #070707; font-weight: 700; font-size: 15px">単元を開く</button></sc-if>')
+# (学ぶタブ作り替えで不要) rep('<span style="color: #A3A19B">後続</span><span style="color: #E9E6DF">{{ cSel.next }}</span>\n</div>', '<span style="color: #A3A19B">後続</span><span style="color: #E9E6DF">{{ cSel.next }}</span>\n</div>\n<sc-if value="{{ cSel.isUnit }}"><button onClick="{{ cSel.open }}" style="height: 44px; border: 0; border-radius: 8px; background: #F3F1EC; color: #070707; font-weight: 700; font-size: 15px">単元を開く</button></sc-if>')
 
 # ---------- 掲示板 ----------
 rep('<button style="flex: 1; height: 44px; border-radius: 6px; border: 1px solid #383836; background: #1C1C1B; color: #F3F1EC; font-weight: 700; font-size: 14px">詳細を見る</button>', '<button onClick="{{ x.detailGo }}" style="flex: 1; height: 44px; border-radius: 6px; border: 1px solid #383836; background: #1C1C1B; color: #F3F1EC; font-weight: 700; font-size: 14px">詳細を見る</button>')
