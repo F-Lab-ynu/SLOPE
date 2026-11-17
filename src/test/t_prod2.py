@@ -62,6 +62,11 @@ async def main():
         print('program saved:', await pg.evaluate("(function(){var d=JSON.parse(localStorage.getItem('__fakedb')).items.filter(function(x){return x.kind==='program'})[0];return d?JSON.stringify(d.data.v2.map(function(n){return n.name||n.c})):'none'})()"))
         print('unit saved:', await pg.evaluate("JSON.parse(localStorage.getItem('__fakedb')).items.filter(function(x){return x.kind==='track'}).map(function(x){return x.data.name+':'+(x.data.list||[]).map(function(u){return u.title}).join('/')}).join(' | ')"))
         await pg.screenshot(path='/home/claude/audit/p_tracks2.png')
+        await pg.wait_for_timeout(3500)
+        fr = pg.frame_locator('#p2pvf iframe')
+        fr2 = [f for f in pg.frames if 'embed' in f.url]; print('frame url:', [f.url for f in pg.frames]); print('tab:', await fr2[0].evaluate('window.__comp && window.__comp.state.tab') if fr2 else None)
+        print('embed program rows:', await fr.locator('.pgu, .pgbh').count(), 'final:', await fr.locator('.pgu:has-text("最終発表")').count())
+        await pg.screenshot(path='/home/claude/audit/p_tracks3.png')
         # 部員画面
         m = await page_as(b, A, dict(width=390, height=844), errs, '')
         await m.wait_for_timeout(900)

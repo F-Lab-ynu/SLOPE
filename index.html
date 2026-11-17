@@ -4,12 +4,12 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = 'e9614cd1cc', FILE = 'index.ver';
+  var VER = '0143c73b10', FILE = 'index.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
       var q = new URLSearchParams(location.search); if (q.get('v') === v) return;
-      location.replace(location.pathname + '?v=' + v + location.hash);
+      q.set('v', v); location.replace(location.pathname + '?' + q.toString() + location.hash);
     }).catch(function () {});
   }
   check(); document.addEventListener('visibilitychange', function () { if (!document.hidden) check(); });
@@ -425,7 +425,7 @@ a.pgn{color:inherit}
       var t = setInterval(async function () { var r = await sb.from('profiles').select('approved').eq('id', DB.me).single(); if (r.data && r.data.approved) { clearInterval(t); location.reload(); } }, 10000);
       return;
     }
-    gate(null); bump(); window.__track('open'); window.__track('home');
+    gate(null); if ((/[?&]tab=learn/.test(location.search) || /^#learn/.test(location.hash)) && window.__comp) window.__comp.setState({ tab: 'learn', sub: null }); bump(); window.__track('open'); window.__track('home');
     document.addEventListener('visibilitychange', function () { if (!document.hidden) window.__track('open'); });
     sb.channel('slope-member')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'items' }, reload)
@@ -570,7 +570,7 @@ function __trackMk(sb, app) {
     try { sb.from('visits').insert({ app: app, tab: tab }).then(function () {}, function () {}); } catch (e) {}
   };
 }
-window.__track = function (tab) { (window.__trk = window.__trk || __trackMk(window.sb, 'member'))(tab); };
+window.__track = function (tab) { if (/[?&]embed=1/.test(location.search)) return; (window.__trk = window.__trk || __trackMk(window.sb, 'member'))(tab); };
 
 // PC の左下アカウント表示を本人の情報に
 window.__chrome = function () { var D = window.DB; if (!D || !D.self) return; var a = document.getElementById('wAv'), n = document.getElementById('wName'), sb2 = document.getElementById('wSub'), m = document.getElementById('wMode');
@@ -1862,7 +1862,7 @@ var MK_PRESETS = [
 class Component extends DCLogic {
   constructor(props) {
     super(props);
-    this.state = { tab: 'home', sub: null, seg: 'recruit', post: 'r1', emp: {}, joined: {}, day: 21, lens: 'すべて', course: 'S', cnode: null, lseg: 'study', libf: 'all', reviewed: {}, bfilter: 'all', accBase: false, exf: 'all', enType: 'ビジコン', accRole: true, np: 'idea', npFrame: '実プロジェクト枠', npRoles: {}, npEnd: null, src: '聞き取り', sev: 2, anon: true, nf: 'すべて', news: 'n1', fo: null, ps: '共感順', accPrac: true, likes: {} };
+    this.state = { tab: /[?&]tab=learn/.test(location.search) || /^#learn/.test(location.hash) ? 'learn' : 'home', sub: null, seg: 'recruit', post: 'r1', emp: {}, joined: {}, day: 21, lens: 'すべて', course: 'S', cnode: null, lseg: 'study', libf: 'all', reviewed: {}, bfilter: 'all', accBase: false, exf: 'all', enType: 'ビジコン', accRole: true, np: 'idea', npFrame: '実プロジェクト枠', npRoles: {}, npEnd: null, src: '聞き取り', sev: 2, anon: true, nf: 'すべて', news: 'n1', fo: null, ps: '共感順', accPrac: true, likes: {} };
     try { const sv = JSON.parse(localStorage.getItem('slope-mk-v1')); if (Array.isArray(sv)) { const ok = sv.filter((x) => x && x.s !== 'TVC:US10Y'); if (ok.length) this.state.mkSyms = ok; } } catch (e) {}
     if (!this.state.mkSyms) this.state.mkSyms = MK_DEFAULT.slice();
     try {

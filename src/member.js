@@ -163,7 +163,7 @@
       var t = setInterval(async function () { var r = await sb.from('profiles').select('approved').eq('id', DB.me).single(); if (r.data && r.data.approved) { clearInterval(t); location.reload(); } }, 10000);
       return;
     }
-    gate(null); bump(); window.__track('open'); window.__track('home');
+    gate(null); if ((/[?&]tab=learn/.test(location.search) || /^#learn/.test(location.hash)) && window.__comp) window.__comp.setState({ tab: 'learn', sub: null }); bump(); window.__track('open'); window.__track('home');
     document.addEventListener('visibilitychange', function () { if (!document.hidden) window.__track('open'); });
     sb.channel('slope-member')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'items' }, reload)
@@ -308,4 +308,4 @@ function __trackMk(sb, app) {
     try { sb.from('visits').insert({ app: app, tab: tab }).then(function () {}, function () {}); } catch (e) {}
   };
 }
-window.__track = function (tab) { (window.__trk = window.__trk || __trackMk(window.sb, 'member'))(tab); };
+window.__track = function (tab) { if (/[?&]embed=1/.test(location.search)) return; (window.__trk = window.__trk || __trackMk(window.sb, 'member'))(tab); };
