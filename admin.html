@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '80f5e2a909', FILE = 'admin.ver';
+  var VER = 'a8071daa48', FILE = 'admin.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -1556,6 +1556,10 @@ body.mvin .mvline{display:none !important}
 .gr .bar.sum,.gr.g0 .bar.sum{top:7px;height:26px;border-radius:5px}
 .ftn.mine span{font-weight:600}
 .ftn.mine::after{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:var(--accent);margin-left:6px}
+/* ux41 ドラッグ中の元の行：行ごと透かさず、中身だけ薄く（固定の名前欄の後ろが透けないように） */
+.gg .gr.mvsrc{opacity:1}
+.gg .gr.mvsrc > .gl > *:not(.lwh),.gg .gr.mvsrc > .gt > *{opacity:.35}
+.gg .gr.mvsrc > .gl{background:#F9FAFB !important}
 
 /* ===== 本番 ===== */
 [data-act="reset"]{display:none !important}
