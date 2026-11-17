@@ -30,6 +30,8 @@ s = s[:i] + DATA + s[j:]
 rline('<span class="lbl" style="padding-left: 2px">FRI · 11.13</span>', '<span class="lbl" style="padding-left: 2px">{{ todayLabel }}</span>')
 rep('const go = (tab) => () => this.setState({ tab: tab, sub: null });', 'const go = (tab) => () => { if (window.__track) window.__track(tab); this.setState({ tab: tab, sub: null }); };')
 rep("goBoard: () => this.setState({ tab: 'board', sub: null, seg: 'recruit' })", "goBoard: () => { if (window.__track) window.__track('board'); this.setState({ tab: 'board', sub: null, seg: 'recruit' }); }")
+rep('<div class="grid" style="position: relative; width: 350px; height: {{ crs.h }}; border-radius: 12px; border: 1px solid #1C1C1B; overflow: hidden">\n<svg width="350" height="{{ crs.hn }}" viewBox="0 0 350 {{ crs.hn }}"', '<div class="crsx" data-k="{{ crs.key }}" style="overflow-x: auto; overflow-y: hidden; max-width: 100%; -webkit-overflow-scrolling: touch; scrollbar-width: none; border-radius: 12px">\n<div class="grid" style="position: relative; width: {{ crs.w }}; height: {{ crs.h }}; border-radius: 12px; border: 1px solid #1C1C1B; overflow: hidden">\n<svg width="{{ crs.wn }}" height="{{ crs.hn }}" viewBox="0 0 {{ crs.wn }} {{ crs.hn }}"')
+rep('</sc-for>\n</div>\n\n<div style="display: flex; gap: 12px; flex-wrap: wrap; font-size: 13px; color: #BDBAB3">', '</sc-for>\n</div>\n</div>\n\n<div style="display: flex; gap: 12px; flex-wrap: wrap; font-size: 13px; color: #BDBAB3">')
 rep('line-height: 1.3">こんにちは、太郎さん</h1>', 'line-height: 1.3">{{ hello }}</h1>')
 rep('color: #F2A93B">NEXT · 部内イベント</span>', 'color: #F2A93B">{{ next.label }}</span>')
 rep('<span style="font-size: 21px; font-weight: 700; line-height: 1.3">MIRA エントリー締切</span>', '<span style="font-size: 21px; font-weight: 700; line-height: 1.3">{{ next.title }}</span>')
@@ -233,6 +235,23 @@ CHROME = '''
 window.__chrome = function () { var D = window.DB; if (!D || !D.self) return; var a = document.getElementById('wAv'), n = document.getElementById('wName'), sb2 = document.getElementById('wSub'), m = document.getElementById('wMode');
   if (a) a.textContent = D.ini(D.me); if (n) n.textContent = D.self.name; if (sb2) sb2.textContent = D.self.grade || ''; if (m) m.style.display = D.isOps() ? '' : 'none'; };
 setInterval(window.__chrome, 400);
+// トラックの図：横にはみ出すときは横スクロール。開いたら選んでいる駅まで寄せ、右に続きがあるときは端をぼかす
+(function () {
+  var lastK = null;
+  function fade(el) { var more = el.scrollWidth > el.clientWidth + 2 && el.scrollLeft + el.clientWidth < el.scrollWidth - 2, less = el.scrollLeft > 2;
+    var m = more && less ? 'linear-gradient(90deg,transparent,#000 24px,#000 calc(100% - 32px),transparent)' : more ? 'linear-gradient(90deg,#000 calc(100% - 32px),transparent)' : less ? 'linear-gradient(90deg,transparent,#000 24px)' : '';
+    el.style.webkitMaskImage = m; el.style.maskImage = m; }
+  setInterval(function () {
+    var el = document.querySelector('.crsx'); if (!el) { lastK = null; return; }
+    if (el.dataset.k !== lastK) {
+      lastK = el.dataset.k;
+      var sel = Array.prototype.filter.call(el.querySelectorAll('button'), function (b) { return /0\.05\)/.test(b.style.background); })[0];
+      if (sel && el.scrollWidth > el.clientWidth) { var r = sel.getBoundingClientRect(), er = el.getBoundingClientRect(); el.scrollLeft += (r.left + Math.min(r.width, 160) / 2) - (er.left + er.width / 2); }
+    }
+    fade(el);
+  }, 300);
+  document.addEventListener('scroll', function (e) { if (e.target.classList && e.target.classList.contains('crsx')) fade(e.target); }, true);
+})();
 '''
 k = s.index('<div id="stage"></div>')
 s = s[:k] + '<script>\n' + MJS + CHROME + '\n</script>\n' + s[k:]

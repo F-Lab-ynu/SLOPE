@@ -125,9 +125,9 @@
       const L = {}; const lv = (c, seen) => { if (L[c] != null) return L[c]; if (seen[c]) return 1; seen[c] = 1; const ds = by[c].deps.filter((d) => by[d]); L[c] = ds.length ? 1 + Math.max(...ds.map((d) => lv(d, seen))) : 1; return L[c]; };
       us.forEach((u) => lv(u.code, {}));
       const perL = {}, lane = {};
-      us.forEach((u) => { const l = L[u.code]; lane[u.code] = Math.min(2, perL[l] || 0); perL[l] = (perL[l] || 0) + 1; });
+      us.forEach((u) => { const l = L[u.code]; lane[u.code] = perL[l] || 0; perL[l] = (perL[l] || 0) + 1; });
       const maxL = us.length ? Math.max(...us.map((u) => L[u.code])) : 0;
-      const lanes = Math.max(1, Math.min(3, ...[1].concat(Object.values(perL))));
+      const lanes = Math.max(1, ...[1].concat(Object.values(perL)));
       const kids = {}; us.forEach((u) => u.deps.forEach((d) => { if (by[d]) kids[d] = 1; }));
       const nodes = [{ id: 'in', label: t.start || 'START', sub: 'START', L: 0, lane: 0, k: 'gate', st: 'done', deps: [] }]
         .concat(us.map((u) => ({ id: u.code, label: u.title, sub: u.code + (u.tags.length ? ' · ' + u.tags.join(' · ') : ''), L: L[u.code], lane: lane[u.code], st: stOf(t, u), deps: u.deps.filter((d) => by[d]).length ? u.deps.filter((d) => by[d]) : ['in'], ext: u.deps.filter((d) => !by[d]) })))
@@ -146,8 +146,10 @@
     const ck = COURSES[s.course] ? s.course : (roleTs[0] && roleTs[0].id);
     const cc = ck ? COURSES[ck] : { name: '', jp: '', lanes: 1, nodes: [{ id: 'in', label: '', sub: '', L: 0, lane: 0, k: 'gate', st: 'done', deps: [] }] };
     const TOP = 24, RY = 92, BH = 56;
-    const laneX = cc.lanes === 1 ? [28] : (cc.lanes === 2 ? [28, 190] : [28, 136, 244]);
-    const laneW = cc.lanes === 2 ? 158 : 106;
+    // 並列が4本以上のときは横に広げて、横スクロールで見る
+    const laneX = cc.lanes === 1 ? [28] : (cc.lanes === 2 ? [28, 190] : (cc.lanes === 3 ? [28, 136, 244] : Array.from({ length: cc.lanes }, (_, i) => 28 + i * 150)));
+    const laneW = cc.lanes === 2 ? 158 : (cc.lanes === 3 ? 106 : 136);
+    const mapW = Math.max(350, laneX[laneX.length - 1] + laneW + 8);
     const perL2 = {}; cc.nodes.forEach((n) => { perL2[n.L] = (perL2[n.L] || 0) + 1; });
     const cById = {}; let maxL2 = 0;
     cc.nodes.forEach((n) => { maxL2 = Math.max(maxL2, n.L); cById[n.id] = { n: n, solo: perL2[n.L] === 1, dx: laneX[Math.min(n.lane || 0, laneX.length - 1)], cy: TOP + n.L * RY + BH / 2, top: TOP + n.L * RY }; });
@@ -158,7 +160,7 @@
     const firstPick = cc.nodes.find((n) => isUnit(n) && n.st === 'open') || cc.nodes.find(isUnit) || cc.nodes[0];
     const cSelId = s.cnode && cById[s.cnode] ? s.cnode : firstPick.id;
     const crsNodes = cc.nodes.map((n) => {
-      const pos = cById[n.id], start = n.id === 'in', goal = n.id === 'out', sel = n.id === cSelId, size = start || goal ? 22 : 14, narrow = !pos.solo && cc.lanes === 3, st = n.st;
+      const pos = cById[n.id], start = n.id === 'in', goal = n.id === 'out', sel = n.id === cSelId, size = start || goal ? 22 : 14, narrow = !pos.solo && cc.lanes >= 3, st = n.st;
       return { label: n.label, sub: n.sub, x: (pos.dx - 8 - size / 2) + 'px', y: pos.top + 'px', w: pos.solo ? '310px' : laneW + 'px', fs: pos.solo ? '16px' : (narrow ? '12px' : '14px'), ws: narrow ? 'normal' : 'nowrap', size: size + 'px',
         dotBg: (goal && st === 'done') || (!goal && st === 'done') ? A : (st === 'open' ? 'rgba(242,169,59,0.25)' : INK),
         dotBd: start ? '#F3F1EC' : (st === 'open' ? RT : (st === 'done' ? A : '#474744')), dotBs: 'solid',
@@ -167,7 +169,7 @@
     });
     const hn = TOP * 2 + maxL2 * RY + BH;
     const crs = { name: cc.name, jp: cc.jp, kind: cc.opt ? '任意トラック' : 'ロールトラック', count: doneCount(cc) + ' / ' + unitCount(cc) + ' 修了', lock: myRoles.indexOf(cc.name) >= 0 ? '受講中' : '受講可', lockColor: myRoles.indexOf(cc.name) >= 0 ? RT : '#BDBAB3',
-      nodes: crsNodes, edges: cEdges, edgesExt: cEdgesExt, edgesGoal: cEdgesGoal, edgesDone: cEdgesDone, h: hn + 'px', hn: hn };
+      nodes: crsNodes, edges: cEdges, edgesExt: cEdgesExt, edgesGoal: cEdgesGoal, edgesDone: cEdgesDone, h: hn + 'px', hn: hn, w: mapW + 'px', wn: mapW, key: ck + ':' + cSelId };
     const csn = (cById[cSelId] || { n: cc.nodes[0] }).n;
     const cKids = cc.nodes.filter((n) => n.deps.indexOf(cSelId) >= 0).map((n) => n.label);
     const SL = { done: '修了', open: '受講可', locked: '未解放' };
