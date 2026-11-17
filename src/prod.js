@@ -15,7 +15,7 @@ can = function (t) { return t === 'projects' || hasPerm(me(), t); };
 function postPerms(post) { var p = POSTS.filter(function (x) { return x[0] === post; })[0]; return p ? p[1].slice() : []; }
 
 function savePrefs() { var p = {}; PREF_KEYS.forEach(function (k) { if (S[k] !== undefined) p[k] = S[k]; }); try { localStorage.setItem(KEY + '-prefs', JSON.stringify(p)); } catch (e) {} }
-function save() { savePrefs(); if (SYNC.ready) queueSync(); }
+function save() { savePrefs(); SYNC.ver = (SYNC.ver || 0) + 1; if (SYNC.ready) queueSync(); }
 
 // ---------- ツリー ⇄ 行 ----------
 var DKEYS = ['leads', 'memo', 'folder', 'purpose', 'place', 'review', 'links', 'nodate'];
@@ -72,6 +72,7 @@ async function loadAll() {
     sb.from('reactions').select('item_id,kind').eq('kind', 'join')
   ]);
   for (var i = 0; i < res.length; i++) if (res[i].error) throw res[i].error;
+  if (loadAll.guard != null && loadAll.guard !== SYNC.ver) return false; // 読み込み中に手元で変わった → 捨てて手元を優先
   var ps = res[0].data || [];
   S.members = ps.filter(function (p) { return p.approved; }).map(toMember);
   S.pending = ps.filter(function (p) { return !p.approved; }).map(toMember);
@@ -126,12 +127,20 @@ function isBusyEditing() {
   var a = document.activeElement;
   return !!((a && a.matches && a.matches('input,textarea,select') && !a.closest('#gate')) || M || mv || drag || lmv || lwd || UI.tp || UI.pp);
 }
-function onRemote() { clearTimeout(remoteT); remoteT = setTimeout(applyRemote, 250); }
+function onRemote(p) {
+  // 自分の書き込みの「こだま」は無視（連続で動かしたときに一つ前へ戻らないように）
+  if (p && p.table === 'nodes' && p.new && p.new.updated_by === S.me) return;
+  clearTimeout(remoteT); remoteT = setTimeout(applyRemote, 250);
+}
 async function applyRemote() {
-  await SYNC.busy;
+  var v;
+  do { v = SYNC.ver; await SYNC.busy; } while (v !== SYNC.ver); // 手元の変更を送り切ってから読む
   if (isBusyEditing()) { SYNC.pendingRemote = true; return; }
   SYNC.pendingRemote = false;
-  var y = window.scrollY; await loadAll(); render(); window.scrollTo(0, y);
+  var y = window.scrollY;
+  loadAll.guard = v; var ok = await loadAll(); loadAll.guard = null;
+  if (ok === false) { onRemote(); return; } // 手元が変わったので、送ってからもう一度
+  render(); window.scrollTo(0, y);
 }
 document.addEventListener('focusout', function () { setTimeout(function () { if (SYNC.pendingRemote && !isBusyEditing()) applyRemote(); }, 80); });
 document.addEventListener('pointerup', function () { setTimeout(function () { if (SYNC.pendingRemote && !isBusyEditing()) applyRemote(); }, 300); });
