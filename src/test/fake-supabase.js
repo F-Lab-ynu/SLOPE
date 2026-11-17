@@ -15,7 +15,7 @@
   Q.prototype.update = function (p) { this.op = 'update'; this.payload = p; return this; };
   Q.prototype.delete = function () { this.op = 'delete'; return this; };
   Q.prototype.then = function (res, rej) {
-    var self = this, rows = DB[this.t], m = function (r) { return self.f.every(function (fn) { return fn(r); }); }, out;
+    var self = this, rows = DB[this.t] || (DB[this.t] = []), m = function (r) { return self.f.every(function (fn) { return fn(r); }); }, out;
     window.__LOG.push([this.op, this.t, JSON.stringify(this.payload)]);
     if (window.__FAIL && window.__FAIL(this)) { out = { data: null, error: { message: 'new row violates row-level security policy' } }; }
     else if (this.op === 'select') { var d = rows.filter(m); if (this.ord) { var k = this.ord[0], a = this.ord[1]; d.sort(function (x, y) { return (x[k] > y[k] ? 1 : -1) * (a ? 1 : -1); }); } if (this.lim) d = d.slice(0, this.lim); out = { data: this.one ? d[0] : JSON.parse(JSON.stringify(d)), error: null }; }
@@ -33,6 +33,7 @@
         signInWithOAuth: function () { window.__oauth = true; return Promise.resolve({}); }
       },
       from: function (t) { return new Q(t); },
+      rpc: function (fn) { var db = JSON.parse(localStorage.getItem('__fakedb') || '{}'), v = db.visits || []; return Promise.resolve({ data: { days: [{ day: '2026-11-17', users: v.length ? 1 : 0, views: v.length }], dau: v.length ? 1 : 0, wau: 1, mau: 1, total: 3, tabs: v.map(function (x) { return { app: x.app, tab: x.tab, views: 1, users: 1 }; }) }, error: null }); },
       channel: function () { var c = { on: function (a, b, fn) { (window.__RT = window.__RT || []).push(fn); return c; }, subscribe: function () { return c; } }; return c; }
     };
   } };

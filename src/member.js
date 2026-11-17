@@ -153,7 +153,8 @@
       var t = setInterval(async function () { var r = await sb.from('profiles').select('approved').eq('id', DB.me).single(); if (r.data && r.data.approved) { clearInterval(t); location.reload(); } }, 10000);
       return;
     }
-    gate(null); bump();
+    gate(null); bump(); window.__track('open'); window.__track('home');
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) window.__track('open'); });
     sb.channel('slope-member')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'items' }, reload)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'reactions' }, reload)
@@ -283,3 +284,12 @@ function memberExtras(v) {
 document.addEventListener('touchmove', function (e) { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
 document.addEventListener('gesturestart', function (e) { e.preventDefault(); }, { passive: false });
 document.addEventListener('gesturechange', function (e) { e.preventDefault(); }, { passive: false });
+
+function __trackMk(sb, app) {
+  return function (tab) {
+    tab = tab || 'open';
+    try { var k = 'slope-trk-' + app + '-' + tab, t = +sessionStorage.getItem(k) || 0; if (Date.now() - t < 10 * 60 * 1000) return; sessionStorage.setItem(k, String(Date.now())); } catch (e) {}
+    try { sb.from('visits').insert({ app: app, tab: tab }).then(function () {}, function () {}); } catch (e) {}
+  };
+}
+window.__track = function (tab) { (window.__trk = window.__trk || __trackMk(window.sb, 'member'))(tab); };

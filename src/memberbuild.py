@@ -28,6 +28,8 @@ s = s[:i] + DATA + s[j:]
 
 # ---------- テンプレート：ホーム ----------
 rline('<span class="lbl" style="padding-left: 2px">FRI · 11.13</span>', '<span class="lbl" style="padding-left: 2px">{{ todayLabel }}</span>')
+rep('const go = (tab) => () => this.setState({ tab: tab, sub: null });', 'const go = (tab) => () => { if (window.__track) window.__track(tab); this.setState({ tab: tab, sub: null }); };')
+rep("goBoard: () => this.setState({ tab: 'board', sub: null, seg: 'recruit' })", "goBoard: () => { if (window.__track) window.__track('board'); this.setState({ tab: 'board', sub: null, seg: 'recruit' }); }")
 rep('line-height: 1.3">こんにちは、太郎さん</h1>', 'line-height: 1.3">{{ hello }}</h1>')
 rep('color: #F2A93B">NEXT · 部内イベント</span>', 'color: #F2A93B">{{ next.label }}</span>')
 rep('<span style="font-size: 21px; font-weight: 700; line-height: 1.3">MIRA エントリー締切</span>', '<span style="font-size: 21px; font-weight: 700; line-height: 1.3">{{ next.title }}</span>')

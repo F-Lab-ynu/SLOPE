@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '768d95ade9', FILE = 'index.ver';
+  var VER = 'c9fe358ea1', FILE = 'index.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -291,7 +291,8 @@ html,body{touch-action:manipulation}
       var t = setInterval(async function () { var r = await sb.from('profiles').select('approved').eq('id', DB.me).single(); if (r.data && r.data.approved) { clearInterval(t); location.reload(); } }, 10000);
       return;
     }
-    gate(null); bump();
+    gate(null); bump(); window.__track('open'); window.__track('home');
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) window.__track('open'); });
     sb.channel('slope-member')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'items' }, reload)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'reactions' }, reload)
@@ -421,6 +422,15 @@ function memberExtras(v) {
 document.addEventListener('touchmove', function (e) { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
 document.addEventListener('gesturestart', function (e) { e.preventDefault(); }, { passive: false });
 document.addEventListener('gesturechange', function (e) { e.preventDefault(); }, { passive: false });
+
+function __trackMk(sb, app) {
+  return function (tab) {
+    tab = tab || 'open';
+    try { var k = 'slope-trk-' + app + '-' + tab, t = +sessionStorage.getItem(k) || 0; if (Date.now() - t < 10 * 60 * 1000) return; sessionStorage.setItem(k, String(Date.now())); } catch (e) {}
+    try { sb.from('visits').insert({ app: app, tab: tab }).then(function () {}, function () {}); } catch (e) {}
+  };
+}
+window.__track = function (tab) { (window.__trk = window.__trk || __trackMk(window.sb, 'member'))(tab); };
 
 // PC の左下アカウント表示を本人の情報に
 window.__chrome = function () { var D = window.DB; if (!D || !D.self) return; var a = document.getElementById('wAv'), n = document.getElementById('wName'), sb2 = document.getElementById('wSub'), m = document.getElementById('wMode');
@@ -1940,7 +1950,7 @@ class Component extends DCLogic {
     const RT = '#F2A93B';
     const M = '#A3A19B';
     const INK = '#070707';
-    const go = (tab) => () => this.setState({ tab: tab, sub: null });
+    const go = (tab) => () => { if (window.__track) window.__track(tab); this.setState({ tab: tab, sub: null }); };
     const typeColor = { '部内': RT, '外部': '#8C8C8C', '教育': '#F3F1EC' };
     const main = !s.sub;
 
@@ -2272,7 +2282,7 @@ class Component extends DCLogic {
       ti: { home: s.tab === 'home' ? RT : 'transparent', learn: s.tab === 'learn' ? RT : 'transparent', board: s.tab === 'board' ? RT : 'transparent', cal: s.tab === 'cal' ? RT : 'transparent', news: s.tab === 'news' ? RT : 'transparent' },
       tc: { home: s.tab === 'home' ? A : M, learn: s.tab === 'learn' ? A : M, board: s.tab === 'board' ? A : M, cal: s.tab === 'cal' ? A : M, news: s.tab === 'news' ? A : M },
       seg: { oBg: s.seg === 'other' ? '#F3F1EC' : 'transparent', oFg: s.seg === 'other' ? INK : '#BDBAB3', rBg: s.seg === 'recruit' ? '#F3F1EC' : 'transparent', rFg: s.seg === 'recruit' ? INK : '#BDBAB3', pBg: s.seg === 'pain' ? '#F3F1EC' : 'transparent', pFg: s.seg === 'pain' ? INK : '#BDBAB3', eBg: s.seg === 'event' ? '#F3F1EC' : 'transparent', eFg: s.seg === 'event' ? INK : '#BDBAB3' },
-      goHome: go('home'), goLearn: go('learn'), goBoard: () => this.setState({ tab: 'board', sub: null, seg: 'recruit' }), goCal: go('cal'), goMe: go('me'), goNews: go('news'), goPractice: () => this.setState({ tab: 'learn', sub: null, lseg: 'practice' }),
+      goHome: go('home'), goLearn: go('learn'), goBoard: () => { if (window.__track) window.__track('board'); this.setState({ tab: 'board', sub: null, seg: 'recruit' }); }, goCal: go('cal'), goMe: go('me'), goNews: go('news'), goPractice: () => this.setState({ tab: 'learn', sub: null, lseg: 'practice' }),
       goBoardPain: () => this.setState({ tab: 'board', sub: null, seg: 'pain' }),
       back: () => this.setState({ sub: null }),
       openUnit: () => this.setState({ sub: 'unit' }),

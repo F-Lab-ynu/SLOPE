@@ -254,7 +254,7 @@ async function boot() {
     var t = setInterval(async function () { var r = await sb.from('profiles').select('approved').eq('id', S.me).single(); if (r.data && r.data.approved) { clearInterval(t); location.reload(); } }, 10000);
     return;
   }
-  gate(null); SYNC.ready = true; render(); subscribe();
+  gate(null); SYNC.ready = true; track('open'); render(); subscribe();
 }
 sb.auth.onAuthStateChange(function (ev) { if (ev === 'SIGNED_OUT') location.replace(location.pathname); if (ev === 'SIGNED_IN' && !S.me && document.querySelector('[data-act=glogin]')) setTimeout(boot, 0); });
 
@@ -327,3 +327,24 @@ delTrack = function (id) {
   snap(); S.tracks = S.tracks.filter(function (x) { return x.id !== id; }); if (S.cur === id) { S.cur = S.tracks[0] ? S.tracks[0].id : null; S.sel = null; }
   save(); render(); toastUndo('トラック「' + t.name + '」を削除しました');
 };
+
+// ---------- アクセス記録と統計 ----------
+function __trackMk(sb, app) {
+  return function (tab) {
+    tab = tab || 'open';
+    try { var k = 'slope-trk-' + app + '-' + tab, t = +sessionStorage.getItem(k) || 0; if (Date.now() - t < 10 * 60 * 1000) return; sessionStorage.setItem(k, String(Date.now())); } catch (e) {}
+    try { sb.from('visits').insert({ app: app, tab: tab }).then(function () {}, function () {}); } catch (e) {}
+  };
+}
+var track = __trackMk(sb, 'admin'), _lastView = null, _accAt = 0;
+var _renderAcc = render;
+render = function () {
+  _renderAcc.apply(this, arguments);
+  if (!SYNC.ready) return;
+  if (S.view !== _lastView) { _lastView = S.view; track(S.view); }
+  if (S.view === 'dash' && isAdmin() && Date.now() - _accAt > 60000) {
+    _accAt = Date.now();
+    sb.rpc('visit_stats', { days: 14 }).then(function (r) { if (r.error || !r.data) return; S.access = r.data; if (S.view === 'dash') _renderAcc(); });
+  }
+};
+document.addEventListener('visibilitychange', function () { if (!document.hidden && SYNC.ready) track('open'); });
