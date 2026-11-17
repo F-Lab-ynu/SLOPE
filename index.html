@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '1a1542a859', FILE = 'index.ver';
+  var VER = '800b0899ee', FILE = 'index.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -116,6 +116,11 @@ body.wide #wchrome{display:block}
 #wchrome .wme .av{width:30px;height:30px;border-radius:50%;background:#2C2C2A;border:1.5px solid #474744;display:flex;align-items:center;justify-content:center;font-family:var(--latin);font-size:12px;font-weight:700}
 #wchrome .wme small{display:block;font-size:12px;color:#A3A19B}
 html,body{touch-action:manipulation}
+.crsw{display:flex;flex-direction:column;gap:20px}
+.crsl{display:flex;flex-direction:column;gap:20px;min-width:0}
+body.wide .crsw{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px;align-items:start}
+body.wide .crsr{position:sticky;top:16px}
+body.wide .app > main > .crspg{max-width:1160px}
 
 #mgate{position:fixed;inset:0;z-index:1000;background:#070707;color:#F3F1EC;display:flex;align-items:center;justify-content:center;padding:24px;font-family:inherit}
 #mgate .gc{width:100%;max-width:360px;display:flex;flex-direction:column;gap:14px}
@@ -436,23 +441,6 @@ window.__track = function (tab) { (window.__trk = window.__trk || __trackMk(wind
 window.__chrome = function () { var D = window.DB; if (!D || !D.self) return; var a = document.getElementById('wAv'), n = document.getElementById('wName'), sb2 = document.getElementById('wSub'), m = document.getElementById('wMode');
   if (a) a.textContent = D.ini(D.me); if (n) n.textContent = D.self.name; if (sb2) sb2.textContent = D.self.grade || ''; if (m) m.style.display = D.isOps() ? '' : 'none'; };
 setInterval(window.__chrome, 400);
-// トラックの図：横にはみ出すときは横スクロール。開いたら選んでいる駅まで寄せ、右に続きがあるときは端をぼかす
-(function () {
-  var lastK = null;
-  function fade(el) { var more = el.scrollWidth > el.clientWidth + 2 && el.scrollLeft + el.clientWidth < el.scrollWidth - 2, less = el.scrollLeft > 2;
-    var m = more && less ? 'linear-gradient(90deg,transparent,#000 24px,#000 calc(100% - 32px),transparent)' : more ? 'linear-gradient(90deg,#000 calc(100% - 32px),transparent)' : less ? 'linear-gradient(90deg,transparent,#000 24px)' : '';
-    el.style.webkitMaskImage = m; el.style.maskImage = m; }
-  setInterval(function () {
-    var el = document.querySelector('.crsx'); if (!el) { lastK = null; return; }
-    if (el.dataset.k !== lastK) {
-      lastK = el.dataset.k;
-      var sel = Array.prototype.filter.call(el.querySelectorAll('button'), function (b) { return /0\.05\)/.test(b.style.background); })[0];
-      if (sel && el.scrollWidth > el.clientWidth) { var r = sel.getBoundingClientRect(), er = el.getBoundingClientRect(); el.scrollLeft += (r.left + Math.min(r.width, 160) / 2) - (er.left + er.width / 2); }
-    }
-    fade(el);
-  }, 300);
-  document.addEventListener('scroll', function (e) { if (e.target.classList && e.target.classList.contains('crsx')) fade(e.target); }, true);
-})();
 
 </script>
 <div id="stage"></div>
@@ -945,7 +933,7 @@ setInterval(window.__chrome, 400);
 
 
 <sc-if value="{{ show.course }}" hint-placeholder-val="{{ false }}">
-<div style="padding: 20px 20px 32px; display: flex; flex-direction: column; gap: 20px">
+<div class="crspg" style="padding: 20px 20px 32px; display: flex; flex-direction: column; gap: 20px">
 <div style="display: flex; flex-direction: column; gap: 8px">
 <span class="lbl">{{ crs.kind }}</span>
 <h1 class="en" style="margin: 0; font-size: 30px; font-weight: 700; line-height: 1.1">{{ crs.name }}</h1>
@@ -956,6 +944,8 @@ setInterval(window.__chrome, 400);
 </div>
 </div>
 
+<div class="crsw">
+<div class="crsl">
 <div class="crsx" data-k="{{ crs.key }}" style="overflow-x: auto; overflow-y: hidden; max-width: 100%; -webkit-overflow-scrolling: touch; scrollbar-width: none; border-radius: 12px">
 <div class="grid" style="position: relative; width: {{ crs.w }}; height: {{ crs.h }}; border-radius: 12px; border: 1px solid #1C1C1B; overflow: hidden">
 <svg width="{{ crs.wn }}" height="{{ crs.hn }}" viewBox="0 0 {{ crs.wn }} {{ crs.hn }}" style="position: absolute; left: 0; top: 0" aria-hidden="true">
@@ -984,6 +974,8 @@ setInterval(window.__chrome, 400);
 <span style="display: flex; align-items: center; gap: 6px"><span style="box-sizing: border-box; width: 12px; height: 12px; border-radius: 50%; border: 2px dashed #7D7B76"></span>他トラック・外部</span>
 </div>
 
+</div>
+<div class="crsr">
 <div class="card" style="padding: 16px; display: flex; flex-direction: column; gap: 10px">
 <div style="display: flex; justify-content: space-between; align-items: center">
 <span class="lbl">{{ cSel.sub }}</span>
@@ -995,6 +987,8 @@ setInterval(window.__chrome, 400);
 <span style="color: #A3A19B">後続</span><span style="color: #E9E6DF">{{ cSel.next }}</span>
 </div>
 <sc-if value="{{ cSel.isUnit }}"><button onClick="{{ cSel.open }}" style="height: 44px; border: 0; border-radius: 8px; background: #F3F1EC; color: #070707; font-weight: 700; font-size: 15px">単元を開く</button></sc-if>
+</div>
+</div>
 </div>
 </div>
 </sc-if>
@@ -2365,6 +2359,25 @@ document.addEventListener('click',function(e){
   if(sw){ sw.classList.toggle('on'); setTimeout(function(){ location.replace(sw.dataset.to); },170); }
   else location.replace(ln.getAttribute('href'));
 },true);
+</script>
+<script>
+// トラックの図：横にはみ出すときは横スクロール。開いたら選んでいる駅まで寄せ、右に続きがあるときは端をぼかす
+(function () {
+  var lastK = null;
+  function fade(el) { var more = el.scrollWidth > el.clientWidth + 2 && el.scrollLeft + el.clientWidth < el.scrollWidth - 2, less = el.scrollLeft > 2;
+    var m = more && less ? 'linear-gradient(90deg,transparent,#000 24px,#000 calc(100% - 32px),transparent)' : more ? 'linear-gradient(90deg,#000 calc(100% - 32px),transparent)' : less ? 'linear-gradient(90deg,transparent,#000 24px)' : '';
+    el.style.webkitMaskImage = m; el.style.maskImage = m; }
+  setInterval(function () {
+    var el = document.querySelector('.crsx'); if (!el) { lastK = null; return; }
+    if (el.dataset.k !== lastK) {
+      lastK = el.dataset.k;
+      var sel = Array.prototype.filter.call(el.querySelectorAll('button'), function (b) { return /0\.05\)/.test(b.style.background); })[0];
+      if (sel && el.scrollWidth > el.clientWidth) { var r = sel.getBoundingClientRect(), er = el.getBoundingClientRect(); el.scrollLeft += (r.left + Math.min(r.width, 160) / 2) - (er.left + er.width / 2); }
+    }
+    fade(el);
+  }, 300);
+  document.addEventListener('scroll', function (e) { if (e.target.classList && e.target.classList.contains('crsx')) fade(e.target); }, true);
+})();
 </script>
 </body>
 </html>
