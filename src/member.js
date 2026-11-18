@@ -74,7 +74,7 @@
       var by = {}; NODES.forEach(function (n) { by[n.id] = n; });
       var hasKids = {}; NODES.forEach(function (n) { if (n.parent_id) hasKids[n.parent_id] = 1; });
       var root = function (n) { var x = n && by[n.parent_id]; while (x) { if (x.kind === 'event') return x; x = by[x.parent_id]; } return by[n.parent_id] || n; };
-      return NODES.filter(function (n) { return n.who === DB.me && !n.done && !hasKids[n.id] && n.parent_id && !(n.data && n.data.folder); })
+      return NODES.filter(function (n) { return (n.who === DB.me || (n.team || []).indexOf(DB.me) >= 0) && !n.done && !hasKids[n.id] && n.parent_id && !(n.data && n.data.folder); })
         .sort(function (a, b) { var na = !!(a.data && a.data.nodate), nb = !!(b.data && b.data.nodate); if (na !== nb) return na ? 1 : -1; return a.end_date < b.end_date ? -1 : 1; })
         .map(function (n) { return { id: n.id, title: n.title, end: n.end_date, nodate: !!(n.data && n.data.nodate), event: (root(n) || {}).title || '', parent: by[n.parent_id] }; });
     },
