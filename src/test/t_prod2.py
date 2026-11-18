@@ -54,6 +54,11 @@ async def main():
         await pg.click('[data-act=go][data-view=perms]'); await pg.wait_for_timeout(300)
         print('pending box', await pg.locator('.pendrow').count())
         await pg.click('[data-act=go][data-view=dash]'); await pg.wait_for_timeout(300)
+        await pg.evaluate("window.notify(S_ME_PLACEHOLDER, 'テスト通知', 'x')".replace('S_ME_PLACEHOLDER', "document.querySelector('.acct') ? '' : ''")) if False else None
+        await pg.evaluate("(()=>{ window.notify && 0; })()")
+        nb = await pg.locator('.nclr').count()
+        if nb: await pg.click('.nclr'); await pg.wait_for_timeout(1500)
+        print('notif all:', nb, await pg.locator('.nr2 .nx').count())
         await pg.screenshot(path='/home/claude/audit/p_dash.png')
         await pg.click('[data-act=go][data-view=tracks]'); await pg.wait_for_timeout(300)
         await pg.screenshot(path='/home/claude/audit/p_tracks.png')
