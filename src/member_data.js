@@ -101,7 +101,7 @@
     const clubEvents = []; // 本番では member.js が上書き
     const dayEvents = evIn(cy, cm, selDay).map((e) => {
       const on = e.joinId ? D.mine(e.joinId, e.joinKind) : false;
-      return Object.assign({}, e, { color: typeColor[e.type], joinLabel: e.joinId ? (on ? (e.joinKind === 'join' ? '登録済み' : '予定に追加済み') : (e.joinKind === 'join' ? '参加登録' : '予定に追加')) : '—',
+      return Object.assign({}, e, { color: typeColor[e.type], meta: [e.time, e.place].filter(Boolean).join(' · '), jd: e.joinId ? 'inline-flex' : 'none', joinLabel: e.joinId ? (on ? (e.joinKind === 'join' ? '登録済み' : '予定に追加済み') : (e.joinKind === 'join' ? '参加登録' : '予定に追加')) : '—',
         joinBg: on ? 'transparent' : A, joinFg: on ? A : INK, joinBd: A, toggle: () => { if (e.joinId) D.toggle(e.joinId, e.joinKind); } });
     });
 

@@ -66,8 +66,9 @@
       ITEMS.filter(function (x) { return (x.kind === 'notice' || x.kind === 'offer') && DB.mine(x.id, 'plan'); }).forEach(function (x) {
         var d = x.data || {}; if (/^\d{4}-\d{2}-\d{2}$/.test(d.due || '')) out.push({ date: d.due, type: '外部', title: d.title, time: '締切', place: d.host || '', joinId: x.id, joinKind: 'plan' });
       });
-      ITEMS.filter(function (x) { return x.kind === 'cal' && x.state === 'ok' && (x.data || {}).state === 'pub'; }).forEach(function (x) {
-        var d = x.data || {}; if (/^\d{4}-\d{2}-\d{2}$/.test(d.date || '')) out.push({ date: d.date, type: '部内', title: d.title, time: (d.to ? '〜' + d.to.slice(5).replace('-', '.') + ' ' : '') + (d.time || ''), place: d.place || '', joinId: x.id, joinKind: 'join' });
+      var club = {}; DB.clubEvents().forEach(function (e) { club[e.id] = e; }); // 告知で公開したもの＋教材に入っているもの
+      ITEMS.filter(function (x) { return x.kind === 'cal' && x.state === 'ok' && club[x.id]; }).forEach(function (x) {
+        var d = x.data || {}; if (/^\d{4}-\d{2}-\d{2}$/.test(d.date || '')) out.push({ date: d.date, type: '部内', title: d.title, time: (d.to ? '〜' + d.to.slice(5).replace('-', '.') + ' ' : '') + (d.time || ''), place: d.place || '', joinId: club[x.id].pub ? x.id : null, joinKind: 'join' });
       });
       [].forEach(function (e) { out.push({ date: e.end, type: '部内', title: e.title, time: e.start === e.end ? '' : '期間 ' + e.start.slice(5).replace('-', '.') + '〜', place: e.todo, joinId: e.pub ? e.id : null, joinKind: 'join' }); });
       DB.myTasks().filter(function (t) { return !t.nodate; }).forEach(function (t) { out.push({ date: t.end, type: '教育', title: t.title + '（期限）', time: '', place: t.event, joinId: null }); });
