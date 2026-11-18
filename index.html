@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '50b17cba8c', FILE = 'index.ver';
+  var VER = '245a66fc78', FILE = 'index.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -335,13 +335,10 @@ a.pgn{color:inherit}
       (function w(a) { a.forEach(function (n) { if (n.out) return; if (n.k === 'e' && /^\d{4}-\d{2}-\d{2}$/.test(n.from || '')) out.push({ id: 'pe:' + n.id, title: n.name, start: n.from, end: n.to || n.from, todo: n.todo || '', link: n.link || '', pub: !!n.pub }); if (n.items) w(n.items); }); })(tree);
       return out.sort(function (a, b) { return a.start < b.start ? -1 : 1; });
     },
-    clubEvents: function () { // 部内イベント：告知で公開した学ぶのイベント＋部内の予定
+    clubEvents: function () { // 部内イベント：告知で公開したイベント（日程未定のものは最後に）
       var out = [];
-      // 教材（学ぶのプログラム）に入っているイベントも出す。参加登録は告知で公開したものだけ
-      var inProg = {}, pg = ITEMS.filter(function (x) { return x.kind === 'program' && x.state === 'ok'; })[0];
-      (function w(a) { (a || []).forEach(function (n) { if (n.out) return; if (n.k === 'e' && n.ref) inProg[n.ref] = 1; if (n.items) w(n.items); }); })(pg && pg.data && pg.data.v2);
-      ITEMS.filter(function (x) { return x.kind === 'cal' && x.state === 'ok' && ((x.data || {}).state === 'pub' || inProg[x.id]); }).forEach(function (x) { var d = x.data || {}; if (/^\d{4}-\d{2}-\d{2}$/.test(d.date || '')) out.push({ id: x.id, title: d.title, start: d.date, end: d.to || d.date, sub: [d.time, d.place, d.memo].filter(Boolean).join(' · '), pub: d.state === 'pub' && d.inNotice !== false }); });
-      return out.sort(function (a, b) { return a.start < b.start ? -1 : 1; });
+      ITEMS.filter(function (x) { return x.kind === 'cal' && x.state === 'ok' && (x.data || {}).state === 'pub' && (x.data || {}).inNotice !== false; }).forEach(function (x) { var d = x.data || {}; var ok = /^\d{4}-\d{2}-\d{2}$/.test(d.date || ''); if (!d.title) return; out.push({ id: x.id, title: d.title, start: ok ? d.date : '', end: ok ? (d.to || d.date) : '', tbd: !ok, sub: [d.time, d.place, d.memo].filter(Boolean).join(' · '), pub: d.state === 'pub' && d.inNotice !== false }); });
+      return out.sort(function (a, b) { return a.tbd !== b.tbd ? (a.tbd ? 1 : -1) : (a.start < b.start ? -1 : 1); }); // 日程が決まっていないものは最後に
     },
     calendar: function () {
       var out = DB.events().map(function (e) { return { date: e.end, type: '部内', title: e.title, time: e.start === e.end ? '' : '期間 ' + e.start.slice(5).replace('-', '.') + '〜', place: e.unit, joinId: e.id, joinKind: 'join' }; });
@@ -534,16 +531,16 @@ function memberExtras(v) {
     todayLabel: WDJ[now.getDay()] + ' · ' + (now.getMonth() + 1) + '.' + now.getDate(), hello: 'こんにちは、' + (self0.name || '') + 'さん',
     next: nextEv ? { has: true, label: 'NEXT · 部内イベント', title: nextEv.title, when: md(nextEv.end) + ' ' + wd(nextEv.end), left: String(Math.max(0, daysTo(nextEv.end))) } : { has: false, label: 'NEXT', title: '予定されているイベントはありません', when: '', left: '—' },
     learnCard: { n: rN ? rD + '/' + rN : '—', dash: (ring * pct).toFixed(1) + ' ' + ring.toFixed(1), track: myRole || 'ロール未設定', next: nextU ? nextU.code + '\n' + nextU.title : (roleT ? '全単元修了' : 'マイページでロールを選ぶ') },
-    clubEvents: D.clubEvents().filter(function (e) { return e.end >= today; }).map(function (e) { var on = D.mine(e.id, 'join'), p = e.start.split('-');
-      return { mon: ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][+p[1] - 1], d: String(+p[2]), title: e.title, sub: (e.end !== e.start ? '〜' + md(e.end) + ' · ' : '') + e.sub,
+    clubEvents: D.clubEvents().filter(function (e) { return e.tbd || e.end >= today; }).map(function (e) { var on = D.mine(e.id, 'join'), p = e.start.split('-');
+      return { mon: e.tbd ? '日程' : ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][+p[1] - 1], d: e.tbd ? '未定' : String(+p[2]), dfs: e.tbd ? '15px' : '22px', title: e.title, sub: [e.end !== e.start ? '〜' + md(e.end) : '', e.sub].filter(Boolean).join(' · '),
         jd: e.pub ? 'inline-flex' : 'none', joinLabel: on ? '✓ 登録済み' : '参加登録', joinBd: on ? 'transparent' : '#474744', joinFg: on ? '#7D7B76' : '#D2CFC8', toggle: function () { D.toggle(e.id, 'join'); } }; }),
-    noClubEvents: !D.clubEvents().some(function (e) { return e.end >= today; }),
+    noClubEvents: !D.clubEvents().some(function (e) { return e.tbd || e.end >= today; }),
     tasks: tasks, hasTasks: tasks.length > 0,
     // ホームの右上のカード：業務を担当している人は「自分の業務」、それ以外は「参加予定」（参加登録したこれからのイベント）
     card2: (function () {
       if (tasks.length) return { label: '自分の業務', n: String(tasks.length), note: '次の期限 ' + tasks[0].due, go: function () { var el = document.querySelector('#stage .h2'); if (el) el.scrollIntoView({ behavior: 'smooth' }); } };
-      var js = D.clubEvents().filter(function (e) { return e.end >= today && D.mine(e.id, 'join'); }).sort(function (a, b) { return a.start < b.start ? -1 : 1; });
-      return { label: '参加予定', n: String(js.length), note: js.length ? '次 ' + md(js[0].start || js[0].end) + ' ' + js[0].title : '予定タブから参加登録', go: function () { self.setState({ tab: 'cal', sub: null }); } };
+      var js = D.clubEvents().filter(function (e) { return (e.tbd || e.end >= today) && D.mine(e.id, 'join'); });
+      return { label: '参加予定', n: String(js.length), note: js.length ? '次 ' + (js[0].tbd ? '' : md(js[0].start || js[0].end) + ' ') + js[0].title : '予定タブから参加登録', go: function () { self.setState({ tab: 'cal', sub: null }); } };
     })(),
     weekCount: String(weekEv.length), boardNew: { n: String(recent.length), inis: inis.map(function (i) { return { i: i }; }), note: '募集・意見 ' + nr + ' · ペイン ' + np },
     hasNews: false, notifs: notifs, hasNotifs: notifs.length > 0, delAllNotifs: function () { D.delNotif('all'); },
@@ -1620,7 +1617,7 @@ setInterval(window.__chrome, 400);
 <h2 class="h2">部内イベント</h2>
 <sc-for list="{{ clubEvents }}" as="e" hint-placeholder-count="2">
 <div class="card" style="padding: 14px 16px; display: flex; align-items: center; gap: 14px">
-<span style="flex: none; width: 44px; display: flex; flex-direction: column; align-items: center; gap: 2px"><span class="en" style="font-size: 12px; color: #A3A19B">{{ e.mon }}</span><span class="en" style="font-size: 22px; font-weight: 700; line-height: 1">{{ e.d }}</span></span>
+<span style="flex: none; width: 44px; display: flex; flex-direction: column; align-items: center; gap: 2px"><span class="en" style="font-size: 12px; color: #A3A19B">{{ e.mon }}</span><span class="en" style="font-size: {{ e.dfs }}; font-weight: 700; line-height: 1; white-space: nowrap">{{ e.d }}</span></span>
 <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px">
 <span style="font-weight: 700; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ e.title }}</span>
 <span style="font-size: 12px; color: #A3A19B; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ e.sub }}</span>
