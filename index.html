@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '245a66fc78', FILE = 'index.ver';
+  var VER = '4517a813aa', FILE = 'index.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -533,7 +533,7 @@ function memberExtras(v) {
     learnCard: { n: rN ? rD + '/' + rN : '—', dash: (ring * pct).toFixed(1) + ' ' + ring.toFixed(1), track: myRole || 'ロール未設定', next: nextU ? nextU.code + '\n' + nextU.title : (roleT ? '全単元修了' : 'マイページでロールを選ぶ') },
     clubEvents: D.clubEvents().filter(function (e) { return e.tbd || e.end >= today; }).map(function (e) { var on = D.mine(e.id, 'join'), p = e.start.split('-');
       return { mon: e.tbd ? '日程' : ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][+p[1] - 1], d: e.tbd ? '未定' : String(+p[2]), dfs: e.tbd ? '15px' : '22px', title: e.title, sub: [e.end !== e.start ? '〜' + md(e.end) : '', e.sub].filter(Boolean).join(' · '),
-        jd: e.pub ? 'inline-flex' : 'none', joinLabel: on ? '✓ 登録済み' : '参加登録', joinBd: on ? 'transparent' : '#474744', joinFg: on ? '#7D7B76' : '#D2CFC8', toggle: function () { D.toggle(e.id, 'join'); } }; }),
+        jd: e.pub && !e.tbd ? 'inline-flex' : 'none', // 日程未定は参加登録できない joinLabel: on ? '✓ 登録済み' : '参加登録', joinBd: on ? 'transparent' : '#474744', joinFg: on ? '#7D7B76' : '#D2CFC8', toggle: function () { D.toggle(e.id, 'join'); } }; }),
     noClubEvents: !D.clubEvents().some(function (e) { return e.tbd || e.end >= today; }),
     tasks: tasks, hasTasks: tasks.length > 0,
     // ホームの右上のカード：業務を担当している人は「自分の業務」、それ以外は「参加予定」（参加登録したこれからのイベント）
@@ -2455,7 +2455,7 @@ document.addEventListener('click',function(e){
       return '<div class="pgu ev' + (isCur ? ' cur' : '') + '" data-st="' + st + '"><span class="pgt">' + (when ? '<span class="pgc en">' + esc(when) + '</span>' : '') +
         (n.link ? '<a class="pgn' + (/^[\x00-\x7F]+$/.test(n.name || '') ? ' lat' : '') + '" href="' + esc(n.link) + '" target="_blank" rel="noopener">' + '<i class="nd ' + st + (isCur ? ' cur' : '') + '"></i>' + esc(n.name) + '</a>' : '<span class="pgn' + (/^[\x00-\x7F]+$/.test(n.name || '') ? ' lat' : '') + '">' + '<i class="nd ' + st + (isCur ? ' cur' : '') + '"></i>' + esc(n.name) + '</span>') +
         (n.todo && !n._done ? '<span class="pgm">' + esc(n.todo) + '</span>' : '') + '</span>' +
-        (!n._done && n.pub && P.join ? '<button class="pgjoin' + (on ? ' on' : '') + '" data-pgj="' + esc(jid) + '">' + (on ? '✓ 登録済み' : '参加登録') + '</button>' : '') + '</div>'; }
+        (!n._done && n.pub && n.from && P.join ? '<button class="pgjoin' + (on ? ' on' : '') + '" data-pgj="' + esc(jid) + '">' + (on ? '✓ 登録済み' : '参加登録') + '</button>' : '') + '</div>'; }
     var u = tById(P, n.t).units[n.c];
     return '<button class="pgu' + (isCur ? ' cur' : '') + '" data-st="' + st + '" data-pgu="' + esc(n.c) + '" data-pgut="' + esc(n.t) + '">' + dot + '<span class="pgt"><span class="pgc en">' + esc(n.c) + '</span><span class="pgn">' + '<i class="nd ' + st + (isCur ? ' cur' : '') + '"></i>' + esc(u.title) + '</span></span>' + CHEV + '</button>';
   }
