@@ -54,8 +54,8 @@
       return out.sort(function (a, b) { return a.start < b.start ? -1 : 1; });
     },
     clubEvents: function () { // 部内イベント：告知で公開した学ぶのイベント＋部内の予定
-      var out = DB.progEvents().filter(function (e) { return e.pub; }).map(function (e) { return { id: e.id, title: e.title, start: e.start, end: e.end, sub: e.todo || '学ぶ' }; });
-      ITEMS.filter(function (x) { return x.kind === 'cal' && x.state === 'ok' && (x.data || {}).state === 'pub'; }).forEach(function (x) { var d = x.data || {}; if (/^\d{4}-\d{2}-\d{2}$/.test(d.date || '')) out.push({ id: x.id, title: d.title, start: d.date, end: d.date, sub: [d.time, d.place].filter(Boolean).join(' · ') }); });
+      var out = [];
+      ITEMS.filter(function (x) { return x.kind === 'cal' && x.state === 'ok' && (x.data || {}).state === 'pub'; }).forEach(function (x) { var d = x.data || {}; if (/^\d{4}-\d{2}-\d{2}$/.test(d.date || '')) out.push({ id: x.id, title: d.title, start: d.date, end: d.to || d.date, sub: [d.time, d.place, d.memo].filter(Boolean).join(' · ') }); });
       return out.sort(function (a, b) { return a.start < b.start ? -1 : 1; });
     },
     calendar: function () {
@@ -64,9 +64,9 @@
         var d = x.data || {}; if (/^\d{4}-\d{2}-\d{2}$/.test(d.due || '')) out.push({ date: d.due, type: '外部', title: d.title, time: '締切', place: d.host || '', joinId: x.id, joinKind: 'plan' });
       });
       ITEMS.filter(function (x) { return x.kind === 'cal' && x.state === 'ok' && (x.data || {}).state === 'pub'; }).forEach(function (x) {
-        var d = x.data || {}; if (/^\d{4}-\d{2}-\d{2}$/.test(d.date || '')) out.push({ date: d.date, type: '部内', title: d.title, time: d.time || '', place: d.place || '', joinId: x.id, joinKind: 'join' });
+        var d = x.data || {}; if (/^\d{4}-\d{2}-\d{2}$/.test(d.date || '')) out.push({ date: d.date, type: '部内', title: d.title, time: (d.to ? '〜' + d.to.slice(5).replace('-', '.') + ' ' : '') + (d.time || ''), place: d.place || '', joinId: x.id, joinKind: 'join' });
       });
-      DB.progEvents().filter(function (e) { return e.pub; }).forEach(function (e) { out.push({ date: e.end, type: '部内', title: e.title, time: e.start === e.end ? '' : '期間 ' + e.start.slice(5).replace('-', '.') + '〜', place: e.todo, joinId: e.pub ? e.id : null, joinKind: 'join' }); });
+      [].forEach(function (e) { out.push({ date: e.end, type: '部内', title: e.title, time: e.start === e.end ? '' : '期間 ' + e.start.slice(5).replace('-', '.') + '〜', place: e.todo, joinId: e.pub ? e.id : null, joinKind: 'join' }); });
       DB.myTasks().filter(function (t) { return !t.nodate; }).forEach(function (t) { out.push({ date: t.end, type: '教育', title: t.title + '（期限）', time: '', place: t.event, joinId: null }); });
       return out;
     },

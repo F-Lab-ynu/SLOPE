@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '1e7608de5a', FILE = 'index.ver';
+  var VER = '4c42d59676', FILE = 'index.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -335,8 +335,8 @@ a.pgn{color:inherit}
       return out.sort(function (a, b) { return a.start < b.start ? -1 : 1; });
     },
     clubEvents: function () { // 部内イベント：告知で公開した学ぶのイベント＋部内の予定
-      var out = DB.progEvents().filter(function (e) { return e.pub; }).map(function (e) { return { id: e.id, title: e.title, start: e.start, end: e.end, sub: e.todo || '学ぶ' }; });
-      ITEMS.filter(function (x) { return x.kind === 'cal' && x.state === 'ok' && (x.data || {}).state === 'pub'; }).forEach(function (x) { var d = x.data || {}; if (/^\d{4}-\d{2}-\d{2}$/.test(d.date || '')) out.push({ id: x.id, title: d.title, start: d.date, end: d.date, sub: [d.time, d.place].filter(Boolean).join(' · ') }); });
+      var out = [];
+      ITEMS.filter(function (x) { return x.kind === 'cal' && x.state === 'ok' && (x.data || {}).state === 'pub'; }).forEach(function (x) { var d = x.data || {}; if (/^\d{4}-\d{2}-\d{2}$/.test(d.date || '')) out.push({ id: x.id, title: d.title, start: d.date, end: d.to || d.date, sub: [d.time, d.place, d.memo].filter(Boolean).join(' · ') }); });
       return out.sort(function (a, b) { return a.start < b.start ? -1 : 1; });
     },
     calendar: function () {
@@ -345,9 +345,9 @@ a.pgn{color:inherit}
         var d = x.data || {}; if (/^\d{4}-\d{2}-\d{2}$/.test(d.due || '')) out.push({ date: d.due, type: '外部', title: d.title, time: '締切', place: d.host || '', joinId: x.id, joinKind: 'plan' });
       });
       ITEMS.filter(function (x) { return x.kind === 'cal' && x.state === 'ok' && (x.data || {}).state === 'pub'; }).forEach(function (x) {
-        var d = x.data || {}; if (/^\d{4}-\d{2}-\d{2}$/.test(d.date || '')) out.push({ date: d.date, type: '部内', title: d.title, time: d.time || '', place: d.place || '', joinId: x.id, joinKind: 'join' });
+        var d = x.data || {}; if (/^\d{4}-\d{2}-\d{2}$/.test(d.date || '')) out.push({ date: d.date, type: '部内', title: d.title, time: (d.to ? '〜' + d.to.slice(5).replace('-', '.') + ' ' : '') + (d.time || ''), place: d.place || '', joinId: x.id, joinKind: 'join' });
       });
-      DB.progEvents().filter(function (e) { return e.pub; }).forEach(function (e) { out.push({ date: e.end, type: '部内', title: e.title, time: e.start === e.end ? '' : '期間 ' + e.start.slice(5).replace('-', '.') + '〜', place: e.todo, joinId: e.pub ? e.id : null, joinKind: 'join' }); });
+      [].forEach(function (e) { out.push({ date: e.end, type: '部内', title: e.title, time: e.start === e.end ? '' : '期間 ' + e.start.slice(5).replace('-', '.') + '〜', place: e.todo, joinId: e.pub ? e.id : null, joinKind: 'join' }); });
       DB.myTasks().filter(function (t) { return !t.nodate; }).forEach(function (t) { out.push({ date: t.end, type: '教育', title: t.title + '（期限）', time: '', place: t.event, joinId: null }); });
       return out;
     },
@@ -2120,8 +2120,11 @@ class Component extends DCLogic {
       us.forEach((u) => { const st = stOf(t, u); U[u.code] = { title: u.title, meta: (D.unitData(t, u.code).milestone || u.tags.join(' · ')), st: st }; });
       return { id: t.id, name: t.name.replace(/^実務[：:・ ]*/, ''), jp: t.goal ? '到達：' + t.goal : '', kind: kindOf(t), mine: kindOf(t) === 'all' || myRoles.indexOf(t.name) >= 0, tree: t.tree || null, list: us, units: U }; });
     const curT = PT.find((t) => t.id === s.course) || PT.find((t) => t.mine && t.kind === 'choose') || PT[0];
+    // 学ぶのイベントは告知のイベント（予定）を指しているだけ。部員に見えるもの（公開済み）は本体の中身を使う
+    const calById = {}; D.items('cal').forEach((x) => { calById[x.id] = x.data || {}; });
+    const evFill = (tree) => { if (!tree) return tree; const t = JSON.parse(JSON.stringify(tree)); (function w(a) { a.forEach((n) => { if (n.k === 'e') { const c = n.ref && calById[n.ref]; if (c) { n.name = c.title; n.from = c.date; n.to = c.to || ''; n.todo = c.memo || ''; n.link = c.link || ''; n.pub = c.state === 'pub'; } else n.pub = false; n.jid = n.ref || ('pe:' + n.id); } if (n.items) w(n.items); }); })(t); return t; };
     const progRow = D.items('program')[0], progTree = progRow && progRow.data && progRow.data.tree ? progRow.data.tree : null;
-    window.__PROG = { joined: (id) => D.mine(id, 'join'), join: (id) => D.toggle(id, 'join'), jkey: JSON.stringify(D.progEvents().map((e) => D.mine(e.id, 'join'))), tracks: PT, program: progTree, roles: myRoles, v2: progRow && progRow.data && progRow.data.v2 ? progRow.data.v2 : null, today: new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10), cur: curT ? curT.id : null, key: JSON.stringify([progRow && progRow.data, PT.map((t) => [t.id, t.tree, Object.keys(t.units).map((c) => t.units[c].st)])]),
+    window.__PROG = { joined: (id) => D.mine(id, 'join'), join: (id) => D.toggle(id, 'join'), jkey: JSON.stringify(D.items('cal').map((x) => D.mine(x.id, 'join'))), tracks: PT, program: progTree, roles: myRoles, v2: progRow && progRow.data && progRow.data.v2 ? evFill(progRow.data.v2) : null, today: new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10), cur: curT ? curT.id : null, key: JSON.stringify([progRow && progRow.data, PT.map((t) => [t.id, t.tree, Object.keys(t.units).map((c) => t.units[c].st)])]),
       openTrack: (id) => this.setState({ sub: 'course', course: id, cnode: null }), openUnit: (tid, code) => this.setState({ sub: 'unit', unitT: tid, unitC: code }) };
     const KN = { all: '全員', choose: '選択', opt: '任意' };
     const crsKind = curT ? KN[curT.kind] : '', crsName = curT ? curT.name : '', crsJp = curT ? curT.jp : '', crsTot = curT ? Object.keys(curT.units).length : 0,
@@ -2442,7 +2445,7 @@ document.addEventListener('click',function(e){
   function leafRow(P, n, cur) {
     var isCur = n === cur, st = n._done ? 'done' : (n._lk ? 'locked' : 'open'), k = '';
     var dot = '<span class="pgd ' + st + '">' + (st === 'done' ? DOT.done : (st === 'locked' ? LOCK : '')) + '</span>';
-    if (n.k === 'e') { var when = n.from ? md(n.from) + (n.to && n.to !== n.from ? '–' + md(n.to) : '') : '', jid = 'pe:' + n.id, on = P.joined ? P.joined(jid) : false;
+    if (n.k === 'e') { var when = n.from ? md(n.from) + (n.to && n.to !== n.from ? '–' + md(n.to) : '') : '', jid = n.jid || n.ref || ('pe:' + n.id), on = P.joined ? P.joined(jid) : false;
       return '<div class="pgu ev' + (isCur ? ' cur' : '') + '" data-st="' + st + '"><span class="pgt">' + (when ? '<span class="pgc en">' + esc(when) + '</span>' : '') +
         (n.link ? '<a class="pgn' + (/^[\x00-\x7F]+$/.test(n.name || '') ? ' lat' : '') + '" href="' + esc(n.link) + '" target="_blank" rel="noopener">' + '<i class="nd ' + st + (isCur ? ' cur' : '') + '"></i>' + esc(n.name) + '</a>' : '<span class="pgn' + (/^[\x00-\x7F]+$/.test(n.name || '') ? ' lat' : '') + '">' + '<i class="nd ' + st + (isCur ? ' cur' : '') + '"></i>' + esc(n.name) + '</span>') +
         (n.todo && !n._done ? '<span class="pgm">' + esc(n.todo) + '</span>' : '') + '</span>' +
