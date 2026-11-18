@@ -26,6 +26,7 @@ def stamp(s, page, verfile):
     return s
 
 s = stamp(s, 'admin.html', 'admin.ver')
+s = s.replace('</head>', '<link rel="manifest" href="manifest-admin.webmanifest">\n<link rel="apple-touch-icon" href="apple-touch-icon.png">\n<script>if (\"serviceWorker\" in navigator) window.addEventListener(\"load\", function () { navigator.serviceWorker.register(\"sw.js\").catch(function () {}); });</script>\n</head>', 1)
 s = s.replace('<html', '<html data-prod="1"', 1)  # 本番：起動ロゴは読み込みが終わるまで出す
 open('admin.html', 'w').write(s)
 print('built admin.html', len(s))

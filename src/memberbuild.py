@@ -249,6 +249,7 @@ def stamp(s, page, verfile):
     return s
 
 s = stamp(s, 'index.html', 'index.ver')
+s = s.replace('</head>', '<script>if ("serviceWorker" in navigator) window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); });</script>\n</head>', 1)
 s = s.replace('<html', '<html data-prod="1"', 1)  # 本番：起動ロゴは読み込みが終わるまで出す
 open('index.html', 'w').write(s)
 print('built member index.html', len(s))
