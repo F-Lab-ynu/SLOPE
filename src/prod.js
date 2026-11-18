@@ -84,7 +84,7 @@ async function loadAll() {
   (function walk(a) { a.forEach(function (n) { if (n.kind === 'event') n.reg = joins[n.id] || 0; walk(n.tasks || []); }); })(S.projects);
   itemsIn(res[3].data || [], res[4].data || []);
   var base = rowsFromTree(); SYNC.nodes = {}; for (var k in base) SYNC.nodes[k] = JSON.stringify(base[k]);
-  S.notifs = (res[2].data || []).map(function (x) { return { to: x.to_id, text: x.text, sub: x.sub, at: fmtAt(x.created_at) }; });
+  S.notifs = (res[2].data || []).map(function (x) { return { id: x.id, to: x.to_id, text: x.text, sub: x.sub, at: fmtAt(x.created_at) }; });
 }
 
 // ---------- 変更の送信（前回との差分だけ） ----------
@@ -366,3 +366,9 @@ render = function () {
   }
 };
 document.addEventListener('visibilitychange', function () { if (!document.hidden && SYNC.ready) trackVisit('open'); });
+
+// 通知の削除（自分あての通知だけ消せる）
+window.__delNotif = function (id) {
+  var me0 = S.me; S.notifs = (S.notifs || []).filter(function (n) { return id === 'all' ? n.to !== me0 : n.id !== id; });
+  var q = sb.from('notifications').delete(); (id === 'all' ? q.eq('to_id', me0) : q.eq('id', id)).then(function (r) { if (r.error) toast('削除できませんでした'); });
+};

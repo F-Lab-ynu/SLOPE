@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '412c7457ce', FILE = 'index.ver';
+  var VER = 'ca4fd01be9', FILE = 'index.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -360,6 +360,7 @@ a.pgn{color:inherit}
         .map(function (n) { return { id: n.id, title: n.title, end: n.end_date, nodate: !!(n.data && n.data.nodate), event: (root(n) || {}).title || '', parent: by[n.parent_id] }; });
     },
     notifs: function () { return NOTIFS; },
+    delNotif: function (id) { NOTIFS = NOTIFS.filter(function (n) { return id !== 'all' && n.id !== id; }); bump(); var q = sb.from('notifications').delete(); (id === 'all' ? q.eq('to_id', DB.me) : q.eq('id', id)).then(function (r) { if (r.error) DB.flash('削除できませんでした'); }); },
     flash: function (msg) {
       var t = document.getElementById('mtoast'); if (!t) { t = document.createElement('div'); t.id = 'mtoast'; document.body.appendChild(t); }
       t.textContent = msg; t.className = 'on'; clearTimeout(DB._t); DB._t = setTimeout(function () { t.className = ''; }, 2200);
@@ -485,7 +486,7 @@ function memberExtras(v) {
   var recent = D.items('recruit').concat(D.items('idea'), D.items('pain')).filter(function (x) { return Date.now() - new Date(x.created_at) < 7 * 86400000; });
   var nr = recent.filter(function (x) { return x.kind !== 'pain'; }).length, np = recent.length - nr;
   var inis = []; recent.forEach(function (x) { var i = D.ini(x.author); if (inis.indexOf(i) < 0 && inis.length < 3) inis.push(i); });
-  var notifs = D.notifs().slice(0, 6).map(function (n, i, arr) { return { text: n.text, sub: n.sub, at: D.ago(n.created_at), unread: !n.read, dot: n.read ? 'transparent' : RT, sep: i < arr.length - 1 ? '1px solid #252524' : '0', read: function () { D.readNotif(n.id); } }; });
+  var notifs = D.notifs().slice(0, 6).map(function (n, i, arr) { return { text: n.text, sub: n.sub, at: D.ago(n.created_at), unread: !n.read, dot: n.read ? 'transparent' : RT, sep: i < arr.length - 1 ? '1px solid #252524' : '0', read: function () { D.readNotif(n.id); }, del: function () { D.delNotif(n.id); } }; });
 
   // 学習：自分のロールトラックの進み具合
   var T = D.tracks(), myRole = (self0.roles || [])[0] || '', roleT = T.filter(function (t) { return t.name === myRole; })[0];
@@ -540,7 +541,7 @@ function memberExtras(v) {
       return { label: '参加予定', n: String(js.length), note: js.length ? '次 ' + md(js[0].start || js[0].end) + ' ' + js[0].title : '予定タブから参加登録', go: function () { self.setState({ tab: 'cal', sub: null }); } };
     })(),
     weekCount: String(weekEv.length), boardNew: { n: String(recent.length), inis: inis.map(function (i) { return { i: i }; }), note: '募集・意見 ' + nr + ' · ペイン ' + np },
-    hasNews: false, notifs: notifs, hasNotifs: notifs.length > 0,
+    hasNews: false, notifs: notifs, hasNotifs: notifs.length > 0, delAllNotifs: function () { D.delNotif('all'); },
     level: { lv: String(Math.floor(allD / 4) + 1).padStart(2, '0'), track: myRole ? myRole + ' 受講中' : 'ロールを選んでください', ms: '修了 ' + allD + ' / ' + allN + ' 単元', w: (allN ? Math.round(allD / allN * 100) : 0) + '%' },
     baseNote: bN ? bD + ' / ' + bN + ' 修了' : 'まだ単元がありません', basePct: (bN ? Math.round(bD / bN * 100) : 0) + '%',
     roleNote: myRole ? '受講中：' + myRole : 'ロール未設定', rolePct: (rN ? Math.round(rD / rN * 100) : 0) + '%', pracBadge: String(v.pStats ? v.pStats[0].n : 0), hasPracBadge: !!(v.pStats && v.pStats[0].n),
@@ -729,16 +730,19 @@ setInterval(window.__chrome, 400);
 </sc-if>
 <sc-if value="{{ hasNotifs }}">
 <div style="display: flex; flex-direction: column; gap: 14px">
-<h2 class="h2">お知らせ</h2>
+<div style="display: flex; justify-content: space-between; align-items: center"><h2 class="h2">お知らせ</h2><button onClick="{{ delAllNotifs }}" style="border: 0; background: transparent; color: #A3A19B; font-size: 12px; font-family: inherit; padding: 4px 0">すべて削除</button></div>
 <div class="card" style="padding: 0 18px">
 <sc-for list="{{ notifs }}" as="n">
-<button onClick="{{ n.read }}" style="display: flex; align-items: flex-start; gap: 10px; width: 100%; padding: 14px 0; border: 0; border-bottom: {{ n.sep }}; background: transparent; color: #F3F1EC; text-align: left">
+<div style="display: flex; align-items: flex-start; gap: 6px; border-bottom: {{ n.sep }}">
+<button onClick="{{ n.read }}" style="flex: 1; min-width: 0; display: flex; align-items: flex-start; gap: 10px; padding: 14px 0; border: 0; background: transparent; color: #F3F1EC; text-align: left">
 <span style="flex: none; width: 7px; height: 7px; margin-top: 8px; border-radius: 50%; background: {{ n.dot }}"></span>
 <span style="flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0">
 <span style="font-size: 14px; line-height: 1.5">{{ n.text }}</span>
 <span style="font-size: 12px; color: #A3A19B">{{ n.sub }} · {{ n.at }}</span>
 </span>
 </button>
+<button onClick="{{ n.del }}" aria-label="このお知らせを削除" style="flex: none; width: 36px; height: 36px; margin-top: 8px; margin-right: -10px; border: 0; background: transparent; color: #7D7B76; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+</div>
 </sc-for>
 </div>
 </div>

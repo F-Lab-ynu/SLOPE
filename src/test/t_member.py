@@ -92,6 +92,11 @@ async def main():
         print('other:', [i['data'] for i in await db(pg, 'items') if i['kind'] == 'other'])
         # 予定
         await pg.click('#stage nav button:has-text("予定")'); await pg.wait_for_timeout(300)
+        await pg.click('#stage nav button:has-text("ホーム")'); await pg.wait_for_timeout(300)
+        nb = await pg.locator('#stage button[aria-label="このお知らせを削除"]').count()
+        if nb: await pg.locator('#stage button[aria-label="このお知らせを削除"]').first.click(); await pg.wait_for_timeout(300)
+        print('notif del:', nb, '->', await pg.locator('#stage button[aria-label="このお知らせを削除"]').count(), len(await db(pg, 'notifications')))
+        await pg.click('#stage nav button:has-text("予定")'); await pg.wait_for_timeout(300)
         print('club events:', await pg.locator('#stage h2:has-text("部内イベント")').count(), await pg.locator('#stage :text("これからの部内イベントはありません")').count())
         await pg.screenshot(path='/tmp/m6.png')
         # 学ぶ

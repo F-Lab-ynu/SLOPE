@@ -70,16 +70,19 @@ TASKS = '''<sc-if value="{{ hasTasks }}">
 </sc-if>
 <sc-if value="{{ hasNotifs }}">
 <div style="display: flex; flex-direction: column; gap: 14px">
-<h2 class="h2">お知らせ</h2>
+<div style="display: flex; justify-content: space-between; align-items: center"><h2 class="h2">お知らせ</h2><button onClick="{{ delAllNotifs }}" style="border: 0; background: transparent; color: #A3A19B; font-size: 12px; font-family: inherit; padding: 4px 0">すべて削除</button></div>
 <div class="card" style="padding: 0 18px">
 <sc-for list="{{ notifs }}" as="n">
-<button onClick="{{ n.read }}" style="display: flex; align-items: flex-start; gap: 10px; width: 100%; padding: 14px 0; border: 0; border-bottom: {{ n.sep }}; background: transparent; color: #F3F1EC; text-align: left">
+<div style="display: flex; align-items: flex-start; gap: 6px; border-bottom: {{ n.sep }}">
+<button onClick="{{ n.read }}" style="flex: 1; min-width: 0; display: flex; align-items: flex-start; gap: 10px; padding: 14px 0; border: 0; background: transparent; color: #F3F1EC; text-align: left">
 <span style="flex: none; width: 7px; height: 7px; margin-top: 8px; border-radius: 50%; background: {{ n.dot }}"></span>
 <span style="flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0">
 <span style="font-size: 14px; line-height: 1.5">{{ n.text }}</span>
 <span style="font-size: 12px; color: #A3A19B">{{ n.sub }} · {{ n.at }}</span>
 </span>
 </button>
+<button onClick="{{ n.del }}" aria-label="このお知らせを削除" style="flex: none; width: 36px; height: 36px; margin-top: 8px; margin-right: -10px; border: 0; background: transparent; color: #7D7B76; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+</div>
 </sc-for>
 </div>
 </div>

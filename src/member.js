@@ -79,6 +79,7 @@
         .map(function (n) { return { id: n.id, title: n.title, end: n.end_date, nodate: !!(n.data && n.data.nodate), event: (root(n) || {}).title || '', parent: by[n.parent_id] }; });
     },
     notifs: function () { return NOTIFS; },
+    delNotif: function (id) { NOTIFS = NOTIFS.filter(function (n) { return id !== 'all' && n.id !== id; }); bump(); var q = sb.from('notifications').delete(); (id === 'all' ? q.eq('to_id', DB.me) : q.eq('id', id)).then(function (r) { if (r.error) DB.flash('削除できませんでした'); }); },
     flash: function (msg) {
       var t = document.getElementById('mtoast'); if (!t) { t = document.createElement('div'); t.id = 'mtoast'; document.body.appendChild(t); }
       t.textContent = msg; t.className = 'on'; clearTimeout(DB._t); DB._t = setTimeout(function () { t.className = ''; }, 2200);
@@ -204,7 +205,7 @@ function memberExtras(v) {
   var recent = D.items('recruit').concat(D.items('idea'), D.items('pain')).filter(function (x) { return Date.now() - new Date(x.created_at) < 7 * 86400000; });
   var nr = recent.filter(function (x) { return x.kind !== 'pain'; }).length, np = recent.length - nr;
   var inis = []; recent.forEach(function (x) { var i = D.ini(x.author); if (inis.indexOf(i) < 0 && inis.length < 3) inis.push(i); });
-  var notifs = D.notifs().slice(0, 6).map(function (n, i, arr) { return { text: n.text, sub: n.sub, at: D.ago(n.created_at), unread: !n.read, dot: n.read ? 'transparent' : RT, sep: i < arr.length - 1 ? '1px solid #252524' : '0', read: function () { D.readNotif(n.id); } }; });
+  var notifs = D.notifs().slice(0, 6).map(function (n, i, arr) { return { text: n.text, sub: n.sub, at: D.ago(n.created_at), unread: !n.read, dot: n.read ? 'transparent' : RT, sep: i < arr.length - 1 ? '1px solid #252524' : '0', read: function () { D.readNotif(n.id); }, del: function () { D.delNotif(n.id); } }; });
 
   // 学習：自分のロールトラックの進み具合
   var T = D.tracks(), myRole = (self0.roles || [])[0] || '', roleT = T.filter(function (t) { return t.name === myRole; })[0];
@@ -259,7 +260,7 @@ function memberExtras(v) {
       return { label: '参加予定', n: String(js.length), note: js.length ? '次 ' + md(js[0].start || js[0].end) + ' ' + js[0].title : '予定タブから参加登録', go: function () { self.setState({ tab: 'cal', sub: null }); } };
     })(),
     weekCount: String(weekEv.length), boardNew: { n: String(recent.length), inis: inis.map(function (i) { return { i: i }; }), note: '募集・意見 ' + nr + ' · ペイン ' + np },
-    hasNews: false, notifs: notifs, hasNotifs: notifs.length > 0,
+    hasNews: false, notifs: notifs, hasNotifs: notifs.length > 0, delAllNotifs: function () { D.delNotif('all'); },
     level: { lv: String(Math.floor(allD / 4) + 1).padStart(2, '0'), track: myRole ? myRole + ' 受講中' : 'ロールを選んでください', ms: '修了 ' + allD + ' / ' + allN + ' 単元', w: (allN ? Math.round(allD / allN * 100) : 0) + '%' },
     baseNote: bN ? bD + ' / ' + bN + ' 修了' : 'まだ単元がありません', basePct: (bN ? Math.round(bD / bN * 100) : 0) + '%',
     roleNote: myRole ? '受講中：' + myRole : 'ロール未設定', rolePct: (rN ? Math.round(rD / rN * 100) : 0) + '%', pracBadge: String(v.pStats ? v.pStats[0].n : 0), hasPracBadge: !!(v.pStats && v.pStats[0].n),
