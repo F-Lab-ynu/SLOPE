@@ -55,7 +55,10 @@
     },
     clubEvents: function () { // 部内イベント：告知で公開した学ぶのイベント＋部内の予定
       var out = [];
-      ITEMS.filter(function (x) { return x.kind === 'cal' && x.state === 'ok' && (x.data || {}).state === 'pub'; }).forEach(function (x) { var d = x.data || {}; if (/^\d{4}-\d{2}-\d{2}$/.test(d.date || '')) out.push({ id: x.id, title: d.title, start: d.date, end: d.to || d.date, sub: [d.time, d.place, d.memo].filter(Boolean).join(' · ') }); });
+      // 教材（学ぶのプログラム）に入っているイベントも出す。参加登録は告知で公開したものだけ
+      var inProg = {}, pg = ITEMS.filter(function (x) { return x.kind === 'program' && x.state === 'ok'; })[0];
+      (function w(a) { (a || []).forEach(function (n) { if (n.out) return; if (n.k === 'e' && n.ref) inProg[n.ref] = 1; if (n.items) w(n.items); }); })(pg && pg.data && pg.data.v2);
+      ITEMS.filter(function (x) { return x.kind === 'cal' && x.state === 'ok' && ((x.data || {}).state === 'pub' || inProg[x.id]); }).forEach(function (x) { var d = x.data || {}; if (/^\d{4}-\d{2}-\d{2}$/.test(d.date || '')) out.push({ id: x.id, title: d.title, start: d.date, end: d.to || d.date, sub: [d.time, d.place, d.memo].filter(Boolean).join(' · '), pub: d.state === 'pub' && d.inNotice !== false }); });
       return out.sort(function (a, b) { return a.start < b.start ? -1 : 1; });
     },
     calendar: function () {
@@ -250,7 +253,7 @@ function memberExtras(v) {
     learnCard: { n: rN ? rD + '/' + rN : '—', dash: (ring * pct).toFixed(1) + ' ' + ring.toFixed(1), track: myRole || 'ロール未設定', next: nextU ? nextU.code + '\n' + nextU.title : (roleT ? '全単元修了' : 'マイページでロールを選ぶ') },
     clubEvents: D.clubEvents().filter(function (e) { return e.end >= today; }).map(function (e) { var on = D.mine(e.id, 'join'), p = e.start.split('-');
       return { mon: ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][+p[1] - 1], d: String(+p[2]), title: e.title, sub: (e.end !== e.start ? '〜' + md(e.end) + ' · ' : '') + e.sub,
-        joinLabel: on ? '✓ 登録済み' : '参加登録', joinBd: on ? 'transparent' : '#474744', joinFg: on ? '#7D7B76' : '#D2CFC8', toggle: function () { D.toggle(e.id, 'join'); } }; }),
+        jd: e.pub ? 'inline-flex' : 'none', joinLabel: on ? '✓ 登録済み' : '参加登録', joinBd: on ? 'transparent' : '#474744', joinFg: on ? '#7D7B76' : '#D2CFC8', toggle: function () { D.toggle(e.id, 'join'); } }; }),
     noClubEvents: !D.clubEvents().some(function (e) { return e.end >= today; }),
     tasks: tasks, hasTasks: tasks.length > 0,
     // ホームの右上のカード：業務を担当している人は「自分の業務」、それ以外は「参加予定」（参加登録したこれからのイベント）
