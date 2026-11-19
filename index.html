@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = 'b9f5dfa1cd', FILE = 'index.ver';
+  var VER = '8902eb0b04', FILE = 'index.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -928,7 +928,7 @@ setInterval(window.__chrome, 400);
 <button onClick="{{ m.go }}" class="card" style="padding: 14px 16px; border-radius: 8px; display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; color: #F3F1EC">
 <span style="flex: 1; display: flex; flex-direction: column; gap: 2px">
 <span style="font-weight: 500">{{ m.title }}</span>
-<span style="font-size: 13px; color: #A3A19B">{{ m.kind }} · {{ m.min }}</span>
+<span style="font-size: 13px; color: #A3A19B">{{ m.sub }}</span>
 </span>
 <span class="chip" style="border-color: {{ m.color }}; color: {{ m.color }}">開く ↗</span>
 </button>
@@ -2015,7 +2015,7 @@ class Component extends DCLogic {
       titleColor: u.st === 'locked' ? '#BDBAB3' : '#F3F1EC', lineColor: i === units.length - 1 ? 'transparent' : (u.st === 'done' ? A : '#383836')
     }));
     const uSel = (() => { const t = T.find((x) => x.id === s.unitT); if (!t) return null; const u = unitsOf(t).find((v) => v.code === s.unitC); return u ? { t: t, u: u, d: D.unitData(t, u.code) } : null; })();
-    const materials = uSel ? (uSel.d.materials || []).map((m) => ({ title: m.memo || m.url, kind: m.type || '記事', min: D.host(m.url), src: '外部', color: '#D2CFC8', url: m.url, go: () => window.__openLink(m.url, m.memo || '') })) : [];
+    const materials = uSel ? (uSel.d.materials || []).map((m) => ({ title: m.memo || D.host(m.url), kind: m.type || '記事', min: D.host(m.url), sub: (m.type || '記事') + (m.memo ? ' · ' + D.host(m.url) : ''), src: '外部', color: '#D2CFC8', url: m.url, go: () => window.__openLink(m.url, m.memo || '') })) : [];
 
     // ---- 募集の詳細：観点別フィードバック ----
     const lensNames = ['すべて'].concat(ROLES);
@@ -2336,7 +2336,7 @@ class Component extends DCLogic {
       toggleAnon: () => this.setState({ anon: !this.state.anon }),
       recruits: recruits, recruitsTop: recruits.slice(0, 2).map((r, i) => Object.assign({}, r, { sep: i < 1 ? '1px solid #252524' : '0' })), cur: cur,
       pains: pains, painTop: painTop,
-      baseUnits: baseUnits, courses: courses, materials: materials,
+      baseUnits: baseUnits, courses: courses, materials: materials.map((m) => Object.assign({}, m, { sub: [m.kind, m.min].filter(Boolean).join(' · ') })),
       crs: Object.assign({}, crs, { kind: crsKind, name: crsName, jp: crsJp, count: crsDone + ' / ' + crsTot + ' 修了', lock: crsMine ? '受講中' : '受講可', lockColor: crsMine ? RT : '#BDBAB3' }), cSel: cSel,
       unitGroups: unitGroups, uFilters: uFilters, allCount: allCount, noUnits: unitGroups.length === 0,
       openAll: () => this.setState({ sub: 'allUnits' }),
