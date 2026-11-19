@@ -69,7 +69,7 @@ async function loadAll() {
     sb.from('notifications').select('*').eq('to_id', S.me).order('created_at', { ascending: false }).limit(50),
     sb.from('items').select('*').order('created_at', { ascending: false }),
     sb.from('reports').select('*'),
-    sb.from('reactions').select('item_id,kind').eq('kind', 'join')
+    sb.from('reactions').select('item_id,kind,user_id').eq('kind', 'join')
   ]);
   for (var i = 0; i < res.length; i++) if (res[i].error) throw res[i].error;
   if (loadAll.guard != null && loadAll.guard !== SYNC.ver) return false; // 読み込み中に手元で変わった → 捨てて手元を優先
@@ -79,7 +79,8 @@ async function loadAll() {
   S.self = ps.filter(function (p) { return p.id === S.me; })[0] || null;
   SYNC.profiles = {}; S.members.forEach(function (m) { SYNC.profiles[m.id] = profKey(m); });
   S.projects = buildTree(res[1].data || []);
-  var joins = {}; (res[5].data || []).forEach(function (r) { joins[r.item_id] = (joins[r.item_id] || 0) + 1; });
+  var joins = {}, jids = {}; (res[5].data || []).forEach(function (r) { joins[r.item_id] = (joins[r.item_id] || 0) + 1; (jids[r.item_id] = jids[r.item_id] || []).push(r.user_id); });
+  S.joinIds = jids; // 出席を付けるとき、参加登録した人を上に
   S.joins = joins; // 参加登録の数（業務のイベントは node の id、学ぶのイベントは 'pe:' + id）
   (function walk(a) { a.forEach(function (n) { if (n.kind === 'event') n.reg = joins[n.id] || 0; walk(n.tasks || []); }); })(S.projects);
   itemsIn(res[3].data || [], res[4].data || []);

@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = 'f1377e34e6', FILE = 'index.ver';
+  var VER = 'fd5d7aba41', FILE = 'index.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -317,6 +317,22 @@ a.pgn{color:inherit}
     },
     host: function (u) { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return ''; } },
     myRoles: function () { return (DB.self && DB.self.roles) || []; },
+    prog: function () { var pg = ITEMS.filter(function (x) { return x.kind === 'program' && x.state === 'ok'; })[0]; return (pg && pg.data && pg.data.v2) || []; },
+    level: function (uid) { // 印（レベル）を付けたイベントの並び順で、出席したいちばん後ろのもの
+      var L = 0, i = 0, cal = {}; ITEMS.forEach(function (x) { if (x.kind === 'cal') cal[x.id] = x.data || {}; });
+      (function w(a) { a.forEach(function (n) { if (n.out) return; if (n.k === 'e' && n.lv) { i++; if (((cal[n.ref] || {}).att || []).indexOf(uid) >= 0) L = i; } if (n.items) w(n.items); }); })(DB.prog());
+      return L;
+    },
+    quizOf: function (t, code) { return ((DB.unitData(t, code).quiz) || []).filter(function (q) { return q && q.q && (q.c || []).filter(Boolean).length >= 2; }); },
+    milestones: function () { // 確認問題のある単元＝マイルストーン。いちばん上のフォルダごとに数える（自分のロール以外のロールは数えない）
+      var T = DB.tracks(), by = {}, roles = DB.myRoles(), R5 = ['Strategist', 'Negotiator', 'Advertiser', 'Engineer', 'Innovator'], out = [];
+      T.forEach(function (t) { by[t.id] = t; });
+      DB.prog().forEach(function (f) { if (f.out || f.k !== 'f') return; if (R5.indexOf(f.name) >= 0 && roles.length && roles.indexOf(f.name) < 0) return;
+        var n = 0, d = 0;
+        (function w(a, nm) { a.forEach(function (x) { if (x.k === 'f' && R5.indexOf(x.name) >= 0 && roles.length && roles.indexOf(x.name) < 0) return; if (x.k === 'u' && by[x.t] && DB.quizOf(by[x.t], x.c).length) { n++; if (DB.mine(x.t + ':' + x.c, 'done')) d++; } if (x.items) w(x.items); }); })(f.items || []);
+        if (n) out.push({ label: f.name + ' ' + d + '/' + n }); });
+      return out;
+    },
     isOps: function () { return !!(DB.self && POSTS[DB.self.post]); },
     tracks: function () {
       return ITEMS.filter(function (x) { return x.kind === 'track' && x.state === 'ok' && (x.data || {}).status === 'pub'; }).sort(function (a, b) { return a.pos - b.pos; })
@@ -504,6 +520,8 @@ function memberExtras(v) {
   // 単元の詳細
   var ut = T.filter(function (t) { return t.id === s.unitT; })[0], uu = ut ? D.units(ut).filter(function (x) { return x.code === s.unitC; })[0] : null, ud = ut && uu ? D.unitData(ut, uu.code) : {};
   var udone = ut && uu ? D.mine(ut.id + ':' + uu.code, 'done') : false;
+  var uqz = ut && uu ? D.quizOf(ut, uu.code) : [];
+  window.__UQ = uqz.length ? { key: ut.id + ':' + uu.code, qs: uqz, done: udone, pass: function () { if (!D.mine(ut.id + ':' + uu.code, 'done')) D.toggle(ut.id + ':' + uu.code, 'done'); } } : null;
   var unit = {
     head: ut && uu ? ut.name + ' · ' + uu.code : '', title: uu ? uu.title : '',
     deps: uu && uu.deps.length ? '前提：' + uu.deps.join('、') : '前提なし', inperson: uu && uu.tags.indexOf('対面') >= 0, hasPractice: !!(ud.practice), practice: ud.practice || '',
@@ -548,9 +566,9 @@ function memberExtras(v) {
     level: { lv: String(Math.floor(allD / 4) + 1).padStart(2, '0'), track: myRole ? myRole + ' 受講中' : 'ロールを選んでください', ms: '修了 ' + allD + ' / ' + allN + ' 単元', w: (allN ? Math.round(allD / allN * 100) : 0) + '%' },
     baseNote: bN ? bD + ' / ' + bN + ' 修了' : 'まだ単元がありません', basePct: (bN ? Math.round(bD / bN * 100) : 0) + '%',
     roleNote: myRole ? '受講中：' + myRole : 'ロール未設定', rolePct: (rN ? Math.round(rD / rN * 100) : 0) + '%', pracBadge: String(v.pStats ? v.pStats[0].n : 0), hasPracBadge: !!(v.pStats && v.pStats[0].n),
-    unit: unit, openUnit: function () {},
+    unit: unit, uNoQuiz: !uqz.length, openUnit: function () {},
     calTitle: cy + '.' + String(cm).padStart(2, '0'), calPrev: mv(-1), calNext: mv(1), dayTitle: cm + '.' + sel + ' ' + WDJ[new Date(cy, cm - 1, sel).getDay()],
-    me: { name: self0.name, grade: self0.grade || '学部・学年未設定', lv: 'Lv.' + String(Math.floor(allD / 4) + 1).padStart(2, '0'), track: myRole ? myRole + ' 受講中' : 'ロール未設定', post: self0.post && self0.post !== '—' ? self0.post : 'プレイヤー', roles: roleChips,
+    me: { name: self0.name, grade: self0.grade || '学部・学年未設定', lv: 'Lv' + D.level(D.me), ms: D.milestones(), track: myRole ? myRole + ' 受講中' : 'ロール未設定', post: self0.post && self0.post !== '—' ? self0.post : 'プレイヤー', roles: roleChips,
       editName: function () { var n = prompt('名前', self0.name || ''); if (n == null) return; var g = prompt('学部・学年（例：経営 1年）', self0.grade || ''); if (g == null) return; D.saveProfile({ name: n.trim() || self0.name, grade: g.trim() }); } },
     myProjects: myProjects, noProjects: myProjects.length === 0,
     curMine: !!cur.mine, curOther: !!cur.notMine,
@@ -917,15 +935,10 @@ setInterval(window.__chrome, 400);
 </sc-for>
 </div>
 
+<div id="uquiz"></div>
+<sc-if value="{{ uNoQuiz }}" hint-placeholder-val="{{ true }}">
 <button onClick="{{ unit.toggle }}" style="height: 48px; border: 1px solid #F3F1EC; border-radius: 8px; background: {{ unit.doneBg }}; color: {{ unit.doneFg }}; font-weight: 700; font-size: 16px">{{ unit.doneLabel }}</button>
-
-<div class="card" style="padding: 16px; display: flex; align-items: center; gap: 14px">
-<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#BDBAB3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4h11l-2 4 2 4H5"></path></svg>
-<span style="flex: 1; display: flex; flex-direction: column">
-<span style="font-size: 13px; color: #A3A19B">達成するマイルストーン</span>
-<span style="font-weight: 500">{{ unit.milestone }}</span>
-</span>
-</div>
+</sc-if>
 </div>
 </sc-if>
 
@@ -1649,6 +1662,7 @@ setInterval(window.__chrome, 400);
 </div>
 <div style="display: flex; gap: 6px; flex-wrap: wrap">
 <span class="chip en" style="border-color: #F3F1EC; color: #F3F1EC">{{ me.lv }}</span>
+<sc-for list="{{ me.ms }}" as="x"><span class="chip en">{{ x.label }}</span></sc-for>
 <span class="chip en">{{ me.track }}</span>
 </div>
 <div style="display: flex; flex-direction: column; gap: 8px">
@@ -2274,7 +2288,23 @@ class Component extends DCLogic {
     const painSorts = ['共感順', '新着'].map((n) => ({ name: n, fg: s.ps === n ? INK : '', pick: () => this.setState({ ps: n }) }));
     const dd = { b: ddOf('b', bFilters), ex: ddOf('ex', exFilters), ot: ddOf('ot', otFilters), lib: ddOf('lib', libFilters), u: ddOf('u', uFilters), ps: ddOf('ps', painSorts) };
 
+    // レベル（印を付けたイベントの出席）・マイルストーン（確認問題のある単元）・確認問題：運営画面（モック）のデータから
+    let admL = null; try { admL = JSON.parse(localStorage.getItem('slope-admin-v10') || 'null'); } catch (er) {}
+    const qd = s.qz || {}, ME = 'm1'; // モックの自分
+    const trOf = (id) => ((admL && admL.tracks) || []).find((t) => t.id === id);
+    const qzOf = (t, c) => ((((t || {}).units || {})[c] || {}).quiz || []).filter((q) => q && q.q && (q.c || []).filter(Boolean).length >= 2);
+    let meLv = 'Lv0'; const meMs = [];
+    if (admL && admL.program && admL.program.v2) {
+      const cals = {}; (admL.cals || []).forEach((c) => { cals[c.id] = c; }); let i = 0, L = 0;
+      (function w(a) { a.forEach((n) => { if (n.out) return; if (n.k === 'e' && n.lv) { i++; if (((cals[n.ref] || {}).att || []).indexOf(ME) >= 0) L = i; } if (n.items) w(n.items); }); })(admL.program.v2);
+      meLv = 'Lv' + L;
+      admL.program.v2.forEach((f) => { if (f.out || f.k !== 'f') return; let n = 0, d = 0; (function w(a) { a.forEach((x) => { if (x.k === 'u' && qzOf(trOf(x.t), x.c).length) { n++; if (qd[x.t + ':' + x.c]) d++; } if (x.items) w(x.items); }); })(f.items || []); if (n) meMs.push({ label: f.name + ' ' + d + '/' + n }); });
+    }
+    const uq = s.sub === 'unit' && s.unitT ? qzOf(trOf(s.unitT), s.unitC) : [];
+    window.__UQ = uq.length ? { key: s.unitT + ':' + s.unitC, qs: uq, done: !!qd[s.unitT + ':' + s.unitC], pass: () => { const q = Object.assign({}, this.state.qz || {}); q[s.unitT + ':' + s.unitC] = true; this.setState({ qz: q }); } } : null;
+
     return {
+      meLv: meLv, meMs: meMs, uNoQuiz: !uq.length,
       dd: dd,
       accent: A,
       show: {
@@ -2515,5 +2545,56 @@ document.addEventListener('click',function(e){
   };
 })();
 </script>
+<script>
+// 単元の確認問題（window.__UQ = { key, qs:[{q,c,a}], done, pass }）。全問正解でその単元のマイルストーン達成
+(function () {
+  var st = { k: null, pick: {}, shown: false };
+  function esc(x) { return String(x == null ? '' : x).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function html(U) {
+    var all = U.qs.every(function (q, i) { return st.pick[i] != null; });
+    return '<div class="uq"><div class="uqh"><span class="lbl">確認問題</span>' + (U.done ? '<span class="uqok">達成</span>' : '') + '</div>' +
+      U.qs.map(function (q, i) {
+        return '<div class="uqq"><div class="uqt"><span class="en">Q' + (i + 1) + '</span>' + esc(q.q) + '</div>' + q.c.map(function (o, j) {
+          if (!o) return '';
+          var sel = U.done ? j === q.a : st.pick[i] === j, mk = U.done ? (j === q.a ? ' ok' : '') : (st.shown && sel ? (j === q.a ? ' ok' : ' ng') : '');
+          return '<button class="uqo' + (sel ? ' sel' : '') + mk + '" data-uqo="' + i + ':' + j + '"' + (U.done ? ' aria-disabled="true" tabindex="-1"' : '') + '>' + esc(o) + '</button>';
+        }).join('') + '</div>';
+      }).join('') +
+      (U.done ? '' : '<button class="uqgo" data-uqgo="1"' + (all ? '' : ' disabled') + '>答え合わせ</button>') + '</div>';
+  }
+  function paint() {
+    var el = document.getElementById('uquiz'), U = window.__UQ; if (!el) return;
+    if (!U) { if (el.innerHTML) el.innerHTML = ''; el.dataset.k = ''; return; }
+    if (st.k !== U.key) { st = { k: U.key, pick: {}, shown: false }; }
+    var k = U.key + '|' + U.done + '|' + JSON.stringify(st);
+    if (el.dataset.k === k) return; el.dataset.k = k; el.innerHTML = html(U);
+  }
+  new MutationObserver(function (ms) { if (ms.every(function (m) { return m.target.id === 'uquiz' || (m.target.closest && m.target.closest('#uquiz')); })) return; paint(); }).observe(document.documentElement, { childList: true, subtree: true });
+  document.addEventListener('click', function (e) {
+    var o = e.target.closest && e.target.closest('[data-uqo]'), g = e.target.closest && e.target.closest('[data-uqgo]'), U = window.__UQ; if (!U || (!o && !g)) return;
+    e.preventDefault();
+    if (o) { var p = o.dataset.uqo.split(':'); st.pick[+p[0]] = +p[1]; st.shown = false; paint(); return; }
+    st.shown = true;
+    if (U.qs.every(function (q, i) { return st.pick[i] === q.a; })) { U.done = true; U.pass(); }
+    paint();
+  });
+})();
+</script>
+<style>
+.uq{display:flex;flex-direction:column;gap:18px}
+.uqh{display:flex;align-items:center;justify-content:space-between}
+.uqok{font-size:13px;font-weight:700;color:#F3F1EC}
+.uqq{display:flex;flex-direction:column;gap:8px}
+.uqt{display:flex;gap:10px;font-size:15px;font-weight:500;line-height:1.6;color:#F3F1EC}
+.uqt .en{flex:none;color:#7D7B76;font-weight:700}
+.uqo{text-align:left;min-height:46px;padding:11px 14px;border:1px solid #2C2C2A;border-radius:8px;background:#131313;color:#D2CFC8;font:inherit;font-size:14px;line-height:1.5;cursor:pointer}
+.uqo.sel{border-color:#F3F1EC;color:#F3F1EC}
+.uqo.ok{border-color:#F3F1EC;background:#F3F1EC;color:#070707;font-weight:700}
+.uqo.ng{border-color:#FF5C66;color:#FF5C66}
+.uqo[aria-disabled]{pointer-events:none}
+.uqo[aria-disabled]:not(.ok){opacity:.4}
+.uqgo{height:48px;border:0;border-radius:8px;background:#F3F1EC;color:#070707;font:inherit;font-weight:700;font-size:16px;cursor:pointer}
+.uqgo:disabled{background:#2C2C2A;color:#7D7B76;cursor:default}
+</style>
 </body>
 </html>

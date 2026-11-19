@@ -34,6 +34,22 @@
     },
     host: function (u) { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return ''; } },
     myRoles: function () { return (DB.self && DB.self.roles) || []; },
+    prog: function () { var pg = ITEMS.filter(function (x) { return x.kind === 'program' && x.state === 'ok'; })[0]; return (pg && pg.data && pg.data.v2) || []; },
+    level: function (uid) { // 印（レベル）を付けたイベントの並び順で、出席したいちばん後ろのもの
+      var L = 0, i = 0, cal = {}; ITEMS.forEach(function (x) { if (x.kind === 'cal') cal[x.id] = x.data || {}; });
+      (function w(a) { a.forEach(function (n) { if (n.out) return; if (n.k === 'e' && n.lv) { i++; if (((cal[n.ref] || {}).att || []).indexOf(uid) >= 0) L = i; } if (n.items) w(n.items); }); })(DB.prog());
+      return L;
+    },
+    quizOf: function (t, code) { return ((DB.unitData(t, code).quiz) || []).filter(function (q) { return q && q.q && (q.c || []).filter(Boolean).length >= 2; }); },
+    milestones: function () { // 確認問題のある単元＝マイルストーン。いちばん上のフォルダごとに数える（自分のロール以外のロールは数えない）
+      var T = DB.tracks(), by = {}, roles = DB.myRoles(), R5 = ['Strategist', 'Negotiator', 'Advertiser', 'Engineer', 'Innovator'], out = [];
+      T.forEach(function (t) { by[t.id] = t; });
+      DB.prog().forEach(function (f) { if (f.out || f.k !== 'f') return; if (R5.indexOf(f.name) >= 0 && roles.length && roles.indexOf(f.name) < 0) return;
+        var n = 0, d = 0;
+        (function w(a, nm) { a.forEach(function (x) { if (x.k === 'f' && R5.indexOf(x.name) >= 0 && roles.length && roles.indexOf(x.name) < 0) return; if (x.k === 'u' && by[x.t] && DB.quizOf(by[x.t], x.c).length) { n++; if (DB.mine(x.t + ':' + x.c, 'done')) d++; } if (x.items) w(x.items); }); })(f.items || []);
+        if (n) out.push({ label: f.name + ' ' + d + '/' + n }); });
+      return out;
+    },
     isOps: function () { return !!(DB.self && POSTS[DB.self.post]); },
     tracks: function () {
       return ITEMS.filter(function (x) { return x.kind === 'track' && x.state === 'ok' && (x.data || {}).status === 'pub'; }).sort(function (a, b) { return a.pos - b.pos; })
@@ -221,6 +237,8 @@ function memberExtras(v) {
   // 単元の詳細
   var ut = T.filter(function (t) { return t.id === s.unitT; })[0], uu = ut ? D.units(ut).filter(function (x) { return x.code === s.unitC; })[0] : null, ud = ut && uu ? D.unitData(ut, uu.code) : {};
   var udone = ut && uu ? D.mine(ut.id + ':' + uu.code, 'done') : false;
+  var uqz = ut && uu ? D.quizOf(ut, uu.code) : [];
+  window.__UQ = uqz.length ? { key: ut.id + ':' + uu.code, qs: uqz, done: udone, pass: function () { if (!D.mine(ut.id + ':' + uu.code, 'done')) D.toggle(ut.id + ':' + uu.code, 'done'); } } : null;
   var unit = {
     head: ut && uu ? ut.name + ' · ' + uu.code : '', title: uu ? uu.title : '',
     deps: uu && uu.deps.length ? '前提：' + uu.deps.join('、') : '前提なし', inperson: uu && uu.tags.indexOf('対面') >= 0, hasPractice: !!(ud.practice), practice: ud.practice || '',
@@ -265,9 +283,9 @@ function memberExtras(v) {
     level: { lv: String(Math.floor(allD / 4) + 1).padStart(2, '0'), track: myRole ? myRole + ' 受講中' : 'ロールを選んでください', ms: '修了 ' + allD + ' / ' + allN + ' 単元', w: (allN ? Math.round(allD / allN * 100) : 0) + '%' },
     baseNote: bN ? bD + ' / ' + bN + ' 修了' : 'まだ単元がありません', basePct: (bN ? Math.round(bD / bN * 100) : 0) + '%',
     roleNote: myRole ? '受講中：' + myRole : 'ロール未設定', rolePct: (rN ? Math.round(rD / rN * 100) : 0) + '%', pracBadge: String(v.pStats ? v.pStats[0].n : 0), hasPracBadge: !!(v.pStats && v.pStats[0].n),
-    unit: unit, openUnit: function () {},
+    unit: unit, uNoQuiz: !uqz.length, openUnit: function () {},
     calTitle: cy + '.' + String(cm).padStart(2, '0'), calPrev: mv(-1), calNext: mv(1), dayTitle: cm + '.' + sel + ' ' + WDJ[new Date(cy, cm - 1, sel).getDay()],
-    me: { name: self0.name, grade: self0.grade || '学部・学年未設定', lv: 'Lv.' + String(Math.floor(allD / 4) + 1).padStart(2, '0'), track: myRole ? myRole + ' 受講中' : 'ロール未設定', post: self0.post && self0.post !== '—' ? self0.post : 'プレイヤー', roles: roleChips,
+    me: { name: self0.name, grade: self0.grade || '学部・学年未設定', lv: 'Lv' + D.level(D.me), ms: D.milestones(), track: myRole ? myRole + ' 受講中' : 'ロール未設定', post: self0.post && self0.post !== '—' ? self0.post : 'プレイヤー', roles: roleChips,
       editName: function () { var n = prompt('名前', self0.name || ''); if (n == null) return; var g = prompt('学部・学年（例：経営 1年）', self0.grade || ''); if (g == null) return; D.saveProfile({ name: n.trim() || self0.name, grade: g.trim() }); } },
     myProjects: myProjects, noProjects: myProjects.length === 0,
     curMine: !!cur.mine, curOther: !!cur.notMine,
