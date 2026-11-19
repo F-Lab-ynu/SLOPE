@@ -58,7 +58,7 @@
       titleColor: u.st === 'locked' ? '#BDBAB3' : '#F3F1EC', lineColor: i === units.length - 1 ? 'transparent' : (u.st === 'done' ? A : '#383836')
     }));
     const uSel = (() => { const t = T.find((x) => x.id === s.unitT); if (!t) return null; const u = unitsOf(t).find((v) => v.code === s.unitC); return u ? { t: t, u: u, d: D.unitData(t, u.code) } : null; })();
-    const materials = uSel ? (uSel.d.materials || []).map((m) => ({ title: m.memo || D.host(m.url), kind: m.type || '記事', min: D.host(m.url), sub: (m.type || '記事') + (m.memo ? ' · ' + D.host(m.url) : ''), src: '外部', color: '#D2CFC8', url: m.url, go: () => window.__openLink(m.url, m.memo || '') })) : [];
+    const materials = uSel ? (uSel.d.materials || []).map((m) => { const nm = m.memo && !/^https?:\/\//.test(m.memo) ? m.memo : ''; return { title: nm || D.host(m.url), kind: m.type || '記事', min: D.host(m.url), sub: (m.type || '記事') + (nm ? ' · ' + D.host(m.url) : ''), src: '外部', color: '#D2CFC8', url: m.url, go: () => window.__openLink(m.url, nm) }; }) : [];
 
     // ---- 募集の詳細：観点別フィードバック ----
     const lensNames = ['すべて'].concat(ROLES);
@@ -234,7 +234,7 @@
     // ---- 教材ライブラリ（全トラックの教材リンク） ----
     const srcColor = { '部内': A, 'FCE': '#A6A6A6', '外部': '#D2CFC8' };
     const libRaw = [];
-    T.forEach((t) => unitsOf(t).forEach((u) => (D.unitData(t, u.code).materials || []).forEach((m) => libRaw.push({ title: m.memo || m.url, kind: m.type || '記事', min: D.host(m.url), src: '外部', unit: u.code, g: isBase(t) ? 'base' : 'role', open: openUnitBy(t, u.code) }))));
+    T.forEach((t) => unitsOf(t).forEach((u) => (D.unitData(t, u.code).materials || []).forEach((m) => libRaw.push({ title: (m.memo && !/^https?:\/\//.test(m.memo) ? m.memo : D.host(m.url)), kind: m.type || '記事', min: D.host(m.url), src: '外部', unit: u.code, g: isBase(t) ? 'base' : 'role', open: openUnitBy(t, u.code) }))));
     const lq = (s.lq || '').trim();
     const libSel = libRaw.filter((m) => (s.libf === 'all' || m.g === s.libf) && (!lq || (m.title + m.unit).indexOf(lq) >= 0));
     const libItems = libSel.map((m, i) => Object.assign({}, m, { color: srcColor[m.src], sep: sep(i, libSel.length) }));
