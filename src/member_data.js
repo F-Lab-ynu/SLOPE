@@ -58,7 +58,7 @@
       titleColor: u.st === 'locked' ? '#BDBAB3' : '#F3F1EC', lineColor: i === units.length - 1 ? 'transparent' : (u.st === 'done' ? A : '#383836')
     }));
     const uSel = (() => { const t = T.find((x) => x.id === s.unitT); if (!t) return null; const u = unitsOf(t).find((v) => v.code === s.unitC); return u ? { t: t, u: u, d: D.unitData(t, u.code) } : null; })();
-    const materials = uSel ? (uSel.d.materials || []).map((m) => ({ title: m.memo || m.url, kind: m.type || '記事', min: D.host(m.url), src: '外部', color: '#D2CFC8', url: m.url, go: () => window.open(m.url, '_blank', 'noopener') })) : [];
+    const materials = uSel ? (uSel.d.materials || []).map((m) => ({ title: m.memo || m.url, kind: m.type || '記事', min: D.host(m.url), src: '外部', color: '#D2CFC8', url: m.url, go: () => window.__openLink(m.url, m.memo || '') })) : [];
 
     // ---- 募集の詳細：観点別フィードバック ----
     const lensNames = ['すべて'].concat(ROLES);
@@ -220,7 +220,7 @@
       return Object.assign({}, x, { typeColor: exTypeColor[x.type] || '#8C8C8C', noTeam: !x.team, member: !!x.by, official: !x.by,
         fit: x.tags.indexOf('全職能') >= 0 || x.tags.some((t) => myRoles.indexOf(t) >= 0), tags: x.tags.map((t) => ({ name: t })),
         addLabel: on ? '予定に追加済み' : '予定に追加', addBg: on ? 'transparent' : A, addFg: on ? A : INK, addBd: A, toggle: () => D.toggle(x.id, 'plan'),
-        detailGo: () => { if (x.url) window.open(x.url, '_blank', 'noopener'); } });
+        detailGo: () => { if (x.url) window.__openLink(x.url, x.title || ''); } });
     });
     const exFilters = [{ k: 'all', n: 'すべて' }, { k: 'ビジコン', n: 'ビジコン' }, { k: 'インターン', n: 'インターン' }, { k: '説明会', n: '説明会' }].map((f) => Object.assign({ name: f.n, pick: () => this.setState({ exf: f.k }) }, pick(s.exf === f.k)));
 
