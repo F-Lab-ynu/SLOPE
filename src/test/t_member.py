@@ -18,7 +18,7 @@ SEED = {'profiles': [
   {'id': 'pj1', 'parent_id': None, 'pos': 0, 'title': 'MIRA 2026', 'kind': 'event', 'announce': 'done', 'reg': 0, 'unit': '教育部', 'who': A, 'team': [A], 'start_date': '2026-11-01', 'end_date': '2026-11-28', 'done': False},
   {'id': 'k1', 'parent_id': 'pj1', 'pos': 0, 'title': '審査の準備', 'who': A, 'team': [A, B], 'start_date': '2026-11-01', 'end_date': '2026-11-20', 'done': False},
   {'id': 'k2', 'parent_id': 'k1', 'pos': 0, 'title': '審査員を探す', 'who': B, 'team': [], 'start_date': '2026-11-10', 'end_date': '2026-11-19', 'done': False}],
-  'notifications': [], 'reactions': [], 'reports': [],
+  'notifications': [{'id': 'nt1', 'to_id': B, 'text': '「審査員を探す」の担当になりました', 'sub': 'MIRA 2026', 'read': False, 'created_at': '2026-11-20T00:00:00Z'}], 'reactions': [], 'reports': [],
   'items': [{'id': 't1', 'kind': 'track', 'data': TRACK, 'state': 'ok', 'pos': 1, 'author': A, 'created_at': '2026-11-01T00:00:00Z'},
             {'id': 't0', 'kind': 'track', 'data': BASE, 'state': 'ok', 'pos': 0, 'author': A, 'created_at': '2026-11-01T00:00:00Z'},
             {'id': 'n1', 'kind': 'notice', 'data': {'type': 'ビジコン', 'title': '学生ビジコン', 'host': '某財団', 'due': '2026-12-05', 'url': 'https://example.com', 'memo': '', 'state': 'pub'}, 'state': 'ok', 'pos': 0, 'author': A, 'created_at': '2026-11-10T00:00:00Z'}]}
@@ -93,9 +93,16 @@ async def main():
         # 予定
         await pg.click('#stage nav button:has-text("予定")'); await pg.wait_for_timeout(300)
         await pg.click('#stage nav button:has-text("ホーム")'); await pg.wait_for_timeout(300)
+        dot = lambda: pg.evaluate("getComputedStyle(document.querySelector('#stage button[aria-label=通知] span')||document.body).display")
+        print('bell dot before:', await dot())
+        await pg.click('#stage button[aria-label="通知"]'); await pg.wait_for_timeout(1600)
+        print('notif page:', await pg.locator('#stage :text("通知")').count() > 0, '| dot after:', await dot())
         nb = await pg.locator('#stage button[aria-label="このお知らせを削除"]').count()
         if nb: await pg.locator('#stage button[aria-label="このお知らせを削除"]').first.click(); await pg.wait_for_timeout(300)
+        await pg.evaluate("history.back()") if False else None
         print('notif del:', nb, '->', await pg.locator('#stage button[aria-label="このお知らせを削除"]').count(), len(await db(pg, 'notifications')))
+        await pg.click('#stage button[aria-label="戻る"], #stage button:has(svg path[d^="M15"])') if await pg.locator('#stage button[aria-label="戻る"]').count() else None
+        await pg.wait_for_timeout(300); print('read all:', all(n['read'] for n in await db(pg, 'notifications') if n['to_id'] == B))
         await pg.click('#stage nav button:has-text("予定")'); await pg.wait_for_timeout(300)
         print('club events:', await pg.locator('#stage h2:has-text("部内イベント")').count(), await pg.locator('#stage :text("これからの部内イベントはありません")').count())
         await pg.screenshot(path='/tmp/m6.png')
