@@ -5,19 +5,21 @@ import webpush from 'npm:web-push@3.6.7';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
-webpush.setVapidDetails('mailto:slope@example.invalid', Deno.env.get('VAPID_PUBLIC')!, Deno.env.get('VAPID_PRIVATE')!);
+webpush.setVapidDetails('https://f-lab-ynu.github.io/SLOPE/', Deno.env.get('VAPID_PUBLIC')!, Deno.env.get('VAPID_PRIVATE')!);
 
 async function sendTo(uid: string, title: string, body: string, url = './') {
   const { data: subs } = await sb.from('push_subs').select('id,endpoint,p256dh,auth').eq('user_id', uid);
-  let sent = 0;
+  let sent = 0; const errs: string[] = [];
   for (const s of subs || []) {
     try {
       await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify({ title, body, url }), { TTL: 86400 });
       sent++;
     } catch (e: any) {
+      errs.push(String((e && e.statusCode) || '') + ' ' + String((e && (e.body || e.message)) || e).slice(0, 200));
       if (e && (e.statusCode === 404 || e.statusCode === 410)) await sb.from('push_subs').delete().eq('id', s.id); // もう使われていない端末
     }
   }
+  if (errs.length) console.error('push failed', errs);
   return sent;
 }
 
