@@ -85,11 +85,11 @@ function inqList() {
   var list = (S.inqs || []).slice().sort(function (a, b) { return (a.status === 'done') - (b.status === 'done'); });
   var rows = list.map(function (q) {
     var m = member(q.user), done = q.status === 'done';
-    return '<div class="iq' + (done ? ' done' : '') + '"><div class="iqh"><span class="tag">' + esc(q.kind) + '</span><span class="iqw">' + (m ? av(q.user) + esc(m.name) : '退部した部員') + '</span><span class="muted num">' + esc(q.at) + '</span><span class="sp"></span>' +
-      (done ? '<button class="btn sm ghost" data-iq="reopen" data-id="' + q.id + '">未対応に戻す</button>' : '') + '<button class="ib" data-iq="del" data-id="' + q.id + '" aria-label="削除" title="削除">' + ic('x') + '</button></div>' +
-      '<div class="iqb">' + esc(q.body) + '</div>' +
-      (done ? (q.reply ? '<div class="iqr"><span class="muted">返信</span>' + esc(q.reply) + '</div>' : '<div class="iqr muted">対応済み</div>')
-        : '<div class="iqf"><textarea class="input" rows="2" data-iqr="' + q.id + '" aria-label="返信"></textarea><div class="iqa"><button class="btn sm" data-iq="done" data-id="' + q.id + '">返信せずに完了</button><button class="btn sm primary" data-iq="reply" data-id="' + q.id + '">返信して完了</button></div></div>') + '</div>';
+    return '<div class="iq' + (done ? ' done' : '') + '"><div class="iqm"><div class="iqh"><span class="tag">' + esc(q.kind) + '</span><span class="iqw">' + (m ? av(q.user) + esc(m.name) : '退部した部員') + '</span><span class="muted num">' + esc(q.at) + '</span><span class="sp"></span>' +
+      '<button class="ib" data-iq="del" data-id="' + q.id + '" aria-label="削除" title="削除">' + ic('x') + '</button></div>' +
+      '<div class="iqb">' + esc(q.body) + '</div></div><div class="iqs">' +
+      (done ? '<div class="iqr">' + (q.reply ? '<span class="muted">返信</span><span class="iqrt">' + esc(q.reply) + '</span>' : '<span class="muted iqrt">返信なしで対応済み</span>') + '<button class="btn sm ghost" data-iq="reopen" data-id="' + q.id + '">未対応に戻す</button></div>'
+        : '<div class="iqf"><textarea class="input" rows="2" data-iqr="' + q.id + '" aria-label="返信"></textarea><div class="iqa"><button class="btn sm" data-iq="done" data-id="' + q.id + '">返信せずに完了</button><button class="btn sm primary" data-iq="reply" data-id="' + q.id + '">返信して完了</button></div></div>') + '</div></div>';
   }).join('');
   return '<div class="iql">' + (rows || '<div class="empty">お問い合わせはまだありません</div>') + '</div>';
 }

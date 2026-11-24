@@ -1584,3 +1584,18 @@ body:has(#modal > *) .efabw{display:none}
 }
 /* 表の中の選択欄：矢印の場所は常に空けておく（カーソルを合わせても幅が変わらない） */
 select.cell{padding-right:26px;background-repeat:no-repeat;background-position:right 8px center;background-size:12px 12px}
+
+/* お問い合わせ：左に内容、右に返信（横幅を使い切る） */
+.iql{max-width:none}
+.iq{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0;padding:0}
+.iqm{display:flex;flex-direction:column;gap:10px;padding:14px 16px;min-width:0}
+.iqs{display:flex;flex-direction:column;justify-content:center;padding:14px 16px;border-left:1px solid var(--line);min-width:0}
+.iqs .iqr{padding-top:0;border-top:0}
+.iqs .iqf{height:100%}
+.iqs .iqf textarea{flex:1;min-height:64px;resize:vertical}
+@media (max-width:760px){
+  .iq{grid-template-columns:minmax(0,1fr)}
+  .iqs{border-left:0;border-top:1px solid var(--line)}
+}
+.iqr{align-items:center}.iqrt{flex:1;min-width:0}.iqr .btn{flex:none}
+.iqr .btn.ghost{margin-right:-10px}
