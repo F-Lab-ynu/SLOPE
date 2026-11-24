@@ -32,7 +32,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@500;600;700&amp;family=Barlow+Condensed:wght@600;700&amp;family=Zen+Kaku+Gothic+New:wght@400;500;700&amp;display=swap" rel="stylesheet">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SLOPE">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -2656,6 +2656,8 @@ html.invon,html.invon body{overflow:hidden}
 </script>
 <style>
 .thdot{flex:none;width:18px;height:18px;border-radius:50%;background:var(--ac)}
+/* iPhoneの時刻の文字は白のままなので、ライトのときは時刻の帯だけ濃くする */
+html.light body::before{content:'';position:fixed;left:0;right:0;top:0;height:env(safe-area-inset-top);background:var(--fg);z-index:2147483001;pointer-events:none}
 .thmode{background:var(--n21)}
 .thmode i{left:3px;background:var(--n66)}
 [data-mode-toggle][aria-checked="true"] .thmode{background:var(--fg)}
