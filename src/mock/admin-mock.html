@@ -2285,46 +2285,32 @@ function lv(d) { return Math.min(d, 3); }
 function caret(r) {
   return r.has ? '<button class="cx" data-act="fold" data-id="' + r.n.id + '" aria-expanded="' + r.open + '" aria-label="' + (r.open ? '折りたたむ' : '展開する') + '"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="' + (r.open ? 'M7 10l5 5 5-5' : 'M10 7l5 5-5 5') + '"/></svg></button>' : '<span class="cx"></span>';
 }
+// 業務：ファイルを開いているときはそのページ、それ以外はフォルダー（カード／ガント）
 function viewWork() {
-  if (!S.wtab || S.wtab === 'stats') S.wtab = 'list';
-  var right = '';
-  var head = top('業務', right) + utabs('wtab', [['list', 'リスト'], ['gantt', 'ガント']]);
-  if (S.wtab === 'stats') return head + '<div class="body">' + projStats() + '</div>';
+  var n = S.fcur && S.fcur !== 'mine' ? task(S.fcur) : null; if (n && !isFolder(n)) { S.wtab = 'list'; return filePage(n); }
+  curFolder();
+  var body;
+  if (S.fmode === 'gantt' && window.innerWidth < 760) {
+    S.wtab = 'list';
+    body = '<div class="body"><div class="gnote">' + GANTT + '<b>ガントチャートはPCで表示できます</b><span>スマホでは画面が狭いため表示できません。PCで開いてください。</span><button class="btn" data-act="fmode" data-v="card">カードで見る</button></div></div>';
+  } else if (S.fmode === 'gantt') {
+    S.wtab = 'gantt';
+    body = workGantt();
+  } else {
+    S.wtab = 'list';
+    var f = curFolder(), list = visibleRoots();
+    var add = manages(f) && S.fcur !== 'mine' ? (UI.fadd ? '<div class="fcard fadd open"><button data-act="newF">' + FOLD + 'フォルダー</button>' + (f ? '<button data-act="newT">' + FILE + 'ファイル</button>' : '') + '</div>' : '<button class="fcard fadd" data-act="fadd" aria-label="追加"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>') : '';
+    body = '<div class="body"><div class="fgrid">' + list.map(fcard).join('') + add + '</div>' + (!list.length && !add ? '<div class="empty big">まだ何もありません</div>' : '') + '</div>';
+  }
+  return top('業務') + '<div class="wk"><aside class="ftree" aria-label="フォルダー">' + ftree() + '</aside><div class="wkm">' + fhead2() + body + '</div></div>';
+}
+function workGantt() {
   var tbar = '<div class="tbar"><span class="muted" style="font-size:12px">表示</span><span class="seg" role="group" aria-label="表示する細かさ">' + LEVELS.map(function (l) {
       return '<button data-act="depth" data-v="' + l[0] + '" aria-pressed="' + (String(S.depth || 2) === l[0] && !Object.keys(S.fold || {}).length) + '"><i class="lvd" style="background:' + LVC[LEVELS.indexOf(l)] + '"></i>' + l[1] + '</button>'; }).join('') + '</span>' + (S.wtab === 'gantt' ? '<span class="zoom"><button class="ib" data-act="zoom" data-v="-1" aria-label="縮小">−</button><button class="ib" data-act="zoom" data-v="1" aria-label="拡大">＋</button></span>' : '') +
     '<label class="chk"><input type="checkbox" class="check" data-act="showEnded"' + (S.showEnded ? ' checked' : '') + '>終了したイベント</label>' + (S.wtab === 'list' ? '<details class="keys hide-sm"><summary aria-label="キーボード操作">?</summary><div class="kpop"><b>キーボード操作</b><span><kbd>Enter</kbd> 下に追加</span><span><kbd>Tab</kbd> 一段下げる</span><span><kbd>Shift</kbd>+<kbd>Tab</kbd> 一段上げる</span><span><kbd>Alt</kbd>+<kbd>↑↓</kbd> 並べ替え</span></div></details>' : '') + '</div>';
-  var rows = rowsOf(false, true);
-  if (S.wtab === 'gantt') return head + tbar + '<div class="body flush">' + ganttOf(rows) + '</div>';
-  var opts = function (sel) { return '<option value="">未定</option>' + S.members.map(function (m) { return '<option value="' + m.id + '"' + (sel === m.id ? ' selected' : '') + '>' + esc(m.name) + '</option>'; }).join(''); };
-  var row = function (r) {
-    if (r.ghost) return ghost(r.parent.id, r.d - 1, r.d === 1 ? '＋ 業務を追加' : '＋ 追加', r.d);
-    var n = r.n, root = r.d === 0 && isFolder(n), parent = isFolder(n), g = parent ? progress(n) : null;
-    var ed = editSelf(n) ? '' : ' disabled', as = canAssign(n) ? '' : ' disabled';
-    var meta = root ? [esc(n.unit || '')].concat(isEvent(n) ? [n.announce === 'done' ? '告知済み・参加 ' + (n.reg || 0) + '/' + S.club : '告知前'] : []).join('<span class="dot">・</span>') : '';
-    var st = g ? '<span class="prog"><span class="b"><i style="width:' + (g.n ? Math.round(g.d / g.n * 100) : 0) + '%"></i></span><span class="num">' + g.d + '/' + g.n + '</span>' + (g.late ? '<span class="bad num">遅れ ' + g.late + '</span>' : '') + '</span>'
-      : n.done ? '<span class="ok2">完了</span>' : late(n) ? '<span class="bad">期限切れ</span>' : '';
-    var w = member(n.who), tm = teamOf(n), sub = [isFolder(n) ? (tm.length ? (leadsOf(n).length ? '👑' + leadsOf(n).map(function (id) { var x = member(id); return x ? x.name : ''; }).join('・') : '👑?') + (tm.length > leadsOf(n).length ? ' +' + (tm.length - leadsOf(n).length) : '') : 'メンバー未定') : w ? w.name : '担当未定', fmtDate(n.start) + '–' + fmtDate(n.end)].concat(g ? [g.d + '/' + g.n] : []).join('・');
-    return '<div data-d="' + r.d + '" class="wr lv' + lv(r.d) + (root ? ' head' : '') + (r.ctx ? ' ctx' : '') + (isDone(n) && !root ? ' done' : '') + '" data-row="' + n.id + '" style="--d:' + Math.max(0, r.d - 1) + ';--lc:' + LVC[lv(r.d)] + '">' +
-      '<div class="wn">' + (canMove(n) ? '<span class="dh" data-drag="' + n.id + '" title="ドラッグで移動（Alt+↑↓でも可）" aria-label="移動"><svg viewBox="0 0 10 16" aria-hidden="true"><circle cx="3" cy="3" r="1.3"/><circle cx="7" cy="3" r="1.3"/><circle cx="3" cy="8" r="1.3"/><circle cx="7" cy="8" r="1.3"/><circle cx="3" cy="13" r="1.3"/><circle cx="7" cy="13" r="1.3"/></svg></span>' : '<span class="dh ph"></span>') + caret(r) +
-        (root ? '' : !parent ? '<input type="checkbox" class="check wck" data-c="done" data-id="' + n.id + '"' + (n.done ? ' checked' : '') + (editSelf(n) || n.who === S.me ? '' : ' disabled') + ' aria-label="完了">' : '<span class="wck ckph"></span>') +
-        '<i class="lvb"></i><div class="wtx"><textarea class="cell ct" rows="1" data-c="t" data-id="' + n.id + '"' + ed + ' aria-label="業務名" spellcheck="false">' + esc(ttl(n)) + '</textarea>' +
-        (root ? '<div class="wm">' + meta + '</div>' : '<div class="ws">' + esc(sub) + '</div>') + '</div>' +
-        '</div>' +
-      '<div class="ww">' + (isFolder(n) ? teamBtn(n, as) : '<select class="cell" data-c="w" data-id="' + n.id + '"' + as + ' aria-label="担当">' + whoOpts(n) + '</select>') + '</div>' +
-      '<div class="wdd"><input type="date" class="cell num" data-c="s" data-id="' + n.id + '" value="' + n.start + '"' + ed + ' aria-label="開始"></div>' +
-      '<div class="wdd"><input type="date" class="cell num' + (late(n) ? ' bad' : '') + '" data-c="e" data-id="' + n.id + '" value="' + n.end + '"' + ed + ' aria-label="期限"></div>' +
-      '<div class="wp">' + st + '</div>' +
-      '<div class="wa"><button class="ib medit" data-act="edit" data-id="' + n.id + '" aria-label="詳細">' + ic('more') + '</button>' +
-        (editSelf(n) ? '<button class="ib wdel" data-act="rowDel" data-id="' + n.id + '" aria-label="' + esc(ttl(n)) + 'を削除"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/></svg></button>' : '') + '</div></div>';
-  };
-  var ghost = function (pid, d, ph, L) { return '<div data-d="' + (L || 0) + '" class="wr ghost" style="--d:' + d + ';--lc:' + LVC[lv(L || 0)] + '"><div class="wn"><span class="dh ph"></span><span class="cx"></span>' + (L ? '<span class="wck ckph"></span>' : '') + '<i class="lvb ghost"></i><div class="wtx"><input class="cell ct" data-c="new" data-parent="' + pid + '" placeholder="' + ph + '" aria-label="' + ph + '" autocomplete="off"></div></div></div>'; };
-  var groups = [], cur = null;
-  rows.forEach(function (r) { if (r.d === 0) { cur = []; groups.push(cur); } if (cur) cur.push(r); });
-  var cards = groups.map(function (gr) { return '<section class="wcard">' + gr.map(row).join('') + '</section>'; }).join('');
-  return head + tbar + '<div class="body"><div class="wcards"><div class="wh"><div>業務</div><div>担当</div><div>開始</div><div>期限</div><div>進捗</div><div></div></div>' +
-    (cards || '<div class="empty big">' + 'イベントはまだありません' + '</div>') +
-    '' + '</div></div>';
+  return tbar + '<div class="body flush">' + ganttOf(rowsOf(false, true)) + '</div>';
 }
+
 function ganttOf(rows) {
   var narrow = window.innerWidth < 760, LW = Math.max(150, Math.min(window.innerWidth - 120, (narrow ? S.lwN : S.lw) || (narrow ? 200 : 420)));
   var lo = Infinity, hi = -Infinity;
@@ -2565,7 +2551,7 @@ function render() {
   if (S.view === 'projects' && !UI.rec) document.body.classList.remove('recon');
   decorateFolders();
   decorateDone();
-  applyChrome12(); decorateGantt12();
+  applyChrome12(); decorateGantt();
   document.body.classList.toggle('tkc', !!S.tkC);
   if (UI.clip && UI.clip.mode === 'cut') { var el = document.querySelector('.fcard[data-id="' + UI.clip.id + '"], .gr[data-row="' + UI.clip.id + '"]'); if (el) el.classList.add('cut'); }
   kbDecorate();
@@ -2597,7 +2583,7 @@ function touch(t) { t.updated = nowLabel() + '　' + me().name; }
 
 
 // ================= 教材・外部告知・掲示板・メンバー：その場で編集できる表 =================
-function snap() { UI.undo = JSON.stringify({ projects: S.projects, tracks: S.tracks, notices: S.notices, posts: S.posts, members: S.members, offers: S.offers }); }
+function snap() { UI.undo = JSON.stringify({ projects: S.projects, tracks: S.tracks, notices: S.notices, posts: S.posts, members: S.members, offers: S.offers, patches: S.patches, cals: S.cals }); }
 function undoNow() { if (!UI.undo) return; var u = JSON.parse(UI.undo); if (u && !Array.isArray(u)) Object.keys(u).forEach(function (k) { S[k] = u[k]; }); else S.projects = u; UI.undo = null; document.getElementById('toast').hidden = true; S.sel = S.sel; save(); render(); }
 function focusSel(sel, select) { var el = sel && document.querySelector(sel); if (!el) return; el.focus(); if (el.setSelectionRange && (el.type === 'text' || el.type === 'url' || el.type === 'search')) { var L = el.value.length; if (select) el.select(); else el.setSelectionRange(L, L); } }
 
@@ -2698,12 +2684,15 @@ function addMat() {
 
 // ---------- 外部告知：表のまま編集 ----------
 function viewNotices() {
-  if (!S.ntab) S.ntab = 'list';
+  if (['ev', 'cal', 'list', 'offer'].indexOf(S.ntab) < 0) S.ntab = 'ev';
+  var tab = S.ntab;
   var wait = S.offers.filter(function (o) { return o.state === 'wait'; });
   var list = S.notices.slice().sort(function (a, b) { var pa = dayOf(a.due) < TODAY, pb = dayOf(b.due) < TODAY; return pa !== pb ? (pa ? 1 : -1) : dayOf(a.due) - dayOf(b.due); });
   var types = function (sel) { return NTYPES.map(function (x) { return '<option' + (x === sel ? ' selected' : '') + '>' + x + '</option>'; }).join(''); };
   var body;
-  if (S.ntab === 'list') {
+  if (tab === 'ev') body = viewEvents();
+  else if (tab === 'cal') body = viewCal();
+  else if (tab === 'list') {
     body = '<div class="nsheet"><div class="nh"><span>タイトル</span><span>種類</span><span>主催</span><span>締切</span><span>URL</span><span>公開</span><span></span></div>' +
       list.map(function (n) {
         var past = dayOf(n.due) < TODAY, ok = /^https?:\/\//i.test(n.url || '');
@@ -2714,9 +2703,9 @@ function viewNotices() {
           '<input type="date" class="cell num" data-n="due" data-id="' + n.id + '" value="' + esc(n.due) + '" aria-label="締切">' +
           '<span class="nu"><input class="cell" type="url" data-n="url" data-id="' + n.id + '" value="' + esc(ok && n.url !== 'https://example.com' ? n.url : (ok ? n.url : '')) + '" placeholder="https://" aria-label="URL" autocomplete="off">' + (ok ? '<a class="ib" href="' + esc(n.url) + '" target="_blank" rel="noopener" aria-label="開く">↗</a>' : '') + '</span>' +
           (past ? '<span class="muted nsw" style="font-size:12px">終了</span>' : '<button class="sw nsw" role="switch" data-act="nState" data-id="' + n.id + '" aria-checked="' + (n.state === 'pub') + '" aria-label="公開"><i></i></button>') +
-          '<button class="ib udel" data-act="nDel" data-id="' + n.id + '" aria-label="削除"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/></svg></button></div>';
-      }).join('') +
-      '<div class="nr ghost"><input class="cell nt" data-n="new" placeholder="＋ 告知を追加" aria-label="告知を追加" autocomplete="off"></div></div>';
+          '<span class="nacts"><button class="ib" data-act="nEdit" data-id="' + n.id + '" aria-label="編集" title="編集">' + PEN + '</button><button class="ib udel" data-act="nDel" data-id="' + n.id + '" aria-label="削除"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/></svg></button></span></div>';
+      }).join('') + '</div>';
+    if (!S.notices.length) body = body.replace('<div class="nsheet">', '<div class="empty big">告知はまだありません</div><div class="nsheet" style="display:none">');
   } else {
     body = '<div class="tw"><table><thead><tr><th>タイトル</th><th>種類</th><th class="hide-sm">提供者</th><th>締切</th><th></th></tr></thead><tbody>' +
       (wait.length ? wait.map(function (o) {
@@ -2724,8 +2713,10 @@ function viewNotices() {
           '<td class="a"><div class="acts"><button class="btn sm ghost" data-act="oNo" data-id="' + o.id + '">見送る</button><button class="btn sm primary" data-act="oYes" data-id="' + o.id + '">掲載</button></div></td></tr>';
       }).join('') : '<tr><td colspan="5" class="empty">新しい情報はありません</td></tr>') + '</tbody></table></div>';
   }
-  return top('外部告知') + utabs('ntab', [['list', '告知', list.length], ['offer', '部員からの情報', wait.length]]) + '<div class="body">' + body + '</div>';
+  var evn = (S.cals || []).filter(function (c) { return c.inNotice !== false && (c.to || c.date || '9') >= isoOf(TODAY); }).length;
+  return top('告知') + utabs('ntab', [['ev', 'イベント', evn], ['cal', 'カレンダー', null], ['list', '外部', S.notices.length], ['offer', '部員からの情報', wait.length]]) + '<div class="body">' + body + '</div>';
 }
+
 function notice(id) { return S.notices.filter(function (n) { return n.id === id; })[0]; }
 
 // ---------- 掲示板：押し間違えても戻せる ----------
@@ -3269,24 +3260,25 @@ var DOC = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7
 // ----- 右のパネル（イベントの記録・参加率）
 function recOK(p) { return isAdmin() || isLead(p, S.me); }
 function recHTML(p) {
-  var ok = recOK(p), dis = ok ? '' : ' disabled', g = progress(p), lk = p.links || [];
+  var ok = recOK(p), dis = ok ? '' : ' disabled', g = progress(p), lk = p.links || [], ev = isEvent(p), fo = curFolder();
   var f = function (label, inner) { return '<div class="rf"><label>' + label + '</label>' + inner + '</div>'; };
-  return '<div class="rh"><div class="rt"><small>' + esc(seriesOf(p)) + '・' + fyOf(p) + '年度</small><b>' + esc(p.name) + '</b></div><button class="ib" data-act="recClose" aria-label="閉じる">' + ic('x') + '</button></div>' +
+  return '<div class="rh"><div class="rt"><small>' + esc(seriesOf(p)) + '・' + fyOf(p) + '年度</small><b>' + esc('name' in p ? p.name : ttl(p)) + '</b></div><button class="ib" data-act="recClose" aria-label="閉じる">' + ic('x') + '</button></div>' +
     '<div class="rb">' +
-    '<section><h3>概要</h3>' +
+    '<section><h3>概要</h3><label class="evt"><input type="checkbox" class="check" data-evt="1"' + (ev ? ' checked' : '') + (ok ? '' : ' disabled') + '>イベント（参加数を記録して統計に入れる）</label>' +
       f('目的', '<textarea class="input" rows="2" data-rf="purpose"' + dis + ' placeholder="何のためのイベントか">' + esc(p.purpose || '') + '</textarea>') +
       '<div class="two">' + f('日程', '<div class="rv num">' + shortDate(p.start) + ' – ' + shortDate(p.end) + '</div>') + f('場所', '<input class="input" data-rf="place"' + dis + ' value="' + esc(p.place || '') + '">') + '</div>' +
-      '<div class="two">' + f('担当部', '<select class="input" data-rf="unit"' + dis + '>' + ['教育部', '催事部', '外務部', '会計', '代表'].map(function (u) { return '<option' + (p.unit === u ? ' selected' : '') + '>' + u + '</option>'; }).join('') + '</select>') +
-        f('告知', '<select class="input" data-rf="announce"' + dis + '><option value="before"' + (p.announce !== 'done' ? ' selected' : '') + '>告知前</option><option value="done"' + (p.announce === 'done' ? ' selected' : '') + '>告知済み</option></select>') + '</div>' +
+      (ev ? '<div class="two">' + f('担当部', '<select class="input" data-rf="unit"' + dis + '>' + ['教育部', '催事部', '外務部', '会計', '代表'].map(function (u) { return '<option' + (p.unit === u ? ' selected' : '') + '>' + u + '</option>'; }).join('') + '</select>') +
+        f('告知', '<select class="input" data-rf="announce"' + dis + '><option value="before"' + (p.announce !== 'done' ? ' selected' : '') + '>告知前</option><option value="done"' + (p.announce === 'done' ? ' selected' : '') + '>告知済み</option></select>') + '</div>' : '') +
     '</section>' +
     '<section><h3>体制</h3>' + f('リーダー・メンバー', '<div class="mfield">' + teamBtn(p, editSelf(p) ? '' : ' disabled') + '</div>') +
       '<div class="rv muted">業務 ' + g.n + '件・完了 ' + g.d + (g.late ? '・<span class="bad">遅れ ' + g.late + '</span>' : '') + '</div></section>' +
     '<section><h3>結果</h3>' +
-      '<div class="two">' + f('参加数', '<input class="input num" type="number" min="0" data-rf="reg"' + dis + ' value="' + (p.reg || 0) + '">') + f('参加率', '<div class="rv num">' + pct(p) + '%<small class="muted">（部員 ' + (S.club || 150) + '）</small></div>') + '</div>' +
+      (ev ? '<div class="two">' + f('参加数', '<input class="input num" type="number" min="0" data-rf="reg"' + dis + ' value="' + (p.reg || 0) + '">') + f('参加率', '<div class="rv num">' + pct(p) + '%<small class="muted">（部員 ' + (S.club || 150) + '）</small></div>') + '</div>' : '') +
       f('振り返り', '<textarea class="input" rows="4" data-rf="review"' + dis + ' placeholder="良かったこと・次回への改善">' + esc(p.review || '') + '</textarea>') +
       f('資料', '<div class="rl">' + lk.map(function (u, i) { return '<div class="rli"><a href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(host(u) || u) + ' ↗</a>' + (ok ? '<button class="ib" data-act="recLinkDel" data-i="' + i + '" aria-label="削除">' + ic('x') + '</button>' : '') + '</div>'; }).join('') +
         (ok ? '<input class="input" data-rlink="1" placeholder="URL を貼って Enter" autocomplete="off">' : (lk.length ? '' : '<span class="dim">—</span>')) + '</div>') +
-    '</section></div>';
+    '</section>' +
+    '<div class="rfoot">' + (editSelf(p) ? '<button class="btn sm" data-act="edit" data-id="' + p.id + '">名前・期間を編集</button>' : '') + (fo && fo.id === p.id && manages(parentOf(p)) ? '<button class="btn sm" data-act="dupF">複製</button>' : '') + '</div></div>';
 }
 function statsHTML() { return '<div class="rh"><div class="rt"><b>イベント参加率</b></div><button class="ib" data-act="recClose" aria-label="閉じる">' + ic('x') + '</button></div><div class="rb">' + projStats() + '</div>'; }
 function drawRec() {
@@ -3490,7 +3482,6 @@ function ftree() {
     '<button class="ftop' + (!cur ? ' on' : '') + '" data-act="fgo" data-id="">' + FOLD + '<span>すべて</span></button>' +
     '<div class="ftl">' + S.projects.map(function (n) { return row(n, 0); }).join('') + '</div>';
 }
-var viewWork0 = viewWork;
 function decorateFolders() {
   if (S.view !== 'projects') return;
   var gg = document.querySelector('.gg'), PX = gg ? +gg.dataset.px : 0, LO = gg ? +gg.dataset.lo : 0;
@@ -3507,15 +3498,6 @@ function decorateFolders() {
     }
   });
 }
-var recHTML0 = recHTML;
-recHTML = function (p) {
-  var had = 'name' in p; if (!had) p.name = ttl(p);
-  var h = recHTML0(p); if (!had) delete p.name;
-  var ok = recOK(p);
-  h = h.replace('<section><h3>概要</h3>', '<section><h3>概要</h3><label class="evt"><input type="checkbox" class="check" data-evt="1"' + (isEvent(p) ? ' checked' : '') + (ok ? '' : ' disabled') + '>イベント（参加数を記録して統計に入れる）</label>');
-  if (!isEvent(p)) h = h.replace(/<div class="two"><div class="rf"><label>担当部[\s\S]*?<\/select><\/div><\/div>/, '').replace(/<section><h3>結果<\/h3><div class="two">[\s\S]*?<\/div><\/div>/, '<section><h3>結果</h3>');
-  return h;
-};
 document.addEventListener('change', function (e) {
   if (!e.target.dataset || !e.target.dataset.evt) return; e.stopImmediatePropagation();
   var p = task(UI.rec); if (!p || !recOK(p)) return;
@@ -3570,24 +3552,6 @@ function avStack(ids, ls) {
   ls = ls || [];
   return '<span class="avs">' + ids.slice(0, 3).map(function (id) { var m = member(id); return '<span class="av' + (ls.indexOf(id) >= 0 ? ' lead' : '') + '" title="' + esc(m ? m.name : '') + '">' + esc(m ? initials(m.name) : '?') + '</span>'; }).join('') + (ids.length > 3 ? '<span class="more num">+' + (ids.length - 3) + '</span>' : '') + '</span>';
 }
-viewWork = function () {
-  curFolder();
-  var body;
-  if (S.fmode === 'gantt' && window.innerWidth < 760) {
-    S.wtab = 'list';
-    body = '<div class="body"><div class="gnote">' + GANTT + '<b>ガントチャートはPCで表示できます</b><span>スマホでは画面が狭いため表示できません。PCで開いてください。</span><button class="btn" data-act="fmode" data-v="card">カードで見る</button></div></div>';
-  } else if (S.fmode === 'gantt') {
-    S.wtab = 'gantt';
-    var h = viewWork0(); h = h.slice(h.indexOf('</div>') + 6).replace(/<div class="utabs">[\s\S]*?<\/div>/, '');
-    body = h;
-  } else {
-    S.wtab = 'list';
-    var f = curFolder(), list = visibleRoots();
-    var add = manages(f) && S.fcur !== 'mine' ? (UI.fadd ? '<div class="fcard fadd open"><button data-act="newF">' + FOLD + 'フォルダー</button>' + (f ? '<button data-act="newT">' + FILE + 'ファイル</button>' : '') + '</div>' : '<button class="fcard fadd" data-act="fadd" aria-label="追加"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>') : '';
-    body = '<div class="body"><div class="fgrid">' + list.map(fcard).join('') + add + '</div>' + (!list.length && !add ? '<div class="empty big">まだ何もありません</div>' : '') + '</div>';
-  }
-  return top('業務') + '<div class="wk"><aside class="ftree" aria-label="フォルダー">' + ftree() + '</aside><div class="wkm">' + fhead2() + body + '</div></div>';
-};
 document.addEventListener('click', function (e) {
   var b = e.target.closest && e.target.closest('[data-act="fmode"],[data-act="fadd"],[data-act="tdone"]'); if (!b) { if (UI.fadd && !(e.target.closest && e.target.closest('.fadd'))) { UI.fadd = false; render(); } return; }
   e.stopImmediatePropagation(); e.preventDefault();
@@ -3597,12 +3561,6 @@ document.addEventListener('click', function (e) {
   else if (a === 'tdone') { var n = task(b.dataset.id); if (!n || !(editSelf(n) || n.who === S.me)) return; n.done = !n.done; if (n.done) reportUp && reportUp(n); save(); render(); }
 }, true);
 document.addEventListener('keydown', function (e) { var c = e.target.classList && e.target.classList.contains('fcard') && e.target; if (c && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); c.click(); } });
-var recHTML1 = recHTML;
-recHTML = function (p) {
-  var h = recHTML1(p), f = curFolder();
-  var foot = '<div class="rfoot">' + (editSelf(p) ? '<button class="btn sm" data-act="edit" data-id="' + p.id + '">名前・期間を編集</button>' : '') + (f && f.id === p.id && manages(parentOf(p)) ? '<button class="btn sm" data-act="dupF">複製</button>' : '') + '</div>';
-  return h.replace(/<\/div>$/, foot + '</div>');
-};
 
 // ---------- ux9: カードをその場で編集・並べ替え・メモ ----------
 var SORTS = [['manual', '手動'], ['due', '期限が近い順'], ['start', '開始が早い順'], ['name', '名前順'], ['open', '未完了を先に']];
@@ -3786,9 +3744,9 @@ function whoPop(n) {
   var tm = isFolder(n) ? teamOf(n) : fileWho(n), ls = isFolder(n) ? leadsOf(n) : [];
   return '<div class="gph">' + esc(ttl(n)) + '</div>' + (tm.length ? tm.map(function (id) { var m = member(id); return '<div class="gpi">' + av(id) + '<span>' + esc(m ? m.name : '') + '</span>' + (ls.indexOf(id) >= 0 ? CROWN : '') + '<small>' + esc(m ? (isOps(m) ? m.unit : (m.roles || []).join('・')) : '') + '</small></div>'; }).join('') : '<div class="gpi dim">担当未定</div>');
 }
-function decorateGantt12() {
-  if (S.view !== 'projects' || S.fmode !== 'gantt') return;
-  document.querySelectorAll('.gg .gr[data-row]').forEach(function (row) {
+// ガントの行：名前・担当・編集ボタン・強調の点
+function decorateGantt() {
+  if (S.view === 'projects' && S.fmode === 'gantt') document.querySelectorAll('.gg .gr[data-row]').forEach(function (row) {
     var n = task(row.dataset.row); if (!n || row.dataset.g12) return; row.dataset.g12 = '1';
     var gl = row.querySelector('.gl'); if (!gl) return;
     var ct = gl.querySelector('input.ct[data-c="t"]');
@@ -3801,6 +3759,20 @@ function decorateGantt12() {
     var pl = isFolder(n) && manages(n) ? '<button class="gedit gplus" data-act="gaddIn" data-id="' + n.id + '" title="中に追加" aria-label="中に追加"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>' : '<span class="gedit ph"></span>';
     gl.insertAdjacentHTML('beforeend', who + pl + ed);
     if (lwh) gl.appendChild(lwh);
+  });
+  if (UI.gedit && S.fmode === 'gantt') { // 行内で編集中の行
+    var row = document.querySelector('.gg .gr[data-row="' + UI.gedit + '"]'), n = task(UI.gedit);
+    if (!row || !n) UI.gedit = null;
+    else { geditRow(row, n); var inp = row.querySelector('.gin'); if (inp && UI.gfocus !== false) { inp.focus(); var L = inp.value.length; inp.setSelectionRange(L, L); } }
+  }
+  if (S.view !== 'projects' || S.fmode !== 'gantt') return;
+  document.querySelectorAll('.gg .gr[data-row]').forEach(function (row) {
+    var gl = row.querySelector('.gl'); if (!gl || gl.querySelector('.hldot')) return;
+    var n = task(row.dataset.row); if (!n) return; var f = hlFlags(n); if (!f.length) return;
+    var col = (HLS.filter(function (h) { return h[0] === f[0]; })[0] || [])[2];
+    var w = gl.querySelector('.gwho, .gwho2, .gsel2');
+    var dot = '<i class="hldot" style="background:' + col + '" title="' + f.map(function (k) { return HLN[k] || k; }).join('・') + '"></i>';
+    if (w) w.insertAdjacentHTML('beforebegin', dot); else gl.insertAdjacentHTML('beforeend', dot);
   });
 }
 // 右クリック
@@ -3884,15 +3856,6 @@ function geditRow(row, n) {
   var ed = gl.querySelector('.gedit'); if (ed) ed.outerHTML = '<span class="gok"><button class="gx" data-act="gcancel" title="キャンセル" aria-label="キャンセル">' + ic('x') + '</button><button class="gy" data-act="gsave" title="保存" aria-label="保存">' + CHK + '</button></span>';
   row.classList.add('gediting');
 }
-var decorateGantt12b = decorateGantt12;
-decorateGantt12 = function () {
-  decorateGantt12b();
-  if (!UI.gedit || S.fmode !== 'gantt') return;
-  var row = document.querySelector('.gg .gr[data-row="' + UI.gedit + '"]'), n = task(UI.gedit);
-  if (!row || !n) { UI.gedit = null; return; }
-  geditRow(row, n);
-  var inp = row.querySelector('.gin'); if (inp && UI.gfocus !== false) { inp.focus(); var L = inp.value.length; inp.setSelectionRange(L, L); }
-};
 function gStart(n) { UI.gedit = n.id; UI.gfocus = true; UI.gdraft = { name: ttl(n), who: n.who || '', team: (n.team || []).slice(), leads: leadsOf(n).slice(), ow: n.who || '' }; render(); }
 function gEnd(saveIt) {
   var n = task(UI.gedit), d = UI.gdraft; UI.gedit = null; if (!n || !d) { render(); return; }
@@ -3968,23 +3931,22 @@ document.addEventListener('click', function (e) {
 // ---------- ux15: 業務＝ファイル。開くとメモのページ ----------
 var FILE = '<svg class="i fli" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/></svg>';
 function filePage(n) {
-  var canM = editSelf(n) || n.who === S.me, lt = late(n) && !n.done, w = member(n.who);
+  var per = n.nodate ? '期間未定' : shortDate(n.start) + ' – ' + shortDate(n.end), canM = editSelf(n) || n.who === S.me, lt = late(n) && !n.done, w = member(n.who);
   var path = '<nav class="crumb" aria-label="場所"><button data-act="fgo" data-id="">すべて</button>' + ancestors(n).map(function (a) { return '<span class="cs">›</span><button data-act="fgo" data-id="' + a.id + '">' + esc(ttl(a)) + '</button>'; }).join('') + '</nav>';
   var who = canAssign(n) ? '<span class="fwho">' + (n.who ? av(n.who) : '<span class="av nob"></span>') + '<span class="fwn' + (n.who ? '' : ' none') + '">' + (member(n.who) ? esc(member(n.who).name) : '担当を選ぶ') + '</span><svg class="i fwc" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 10l4 4 4-4"/></svg><select class="fsel" data-act="noop" data-fw="' + n.id + '" aria-label="担当">' + whoOpts(n) + '</select></span>'
     : (w ? '<span class="fwho">' + av(n.who) + '<span class="fcw">' + esc(w.name) + '</span></span>' : '<span class="dim">担当未定</span>');
   var head = '<div class="fh2">' + path + '<div class="fh2r">' + backBtn() +
     '<button class="tck big" data-act="tdone" data-id="' + n.id + '" aria-pressed="' + !!n.done + '"' + (canM ? '' : ' disabled') + ' title="完了" aria-label="完了"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12l4 4 8-8"/></svg></button>' +
     '<h2' + (n.done ? ' class="dn"' : '') + '>' + FILE + '<span' + (editSelf(n) ? ' class="ied" data-act="ied" data-f="t" data-id="' + n.id + '" title="タップで名前を編集"' : '') + '>' + esc(ttl(n)) + '</span></h2>' +
-    (editSelf(n) ? '<button class="fh2m fper num' + (lt ? ' bad' : '') + '" data-act="fper" title="期間を変更">' + shortDate(n.start) + ' – ' + shortDate(n.end) + '</button>' : '<span class="fh2m num' + (lt ? ' bad' : '') + '">' + shortDate(n.start) + ' – ' + shortDate(n.end) + '</span>') +
+    (editSelf(n) ? '<button class="fh2m fper num' + (lt ? ' bad' : '') + '" data-act="fper" title="期間を変更">' + per + '</button>' : '<span class="fh2m num' + (lt ? ' bad' : '') + '">' + per + '</span>') +
     who + '<span class="sp"></span>' +
     (editSelf(n) || n.who === S.me ? '<span class="srtw"><button class="ib fhb" data-act="fmenu" aria-label="その他" title="その他" aria-expanded="' + !!UI.fmn + '">' + ic('more') + '</button>' +
       (UI.fmn ? '<div class="srtm" role="menu"><button role="menuitem" data-act="toFolder" data-id="' + n.id + '">フォルダーに変える</button>' + (editSelf(n) ? '<button role="menuitem" data-act="edit" data-id="' + n.id + '">名前・期間を編集</button>' : '') + '</div>' : '') + '</span>' : '') +
     '</div></div>';
-  var memo = '<div class="body"><div class="fpage"><div class="fpm' + (n.memo ? '' : ' empty') + (canM ? ' ied' : '') + '"' + (canM ? ' data-act="ied" data-f="memo" data-id="' + n.id + '"' : '') + ' data-ph="' + (canM ? 'メモを書く（どこで・どうやって・結果・連絡先・資料URLなど）' : 'メモはありません') + '">' + (n.memo ? linkify(n.memo) : '') + '</div></div></div>';
+  var memo = '<div class="body"><div class="fpage2">' + (canM ? docBar() : '') +
+    '<div class="fdoc" id="fdoc" data-id="' + n.id + '"' + (canM ? ' contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="メモ" data-ph="メモを書く（どこで・どうやって・結果・連絡先・資料URLなど）。# で見出し、- で箇条書き、[] でチェックリスト"' : ' data-ph="メモはありません"') + '>' + docHTML(n.memo) + '</div></div></div>';
   return top('業務') + '<div class="wk"><aside class="ftree" aria-label="フォルダー">' + ftree() + '</aside><div class="wkm">' + head + memo + '</div></div>';
 }
-var viewWork15 = viewWork;
-viewWork = function () { var n = S.fcur && S.fcur !== 'mine' ? task(S.fcur) : null; if (n && !isFolder(n)) { S.wtab = 'list'; return filePage(n); } return viewWork15(); };
 document.addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('[data-act="toFolder"]'); if (b) UI.fmn = false; }, true);
 
 // ---------- ux16: ツリーの展開はその場だけ・ダッシュボードから業務へ・教材は横並び ----------
@@ -4073,19 +4035,6 @@ function vApply() { S.fold = {}; UI.sp = null; save(); render(); if (UI.vp) open
 var openVPanel18 = openVPanel;
 openVPanel = function () { openVPanel18(); var p = document.getElementById('vp'); if (p && !p.classList.contains('sheet')) p.style.maxHeight = Math.max(240, window.innerHeight - p.getBoundingClientRect().top - 16) + 'px'; };
 var HLN = { late: '期限切れ', soon: '期限が近い', over: '中身が期限超過', nobody: '担当未定', active: '進行中', mine: '自分の担当' };
-var decorateGantt18 = decorateGantt12;
-decorateGantt12 = function () {
-  decorateGantt18();
-  if (S.view !== 'projects' || S.fmode !== 'gantt') return;
-  document.querySelectorAll('.gg .gr[data-row]').forEach(function (row) {
-    var gl = row.querySelector('.gl'); if (!gl || gl.querySelector('.hldot')) return;
-    var n = task(row.dataset.row); if (!n) return; var f = hlFlags(n); if (!f.length) return;
-    var col = (HLS.filter(function (h) { return h[0] === f[0]; })[0] || [])[2];
-    var w = gl.querySelector('.gwho, .gwho2, .gsel2');
-    var dot = '<i class="hldot" style="background:' + col + '" title="' + f.map(function (k) { return HLN[k] || k; }).join('・') + '"></i>';
-    if (w) w.insertAdjacentHTML('beforebegin', dot); else gl.insertAdjacentHTML('beforeend', dot);
-  });
-};
 // 教材：START / GOAL を表の中に、コードから追加
 function addByCode(el) {
   var t = track(), c = el.value.trim().toUpperCase().replace(/\s+/g, ''); if (!c) return false;
@@ -4160,16 +4109,6 @@ document.addEventListener('click', function (e) { var b = e.target.closest && e.
 // ---------- ux24 告知：右下の＋とポップアップで作る・編集する ----------
 var NROLES = ['Innovator', 'Strategist', 'Negotiator', 'Advertiser', 'Engineer'];
 var PEN = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 6l4 4"/></svg>';
-var _viewNotices24 = viewNotices;
-viewNotices = function () {
-  var h = _viewNotices24();
-  h = h.replace(/<div class="nr ghost">[\s\S]*?<\/div><\/div>/, '</div>');
-  h = h.replace(/(<button class="ib udel" data-act="nDel" data-id="([^"]+)"[\s\S]*?<\/button>)/g, function (m, btn, id) {
-    return '<span class="nacts"><button class="ib" data-act="nEdit" data-id="' + id + '" aria-label="編集" title="編集">' + PEN + '</button>' + btn + '</span>';
-  });
-  if (S.ntab === 'list' && !S.notices.length) h = h.replace('<div class="nsheet">', '<div class="empty big">告知はまだありません</div><div class="nsheet" style="display:none">');
-  return h;
-};
 function noticeDlg() {
   var n = M.id ? notice(M.id) : null, d = n || { type: 'その他', title: '', host: '', due: isoOf(TODAY + 14 * DAY), url: '', memo: '', roles: [] };
   var rs = d.roles || [], host = d.host === '—' ? '' : (d.host || ''), url = d.url === 'https://example.com' ? '' : (d.url || '');
@@ -4248,7 +4187,6 @@ function patchCards() {
     (done.length > 6 ? '<button class="pmore" data-act="ptAll">' + (UI.pAll ? '閉じる' : 'すべて表示（' + done.length + '）') + '</button>' : '') + '</div>';
   return (isAdmin() ? accessCard() : '') + '<div class="dg2" style="margin-top:12px">' + c1 + c2 + '</div>';
 }
-var _snap27 = snap; snap = function () { _snap27(); var u = JSON.parse(UI.undo); u.patches = S.patches; UI.undo = JSON.stringify(u); };
 function patchDlg() {
   var x = M.id ? patchesInit().filter(function (y) { return y.id === M.id; })[0] : null, d = x || { date: M.s === 'plan' ? '' : isoOf(TODAY), title: '', note: '', state: M.s || 'done' };
   var body = '<div class="fld"><label for="pT">内容</label><input id="pT" class="input" value="' + esc(d.title) + '" autocomplete="off"></div>' +
@@ -4656,15 +4594,6 @@ function docBar() {
     b('ul', '箇条書き', '- + スペース') + b('ol', '番号付き', '1. + スペース') + b('chk', 'チェックリスト', '[] + スペース') + b('q', '引用', '> + スペース') + b('hr', '区切り線', '---') + b('a', 'リンク', 'Ctrl+K') +
     '<span class="dts" id="dts"></span></div>';
 }
-var _filePage38 = filePage;
-filePage = function (n) {
-  var h = _filePage38(n), canM = editSelf(n) || n.who === S.me;
-  var k = h.indexOf('<div class="body"><div class="fpage">'); if (k < 0) return h;
-  var end = h.lastIndexOf('</div></div>'); // wk / wkm の閉じ
-  var doc = '<div class="body"><div class="fpage2">' + (canM ? docBar() : '') +
-    '<div class="fdoc" id="fdoc" data-id="' + n.id + '"' + (canM ? ' contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="メモ" data-ph="メモを書く（どこで・どうやって・結果・連絡先・資料URLなど）。# で見出し、- で箇条書き、[] でチェックリスト"' : ' data-ph="メモはありません"') + '>' + docHTML(n.memo) + '</div></div></div>';
-  return h.slice(0, k) + doc + h.slice(end);
-};
 var _docT = null;
 function docEl() { return document.getElementById('fdoc'); }
 function docSave(now) {
@@ -4802,11 +4731,6 @@ fcard = function (n) {
   if (n.nodate) h = h.replace('>' + shortDate(n.end) + '<', '>期間未定<').replace('class="fcm num', 'class="fcm num nodt');
   h = h.replace(/<div class="fmemo[^"]*"[^>]*>[\s\S]*?<\/div>/, n.memo ? '<div class="fmemo">' + esc(memoText(n.memo).slice(0, 160)) + '</div>' : '');
   return h;
-};
-var _filePage39 = filePage;
-filePage = function (n) {
-  var h = _filePage39(n); if (!n.nodate) return h;
-  return h.replace(shortDate(n.start) + ' – ' + shortDate(n.end), '期間未定');
 };
 // 編集ダイアログで日付を触ったら期間未定を外す
 document.addEventListener('click', function (e) {
@@ -4966,17 +4890,6 @@ function viewCal() {
     '<div class="calg">' + ['日', '月', '火', '水', '木', '金', '土'].map(function (w) { return '<div class="cw">' + w + '</div>'; }).join('') + cells + '</div>' +
     '<div class="calleg"><span><i style="background:#EEF2FF"></i>部内の予定</span><span><i style="background:#FFF7ED"></i>イベント（業務）</span><span><i style="background:#F3F4F6"></i>外部の締切</span><span><i style="background:#fff;box-shadow:inset 0 0 0 1px var(--line2)"></i>枠だけ＝まだ部員に非公開</span></div>';
 }
-var _viewNotices42 = viewNotices;
-viewNotices = function () {
-  if (['ev', 'cal', 'list', 'offer'].indexOf(S.ntab) < 0) S.ntab = 'ev';
-  var tab = S.ntab, wait = S.offers.filter(function (o) { return o.state === 'wait'; }).length;
-  var body;
-  if (tab === 'ev') body = '<div class="body">' + viewEvents() + '</div>';
-  else if (tab === 'cal') body = '<div class="body">' + viewCal() + '</div>';
-  else { var h = _viewNotices42(); var k = h.indexOf('<div class="body">'); body = k >= 0 ? h.slice(k) : h; }
-  var evn = (S.cals || []).filter(function (c) { return c.inNotice !== false && (c.to || c.date || '9') >= isoOf(TODAY); }).length;
-  return top('告知') + utabs('ntab', [['ev', 'イベント', evn], ['cal', 'カレンダー', null], ['list', '外部', S.notices.length], ['offer', '部員からの情報', wait]]) + body;
-};
 var _fabHTML42 = fabHTML;
 fabHTML = function () {
   if (S.view === 'notices' && (S.ntab === 'cal' || S.ntab === 'ev') && can('notices')) return '<div class="efabw"><button class="efab" data-act="calNew" title="予定を追加" aria-label="予定を追加"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>';
@@ -5038,8 +4951,6 @@ document.addEventListener('click', function (e) {
   }
 }, true);
 document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && M && (M.m === 'cal' || M.m === 'ev')) { M = null; renderModal(); } });
-var _snap42 = snap; snap = function () { _snap42(); var u = JSON.parse(UI.undo); u.cals = S.cals; UI.undo = JSON.stringify(u); };
-
 
 // ---------- ux43 トラックを入れ子（グループ＋単元）で作る。前提は並び方から自動 ----------
 var GID = function () { return 'g' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36); };
@@ -5418,8 +5329,14 @@ function p2Target() { // 新しく作る場所：選んでいるのがフォル�
 }
 function p2New(k, where) {
   snap(); var w = where || p2Target(), n;
+  if (k === 'e') { // イベントは告知のイベント（予定）を本体として作る。告知には出さない
+    var cid = uid('c');
+    calsInit().push({ id: cid, title: '新しいイベント', date: isoOf(TODAY), to: '', time: '', place: '', memo: '', link: '', state: 'draft' });
+    n = { id: GID(), k: 'e', ref: cid }; w.arr.splice(w.at, 0, n); evSync(); UI.psel = n.id; UI.pren = n.id; p2Save();
+    var c = evCal(cid); if (c) { c.inNotice = false; save(); }
+    return;
+  }
   if (k === 'f') n = { id: GID(), k: 'f', name: '新しいフォルダ', items: [] };
-  if (k === 'e') n = { id: GID(), k: 'e', name: '新しいイベント', from: '', to: '', todo: '', link: '' };
   if (k === 'u') n = { id: GID(), k: 'u', t: '', c: '' };
   w.arr.splice(w.at, 0, n);
   if (k === 'u') { var tid = p2TrackOf(n.id), t = p2Track(tid), u = { code: nextCode(t), title: '新しい単元', tags: [], deps: [] }; tl(t).push(u); serialize(t); n.t = tid; n.c = u.code; }
@@ -5663,13 +5580,6 @@ function evSync() { // プログラムの中のイベントに、本体（予定
 }
 var _p2_52 = p2; p2 = function () { var T = _p2_52(); if (!UI._evs) { UI._evs = 1; evSync(); UI._evs = 0; if (UI._evNew) { UI._evNew = 0; setTimeout(save, 0); } } return T; };
 // 教材でイベントを作る＝予定（下書き）を作って、プログラムに置く
-var _p2New52 = p2New;
-p2New = function (k, where) {
-  if (k !== 'e') return _p2New52(k, where);
-  snap(); var w = where || p2Target(), cid = uid('c');
-  calsInit().push({ id: cid, title: '新しいイベント', date: isoOf(TODAY), to: '', time: '', place: '', memo: '', link: '', state: 'draft' });
-  var n = { id: GID(), k: 'e', ref: cid }; w.arr.splice(w.at, 0, n); evSync(); UI.psel = n.id; UI.pren = n.id; p2Save();
-};
 var _p2SetName52 = p2SetName;
 p2SetName = function (n, v) { if (n.k === 'e') { var c = evCal(n.ref); if (c) c.title = v; n.name = v; return; } return _p2SetName52(n, v); };
 // 教材の中央：告知と同じ項目をそのまま編集
@@ -5736,8 +5646,6 @@ document.addEventListener('click', function (e) {
   evSync(); save(); render(); toast('置き換えました');
 }, true);
 // 学ぶで作るイベントは、まだ告知に入っていない
-var _p2New53 = p2New;
-p2New = function (k, where) { _p2New53(k, where); if (k === 'e') { var f = p2Get(UI.psel), c = f && evCal(f.n.ref); if (c) { c.inNotice = false; save(); } } };
 // 告知の一覧：告知に入っているものだけ
 var _viewEvents53 = viewEvents;
 viewEvents = function () {
