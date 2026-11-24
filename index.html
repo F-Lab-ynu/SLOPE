@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '92282b9cc4', FILE = 'index.ver';
+  var VER = '2b4d9bb2ad', FILE = 'index.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -18,24 +18,30 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
 <script>
-// 見た目：ダーク／ライトと差し色。端末ごとに保存し、描く前に当てる
+// テーマ（背景・文字・差し色の組み合わせ）：端末ごとに保存し、描く前に当てる
 (function () {
-  /*NOTHEME*/var MODES = { dark: ['#070707', '#F3F1EC'], light: ['#F4F2ED', '#161615'] };
-  var ACC = window.__ACCENTS = [ // [名前, ダークでの色, ライトでの色]
-    ['オレンジ', '#F2A93B', '#D9861A'], ['イエロー', '#E8C454', '#B8930F'], ['グリーン', '#5FB38C', '#2E8B62'], ['ティール', '#4FC7C0', '#178C86'],
-    ['ブルー', '#6FA8DC', '#2F6FB0'], ['インディゴ', '#8C9EF0', '#4A5BC4'], ['パープル', '#9C82E8', '#6B4FC9'], ['ピンク', '#D98BB8', '#B84D8A'],
-    ['レッド', '#EE5D52', '#C9374B'], ['ブラウン', '#C9966B', '#9A6640'], ['グレー', '#A3A19B', '#6B6A66'], ['ホワイト', '#F3F1EC', '#161615']];/*/NOTHEME*/
-  function get(k, d) { try { return localStorage.getItem(k) || d; } catch (e) { return d; } }
-  window.__look = function () { return { mode: get('slope-mode', 'dark'), acc: +get('slope-accent', '0') || 0 }; };
-  window.__applyLook = function (mode, acc) {
-    var m = MODES[mode] || MODES.dark, a = ACC[acc] || ACC[0], r = document.documentElement;
-    r.style.setProperty('--bg', m[0]); r.style.setProperty('--fg', m[1]); r.style.setProperty('--ac', mode === 'light' ? a[2] : a[1]);
-    r.classList.toggle('light', mode === 'light'); var mt = document.querySelector('meta[name="theme-color"]'); if (mt) mt.setAttribute('content', m[0]);
+  /*NOTHEME*/var T = window.__THEMES = [
+    ['ダーク', [['#070707','#F3F1EC','#F2A93B'],['#070707','#F3F1EC','#E8C454'],['#070707','#F3F1EC','#5FB38C'],['#070707','#F3F1EC','#4FC7C0'],
+               ['#070707','#F3F1EC','#6FA8DC'],['#070707','#F3F1EC','#9C82E8'],['#070707','#F3F1EC','#D98BB8'],['#070707','#F3F1EC','#EE5D52']]],
+    ['夜', [['#0B1220','#DCE3EC','#7FB2E5'],['#0A0F1C','#E4E8F2','#F2C14E'],['#14110C','#EFE6D3','#E3B25A'],['#0D1611','#E2ECE6','#6ECB9E'],
+            ['#071619','#DDEDEE','#4FC7C0'],['#140E18','#ECE4F2','#C29CF0'],['#1A0D10','#F2E4E6','#E8737F'],['#15181C','#E3E6EA','#A9B8C9']]],
+    ['ライト', [['#F4F2ED','#161615','#D9861A'],['#F4F2ED','#161615','#2F6FB0'],['#F4F2ED','#161615','#2E8B62'],['#F4F2ED','#161615','#C9374B'],
+               ['#F4F2ED','#161615','#6B4FC9'],['#FFFFFF','#111111','#111111'],['#FFFFFF','#111111','#2F6FB0'],['#FBF8F1','#2B2A27','#B0705A']]],
+    ['淡い色', [['#F2EADB','#2B2419','#B0703A'],['#FBEDE3','#2E1F16','#D9661A'],['#F7F3DC','#262314','#9A7B0A'],['#E6F2EC','#14261D','#2E8B62'],
+               ['#E8F0F8','#14202E','#2F6FB0'],['#EEEAF7','#1F1A2E','#6B4FC9'],['#F8EAEA','#2E1A1C','#C9374B'],['#E9E9E6','#1C1C1B','#4A4A47']]]
+  ];/*/NOTHEME*/
+  function lightOf(bg) { var c = parseInt(bg.slice(1), 16); return ((c >> 16) + ((c >> 8) & 255) + (c & 255)) / 3 > 128; }
+  window.__theme = function () { try { var t = JSON.parse(localStorage.getItem('slope-theme') || 'null'); if (t && t.length === 3) return t; } catch (e) {} return T[0][1][0]; };
+  window.__applyTheme = function (t) {
+    var r = document.documentElement; r.style.setProperty('--bg', t[0]); r.style.setProperty('--fg', t[1]); r.style.setProperty('--ac', t[2]);
+    r.classList.toggle('light', lightOf(t[0])); var m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', t[0]);
   };
-  window.__setLook = function (mode, acc) { try { localStorage.setItem('slope-mode', mode); localStorage.setItem('slope-accent', String(acc)); } catch (e) {} window.__applyLook(mode, acc); };
+  window.__setTheme = function (t) { try { localStorage.setItem('slope-theme', JSON.stringify(t)); } catch (e) {} window.__applyTheme(t); };
   window.__tvTheme = function () { return document.documentElement.classList.contains('light') ? 'light' : 'dark'; };
-  try { localStorage.removeItem('slope-theme'); } catch (e) {} // 前の形式
-  var L = window.__look(); if (L.mode !== 'dark' || L.acc) window.__applyLook(L.mode, L.acc);
+  try { // 前の形式（ダークの切りかえ＋差し色）から
+    var md = localStorage.getItem('slope-mode'); if (md) { localStorage.removeItem('slope-mode'); localStorage.removeItem('slope-accent'); if (md === 'light' && !localStorage.getItem('slope-theme')) localStorage.setItem('slope-theme', JSON.stringify(T[2][1][0])); }
+  } catch (e) {}
+  var t = window.__theme(); if (t.join() !== T[0][1][0].join()) window.__applyTheme(t);
 })();
 </script>
 
@@ -273,8 +279,8 @@ a.pgn{color:inherit}
 .tvhits{position:relative;z-index:2;display:flex}.tvhits button{flex:1;height:100%;border:0;background:transparent;cursor:pointer;padding:0}
 .tvhit{position:absolute;inset:0;z-index:2;border:0;background:transparent;cursor:pointer;padding:0}
 .pgempty .pgch{visibility:hidden}.pgempty{cursor:default}
-:root{--bg:#070707;--fg:#F3F1EC;--ac:#F2A93B;--n2:color-mix(in srgb,var(--fg) 2%,var(--bg));--n3:color-mix(in srgb,var(--fg) 3%,var(--bg));--n4:color-mix(in srgb,var(--fg) 4%,var(--bg));--n5:color-mix(in srgb,var(--fg) 5%,var(--bg));--n6:color-mix(in srgb,var(--fg) 6%,var(--bg));--n7:color-mix(in srgb,var(--fg) 7%,var(--bg));--n8:color-mix(in srgb,var(--fg) 8%,var(--bg));--n9:color-mix(in srgb,var(--fg) 9%,var(--bg));--n10:color-mix(in srgb,var(--fg) 10%,var(--bg));--n11:color-mix(in srgb,var(--fg) 11%,var(--bg));--n12:color-mix(in srgb,var(--fg) 12%,var(--bg));--n13:color-mix(in srgb,var(--fg) 13%,var(--bg));--n15:color-mix(in srgb,var(--fg) 15%,var(--bg));--n16:color-mix(in srgb,var(--fg) 16%,var(--bg));--n18:color-mix(in srgb,var(--fg) 18%,var(--bg));--n21:color-mix(in srgb,var(--fg) 21%,var(--bg));--n22:color-mix(in srgb,var(--fg) 22%,var(--bg));--n27:color-mix(in srgb,var(--fg) 27%,var(--bg));--n28:color-mix(in srgb,var(--fg) 28%,var(--bg));--n37:color-mix(in srgb,var(--fg) 37%,var(--bg));--n42:color-mix(in srgb,var(--fg) 42%,var(--bg));--n49:color-mix(in srgb,var(--fg) 49%,var(--bg));--n57:color-mix(in srgb,var(--fg) 57%,var(--bg));--n66:color-mix(in srgb,var(--fg) 66%,var(--bg));--n68:color-mix(in srgb,var(--fg) 68%,var(--bg));--n76:color-mix(in srgb,var(--fg) 76%,var(--bg));--n78:color-mix(in srgb,var(--fg) 78%,var(--bg));--n85:color-mix(in srgb,var(--fg) 85%,var(--bg));--n86:color-mix(in srgb,var(--fg) 86%,var(--bg));--n95:color-mix(in srgb,var(--fg) 95%,var(--bg));}
-[fill="var(--ac)"]{fill:var(--ac)}[stroke="var(--ac)"]{stroke:var(--ac)}[fill="var(--bg)"]{fill:var(--bg)}[stroke="var(--bg)"]{stroke:var(--bg)}[fill="var(--fg)"]{fill:var(--fg)}[stroke="var(--fg)"]{stroke:var(--fg)}[fill="var(--n10)"]{fill:var(--n10)}[stroke="var(--n10)"]{stroke:var(--n10)}[fill="var(--n11)"]{fill:var(--n11)}[stroke="var(--n11)"]{stroke:var(--n11)}[fill="var(--n12)"]{fill:var(--n12)}[stroke="var(--n12)"]{stroke:var(--n12)}[fill="var(--n13)"]{fill:var(--n13)}[stroke="var(--n13)"]{stroke:var(--n13)}[fill="var(--n15)"]{fill:var(--n15)}[stroke="var(--n15)"]{stroke:var(--n15)}[fill="var(--n16)"]{fill:var(--n16)}[stroke="var(--n16)"]{stroke:var(--n16)}[fill="var(--n18)"]{fill:var(--n18)}[stroke="var(--n18)"]{stroke:var(--n18)}[fill="var(--n2)"]{fill:var(--n2)}[stroke="var(--n2)"]{stroke:var(--n2)}[fill="var(--n21)"]{fill:var(--n21)}[stroke="var(--n21)"]{stroke:var(--n21)}[fill="var(--n22)"]{fill:var(--n22)}[stroke="var(--n22)"]{stroke:var(--n22)}[fill="var(--n27)"]{fill:var(--n27)}[stroke="var(--n27)"]{stroke:var(--n27)}[fill="var(--n28)"]{fill:var(--n28)}[stroke="var(--n28)"]{stroke:var(--n28)}[fill="var(--n3)"]{fill:var(--n3)}[stroke="var(--n3)"]{stroke:var(--n3)}[fill="var(--n37)"]{fill:var(--n37)}[stroke="var(--n37)"]{stroke:var(--n37)}[fill="var(--n4)"]{fill:var(--n4)}[stroke="var(--n4)"]{stroke:var(--n4)}[fill="var(--n42)"]{fill:var(--n42)}[stroke="var(--n42)"]{stroke:var(--n42)}[fill="var(--n49)"]{fill:var(--n49)}[stroke="var(--n49)"]{stroke:var(--n49)}[fill="var(--n5)"]{fill:var(--n5)}[stroke="var(--n5)"]{stroke:var(--n5)}[fill="var(--n57)"]{fill:var(--n57)}[stroke="var(--n57)"]{stroke:var(--n57)}[fill="var(--n6)"]{fill:var(--n6)}[stroke="var(--n6)"]{stroke:var(--n6)}[fill="var(--n66)"]{fill:var(--n66)}[stroke="var(--n66)"]{stroke:var(--n66)}[fill="var(--n68)"]{fill:var(--n68)}[stroke="var(--n68)"]{stroke:var(--n68)}[fill="var(--n7)"]{fill:var(--n7)}[stroke="var(--n7)"]{stroke:var(--n7)}[fill="var(--n76)"]{fill:var(--n76)}[stroke="var(--n76)"]{stroke:var(--n76)}[fill="var(--n78)"]{fill:var(--n78)}[stroke="var(--n78)"]{stroke:var(--n78)}[fill="var(--n8)"]{fill:var(--n8)}[stroke="var(--n8)"]{stroke:var(--n8)}[fill="var(--n85)"]{fill:var(--n85)}[stroke="var(--n85)"]{stroke:var(--n85)}[fill="var(--n86)"]{fill:var(--n86)}[stroke="var(--n86)"]{stroke:var(--n86)}[fill="var(--n9)"]{fill:var(--n9)}[stroke="var(--n9)"]{stroke:var(--n9)}[fill="var(--n95)"]{fill:var(--n95)}[stroke="var(--n95)"]{stroke:var(--n95)}
+:root{--bg:#070707;--fg:#F3F1EC;--ac:#F2A93B;--n2:color-mix(in srgb,var(--fg) 2%,var(--bg));--n3:color-mix(in srgb,var(--fg) 3%,var(--bg));--n4:color-mix(in srgb,var(--fg) 4%,var(--bg));--n5:color-mix(in srgb,var(--fg) 5%,var(--bg));--n6:color-mix(in srgb,var(--fg) 6%,var(--bg));--n7:color-mix(in srgb,var(--fg) 7%,var(--bg));--n8:color-mix(in srgb,var(--fg) 8%,var(--bg));--n9:color-mix(in srgb,var(--fg) 9%,var(--bg));--n10:color-mix(in srgb,var(--fg) 10%,var(--bg));--n11:color-mix(in srgb,var(--fg) 11%,var(--bg));--n12:color-mix(in srgb,var(--fg) 12%,var(--bg));--n13:color-mix(in srgb,var(--fg) 13%,var(--bg));--n15:color-mix(in srgb,var(--fg) 15%,var(--bg));--n16:color-mix(in srgb,var(--fg) 16%,var(--bg));--n18:color-mix(in srgb,var(--fg) 18%,var(--bg));--n21:color-mix(in srgb,var(--fg) 21%,var(--bg));--n22:color-mix(in srgb,var(--fg) 22%,var(--bg));--n27:color-mix(in srgb,var(--fg) 27%,var(--bg));--n28:color-mix(in srgb,var(--fg) 28%,var(--bg));--n37:color-mix(in srgb,var(--fg) 37%,var(--bg));--n49:color-mix(in srgb,var(--fg) 49%,var(--bg));--n57:color-mix(in srgb,var(--fg) 57%,var(--bg));--n66:color-mix(in srgb,var(--fg) 66%,var(--bg));--n68:color-mix(in srgb,var(--fg) 68%,var(--bg));--n76:color-mix(in srgb,var(--fg) 76%,var(--bg));--n78:color-mix(in srgb,var(--fg) 78%,var(--bg));--n85:color-mix(in srgb,var(--fg) 85%,var(--bg));--n86:color-mix(in srgb,var(--fg) 86%,var(--bg));--n95:color-mix(in srgb,var(--fg) 95%,var(--bg));--n96:color-mix(in srgb,var(--fg) 96%,var(--bg));--n97:color-mix(in srgb,var(--fg) 97%,var(--bg));--n98:color-mix(in srgb,var(--fg) 98%,var(--bg));}
+[fill="var(--ac)"]{fill:var(--ac)}[stroke="var(--ac)"]{stroke:var(--ac)}[fill="var(--bg)"]{fill:var(--bg)}[stroke="var(--bg)"]{stroke:var(--bg)}[fill="var(--fg)"]{fill:var(--fg)}[stroke="var(--fg)"]{stroke:var(--fg)}[fill="var(--n10)"]{fill:var(--n10)}[stroke="var(--n10)"]{stroke:var(--n10)}[fill="var(--n11)"]{fill:var(--n11)}[stroke="var(--n11)"]{stroke:var(--n11)}[fill="var(--n12)"]{fill:var(--n12)}[stroke="var(--n12)"]{stroke:var(--n12)}[fill="var(--n13)"]{fill:var(--n13)}[stroke="var(--n13)"]{stroke:var(--n13)}[fill="var(--n15)"]{fill:var(--n15)}[stroke="var(--n15)"]{stroke:var(--n15)}[fill="var(--n16)"]{fill:var(--n16)}[stroke="var(--n16)"]{stroke:var(--n16)}[fill="var(--n18)"]{fill:var(--n18)}[stroke="var(--n18)"]{stroke:var(--n18)}[fill="var(--n2)"]{fill:var(--n2)}[stroke="var(--n2)"]{stroke:var(--n2)}[fill="var(--n21)"]{fill:var(--n21)}[stroke="var(--n21)"]{stroke:var(--n21)}[fill="var(--n22)"]{fill:var(--n22)}[stroke="var(--n22)"]{stroke:var(--n22)}[fill="var(--n27)"]{fill:var(--n27)}[stroke="var(--n27)"]{stroke:var(--n27)}[fill="var(--n28)"]{fill:var(--n28)}[stroke="var(--n28)"]{stroke:var(--n28)}[fill="var(--n3)"]{fill:var(--n3)}[stroke="var(--n3)"]{stroke:var(--n3)}[fill="var(--n37)"]{fill:var(--n37)}[stroke="var(--n37)"]{stroke:var(--n37)}[fill="var(--n4)"]{fill:var(--n4)}[stroke="var(--n4)"]{stroke:var(--n4)}[fill="var(--n49)"]{fill:var(--n49)}[stroke="var(--n49)"]{stroke:var(--n49)}[fill="var(--n5)"]{fill:var(--n5)}[stroke="var(--n5)"]{stroke:var(--n5)}[fill="var(--n57)"]{fill:var(--n57)}[stroke="var(--n57)"]{stroke:var(--n57)}[fill="var(--n6)"]{fill:var(--n6)}[stroke="var(--n6)"]{stroke:var(--n6)}[fill="var(--n66)"]{fill:var(--n66)}[stroke="var(--n66)"]{stroke:var(--n66)}[fill="var(--n68)"]{fill:var(--n68)}[stroke="var(--n68)"]{stroke:var(--n68)}[fill="var(--n7)"]{fill:var(--n7)}[stroke="var(--n7)"]{stroke:var(--n7)}[fill="var(--n76)"]{fill:var(--n76)}[stroke="var(--n76)"]{stroke:var(--n76)}[fill="var(--n78)"]{fill:var(--n78)}[stroke="var(--n78)"]{stroke:var(--n78)}[fill="var(--n8)"]{fill:var(--n8)}[stroke="var(--n8)"]{stroke:var(--n8)}[fill="var(--n85)"]{fill:var(--n85)}[stroke="var(--n85)"]{stroke:var(--n85)}[fill="var(--n86)"]{fill:var(--n86)}[stroke="var(--n86)"]{stroke:var(--n86)}[fill="var(--n9)"]{fill:var(--n9)}[stroke="var(--n9)"]{stroke:var(--n9)}[fill="var(--n95)"]{fill:var(--n95)}[stroke="var(--n95)"]{stroke:var(--n95)}[fill="var(--n96)"]{fill:var(--n96)}[stroke="var(--n96)"]{stroke:var(--n96)}[fill="var(--n97)"]{fill:var(--n97)}[stroke="var(--n97)"]{stroke:var(--n97)}[fill="var(--n98)"]{fill:var(--n98)}[stroke="var(--n98)"]{stroke:var(--n98)}
 html,body{background:var(--bg)}
 html.light .mark,html.light .wordmark,html.light .bootlogo{filter:invert(1)}
 </style>
@@ -1875,8 +1881,7 @@ setInterval(window.__chrome, 400);
 <section class="mpsec">
 <h2 class="h2">設定</h2>
 <div class="mplist">
-<button class="mprow" data-mode-toggle="1" role="switch"><span class="mpl">ダークモード</span><span class="mpsw thmode"><i></i></span></button>
-<button class="mprow" data-theme-open="1"><span class="mpl">テーマカラー</span><span class="thdot" aria-hidden="true"></span><svg class="mpch" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+<button class="mprow" data-theme-open="1"><span class="mpl">テーマ</span><span class="thdot" aria-hidden="true"><i></i></span><svg class="mpch" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
 <button class="mprow" onClick="{{ push.toggle }}" role="switch" aria-checked="{{ push.on }}"><span class="mpl">通知を受け取る<small>{{ push.note }}</small></span><span class="mpsw" style="background: {{ push.bg }}"><i style="left: {{ push.x }}; background: {{ push.knob }}"></i></span></button>
 <a class="mprow" href="{{ calSub.ios }}"><span class="mpl">iPhone・Mac のカレンダーに追加</span><svg class="mpch" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
 <a class="mprow" href="{{ calSub.google }}"><span class="mpl">Google カレンダーに追加</span><svg class="mpch" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
@@ -2856,37 +2861,37 @@ document.addEventListener('click',function(e){
 html.invon,html.invon body{overflow:hidden}
 </style>
 <script>
-// テーマカラー（差し色）を選ぶ画面と、ダークモードの切りかえ
+// テーマを選ぶ画面
 (function () {
   function open() {
-    var L = window.__look(), h = '<div class="npbg" data-th-x></div><div class="iqsheet thsheet" role="dialog" aria-label="テーマカラー"><div class="iqtop"><b>テーマカラー</b><button data-th-x aria-label="閉じる"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="iqbody"><div class="thgrid">' +
-      window.__ACCENTS.map(function (a, i) { var c = L.mode === 'light' ? a[2] : a[1]; return '<button class="thc' + (i === L.acc ? ' on' : '') + '" data-th="' + i + '" aria-label="' + a[0] + '" aria-pressed="' + (i === L.acc) + '"><i style="background:' + c + '"></i></button>'; }).join('') + '</div></div></div>';
-    var w = document.createElement('div'); w.id = 'thpop'; w.innerHTML = h; document.body.appendChild(w);
+    var c = window.__theme().join(), h = '<div class="npbg" data-th-x></div><div class="iqsheet thsheet" role="dialog" aria-label="テーマ"><div class="iqtop"><b>テーマ</b><button data-th-x aria-label="閉じる"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="iqbody">';
+    window.__THEMES.forEach(function (g) {
+      h += '<span class="lbl">' + g[0] + '</span><div class="thgrid">' + g[1].map(function (t) { var on = t.join() === c;
+        return '<button class="thc' + (on ? ' on' : '') + '" data-th="' + t.join() + '" aria-pressed="' + on + '" style="background:' + t[0] + ';color:' + t[1] + ';box-shadow:inset 0 0 0 1px ' + t[1] + '1f"><b>Aa</b><i style="background:' + t[2] + '"></i></button>'; }).join('') + '</div>';
+    });
+    var w = document.createElement('div'); w.id = 'thpop'; w.innerHTML = h + '</div></div>'; document.body.appendChild(w);
   }
   function close() { var w = document.getElementById('thpop'); if (w) w.remove(); }
-  function sync() { var on = window.__look().mode === 'dark'; Array.prototype.forEach.call(document.querySelectorAll('[data-mode-toggle]'), function (b) { b.setAttribute('aria-checked', String(on)); }); }
   document.addEventListener('click', function (e) {
-    var t = e.target.closest && e.target.closest('[data-mode-toggle]');
-    if (t) { e.preventDefault(); var L = window.__look(); window.__setLook(L.mode === 'dark' ? 'light' : 'dark', L.acc); sync(); return; }
     var o = e.target.closest && e.target.closest('[data-theme-open]'); if (o) { e.preventDefault(); open(); return; }
     if (e.target.closest && e.target.closest('[data-th-x]')) { close(); return; }
     var b = e.target.closest && e.target.closest('[data-th]'); if (!b) return;
-    window.__setLook(window.__look().mode, +b.dataset.th); close(); open();
+    var sc = document.querySelector('#thpop .iqbody'), y = sc ? sc.scrollTop : 0;
+    window.__setTheme(b.dataset.th.split(',')); close(); open();
+    sc = document.querySelector('#thpop .iqbody'); if (sc) sc.scrollTop = y;
   });
-  new MutationObserver(sync).observe(document.documentElement, { childList: true, subtree: true });
 })();
 </script>
 <style>
-.thdot{flex:none;width:18px;height:18px;border-radius:50%;background:var(--ac)}
-/* ライトのときは時刻の帯を背景より少しだけ濃くして、白い時刻がぎりぎり読めるように */
-.thmode{background:var(--n21)}
-.thmode i{left:3px;background:var(--n66)}
-[data-mode-toggle][aria-checked="true"] .thmode{background:var(--fg)}
-[data-mode-toggle][aria-checked="true"] .thmode i{left:21px;background:var(--bg)}
-.thgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.thc{height:60px;border:2px solid transparent;border-radius:12px;background:var(--n8);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;color:var(--n66);font:inherit;font-size:11px}
-.thc i{width:28px;height:28px;border-radius:50%;display:block}
-.thc.on{border-color:var(--ac);color:var(--fg)}
+html.light{color-scheme:light}
+.thdot{flex:none;width:22px;height:22px;border-radius:7px;background:var(--bg);box-shadow:inset 0 0 0 1px var(--n21);display:flex;align-items:center;justify-content:center}
+.thdot i{width:10px;height:10px;border-radius:50%;background:var(--ac)}
+.thgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px}
+.thc{position:relative;height:60px;border:0;border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;font:inherit;outline:2px solid transparent;outline-offset:2px}
+.thc b{font-size:17px;font-weight:700;letter-spacing:.02em}
+.thc i{position:absolute;right:8px;bottom:8px;width:8px;height:8px;border-radius:50%}
+.thc.on{outline-color:var(--ac)}
+.thsheet .lbl{display:block;margin:0}
 </style>
 </body>
 </html>
