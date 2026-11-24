@@ -302,6 +302,7 @@ body.wide .iqsheet{bottom:auto;top:50%;transform:translate(-50%,-50%);border-bot
 .iqmh{display:flex;justify-content:space-between;font-size:12px;color:#A3A19B}
 .iqm p{margin:0;font-size:14px;line-height:1.6;color:#F3F1EC;white-space:pre-wrap}
 .iqm p.iqrep{padding-top:8px;border-top:1px solid #232322;color:#D2CFC8}
+.mth{flex:none;width:84px;height:56px;border-radius:6px;object-fit:cover;background:#1E1E1D;display:flex;align-items:center;justify-content:center;font-size:11px;color:#7D7B76}
 </style>
 </head>
 <body>
@@ -597,6 +598,7 @@ body.wide .iqsheet{bottom:auto;top:50%;transform:translate(-50%,-50%);border-bot
 <div style="display: flex; align-items: center; gap: 8px"><span class="en" style="font-size: 13px; font-weight: 700; color: #070707; background: #F3F1EC; padding: 2px 8px; border-radius: 6px">INPUT</span><span style="font-size: 14px; color: #BDBAB3">教材</span></div>
 <sc-for list="{{ materials }}" as="m" hint-placeholder-count="3">
 <div class="card" style="padding: 14px 16px; border-radius: 8px; display: flex; align-items: center; gap: 12px">
+<sc-if value="{{ m.hasImg }}"><img class="mth" src="{{ m.img }}" alt="" referrerpolicy="no-referrer" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'mth ph'}))"></sc-if><sc-if value="{{ m.noImg }}"><span class="mth ph">{{ m.kind }}</span></sc-if>
 <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
 <span class="mtt" style="font-weight: 500">{{ m.title }}</span>
 <span style="font-size: 13px; color: #A3A19B; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ m.sub }}</span>
@@ -2266,7 +2268,7 @@ class Component extends DCLogic {
       toggleAnon: () => this.setState({ anon: !this.state.anon }),
       recruits: recruits, recruitsTop: recruits.slice(0, 2).map((r, i) => Object.assign({}, r, { sep: i < 1 ? '1px solid #252524' : '0' })), cur: cur,
       pains: pains, painTop: painTop,
-      baseUnits: baseUnits, courses: courses, materials: materials.map((m) => Object.assign({}, m, { sub: m.sub || [m.kind, m.min].filter(Boolean).join(' · ') })),
+      baseUnits: baseUnits, courses: courses, materials: materials.map((m) => Object.assign({ hasImg: false, noImg: true }, m, { sub: m.sub || [m.kind, m.min].filter(Boolean).join(' · ') })),
       crs: Object.assign({}, crs, { kind: crsKind, name: crsName, jp: crsJp, count: crsDone + ' / ' + crsTot + ' 修了', lock: crsMine ? '受講中' : '受講可', lockColor: crsMine ? RT : '#BDBAB3' }), cSel: cSel,
       unitGroups: unitGroups, uFilters: uFilters, allCount: allCount, noUnits: unitGroups.length === 0,
       openAll: () => this.setState({ sub: 'allUnits' }),

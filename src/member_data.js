@@ -58,7 +58,7 @@
       titleColor: u.st === 'locked' ? '#BDBAB3' : '#F3F1EC', lineColor: i === units.length - 1 ? 'transparent' : (u.st === 'done' ? A : '#383836')
     }));
     const uSel = (() => { const t = T.find((x) => x.id === s.unitT); if (!t) return null; const u = unitsOf(t).find((v) => v.code === s.unitC); return u ? { t: t, u: u, d: D.unitData(t, u.code) } : null; })();
-    const materials = uSel ? (uSel.d.materials || []).map((m) => { const nm = m.memo && !/^https?:\/\//.test(m.memo) ? m.memo : ''; return { title: nm || D.host(m.url), kind: m.type || '記事', min: D.host(m.url), sub: (m.type || '記事') + (nm ? ' · ' + D.host(m.url) : ''), src: '外部', color: '#D2CFC8', url: m.url, go: () => window.__openLink(m.url, nm) }; }) : [];
+    const materials = uSel ? (uSel.d.materials || []).map((m) => { const nm = m.memo && !/^https?:\/\//.test(m.memo) ? m.memo : ''; const yt = (m.url.match(/(?:youtube\.com\/watch\?(?:.*&)?v=|youtu\.be\/|youtube\.com\/shorts\/)([\w-]{6,})/) || [])[1], img = m.img || (yt ? 'https://i.ytimg.com/vi/' + yt + '/mqdefault.jpg' : ''); return { img: img, hasImg: !!img, noImg: !img, title: nm || D.host(m.url), kind: m.type || '記事', min: D.host(m.url), sub: (m.type || '記事') + (nm ? ' · ' + D.host(m.url) : ''), src: '外部', color: '#D2CFC8', url: m.url, go: () => window.__openLink(m.url, nm) }; }) : [];
 
     // ---- 募集の詳細：観点別フィードバック ----
     const lensNames = ['すべて'].concat(ROLES);

@@ -6641,9 +6641,12 @@ var _render58 = render; render = function () { var r = _render58.apply(this, arg
 var TITLE_TRIED = {};
 function autoTitle(t, m) {
   if (m && /^https?:\/\//.test(m.memo || '')) m.memo = ''; // URLが題名に入っていたら空とみなす
-  if (!m || m.memo || TITLE_TRIED[m.url]) return; TITLE_TRIED[m.url] = 1;
+  if (!m || (m.memo && m.img != null) || TITLE_TRIED[m.url]) return; TITLE_TRIED[m.url] = 1; // 題名とサムネイル（どちらか足りなければ取りにいく）
   fetch('https://api.microlink.io/?url=' + encodeURIComponent(m.url)).then(function (r) { return r.json(); }).then(function (j) {
-    var ti = j && j.data && j.data.title; if (!ti || m.memo) return; m.memo = String(ti).replace(/\s+/g, ' ').trim().slice(0, 120); touch(t); save();
+    var d = (j && j.data) || {}, ti = d.title, im = d.image && d.image.url, ch = false;
+    if (m.img == null) { m.img = im && /^https:/.test(im) ? im : ''; ch = true; }
+    if (ti && !m.memo) { m.memo = String(ti).replace(/\s+/g, ' ').trim().slice(0, 120); ch = true; }
+    if (!ch) return; touch(t); save();
     var inp = document.activeElement, keep = inp && inp.id; render(); if (keep) { var el = document.getElementById(keep); if (el) el.focus(); }
   }).catch(function () {});
 }
