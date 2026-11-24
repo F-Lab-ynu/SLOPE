@@ -337,22 +337,6 @@ function itemChanges() {
   });
   return ops;
 }
-// トラックがまだ無いときの教材画面
-var _viewTracks0 = viewTracks;
-viewTracks = function () {
-  if (!S.tracks.length) return top('教材', '<button class="btn sm primary" data-act="newTrack">' + ic('plus') + 'トラックを作る</button>') + '<div class="body"><div class="empty">トラックはまだありません。「トラックを作る」から始めてください（基礎教育・各ロールトラック・実務教育など）。</div></div>';
-  return _viewTracks0();
-};
-var _renderMap0 = renderMap; renderMap = function () { if (!S.tracks.length) return { units: [], errs: [], by: {} }; return _renderMap0.apply(this, arguments); };
-var _renderDetail0 = renderDetail; renderDetail = function () { if (!S.tracks.length) return; return _renderDetail0.apply(this, arguments); };
-
-// 本番ではトラックが0本でも表示できるので、最後の1本も削除できる
-delTrack = function (id) {
-  var t = S.tracks.filter(function (x) { return x.id === id; })[0]; if (!t) return;
-  snap(); S.tracks = S.tracks.filter(function (x) { return x.id !== id; }); if (S.cur === id) { S.cur = S.tracks[0] ? S.tracks[0].id : null; S.sel = null; }
-  save(); render(); toastUndo('トラック「' + t.name + '」を削除しました');
-};
-
 // ---------- アクセス記録と統計 ----------
 function __trackMk(sb, app) {
   return function (tab) {

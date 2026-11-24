@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '48f541f3ca', FILE = 'admin.ver';
+  var VER = 'f76556b47b', FILE = 'admin.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -2097,186 +2097,7 @@ function allCodes() {
 // ---------------- auto layout ----------------
 // Layer = 1 + deepest prerequisite (START is layer 0). Within a layer, nodes are ordered by
 // the mean column of their prerequisites so lines cross as little as possible. Nobody types positions.
-function layout(t) {
-  var p = parse(t.text), errs = p.errs.slice(), units = p.units;
-  var by = {}; units.forEach(function (u) { by[u.code] = u; });
-  var global = allCodes();
-  units.forEach(function (u) {
-    u.inDeps = []; u.extDeps = [];
-    u.deps.forEach(function (d) {
-      if (d === u.code) { errs.push({ line: u.line, msg: u.code + ' が自分自身を前提にしています' }); }
-      else if (by[d]) u.inDeps.push(d);
-      else if (global[d]) u.extDeps.push(d);
-      else errs.push({ line: u.line, msg: '前提 ' + d + ' が見つかりません' });
-    });
-  });
-  // cycle detection
-  var state = {}, cyc = [];
-  function visit(c, path) {
-    if (state[c] === 2) return; if (state[c] === 1) { var k = path.indexOf(c); cyc.push(path.slice(k).concat(c)); return; }
-    state[c] = 1; by[c].inDeps.forEach(function (d) { visit(d, path.concat(c)); }); state[c] = 2;
-  }
-  units.forEach(function (u) { visit(u.code, []); });
-  var cycSet = {};
-  cyc.forEach(function (c) { c.forEach(function (x) { cycSet[x] = 1; }); errs.push({ line: by[c[0]].line, msg: '前提が循環しています：' + c.slice().reverse().join(' → ') }); });
-  var L = {};
-  function lay(c, stack) {
-    if (L[c] != null) return L[c];
-    if (stack[c]) return 1;
-    stack[c] = 1; var m = 0;
-    by[c].inDeps.forEach(function (d) { m = Math.max(m, lay(d, stack)); });
-    delete stack[c]; L[c] = m + 1; return L[c];
-  }
-  units.forEach(function (u) { lay(u.code, {}); });
-  var maxL = 0; units.forEach(function (u) { maxL = Math.max(maxL, L[u.code]); });
 
-  var nodes = [{ id: '__start', kind: 'start', label: t.start || '開始', sub: 'START', layer: 0 }];
-  var extSeen = {};
-  units.forEach(function (u) {
-    nodes.push({ id: u.code, kind: 'unit', label: u.title, sub: u.code, tags: u.tags, layer: L[u.code], unit: u, cyc: !!cycSet[u.code] });
-    u.extDeps.forEach(function (d) {
-      var id = 'ext:' + d;
-      if (!extSeen[id]) { extSeen[id] = { id: id, kind: 'ext', label: global[d].title, sub: d + ' · ' + global[d].track, layer: Math.max(0, L[u.code] - 1) }; nodes.push(extSeen[id]); }
-      else extSeen[id].layer = Math.min(extSeen[id].layer, Math.max(0, L[u.code] - 1));
-    });
-  });
-  var hasDependents = {}; units.forEach(function (u) { u.inDeps.forEach(function (d) { hasDependents[d] = 1; }); });
-  var sinks = units.filter(function (u) { return !hasDependents[u.code]; }).map(function (u) { return u.code; });
-  if (units.length) nodes.push({ id: '__goal', kind: 'goal', label: t.goal || '修了', sub: 'GOAL', layer: maxL + 1 });
-
-  var edges = [];
-  units.forEach(function (u) {
-    if (!u.inDeps.length) edges.push({ from: '__start', to: u.code });
-    u.inDeps.forEach(function (d) { edges.push({ from: d, to: u.code }); });
-    u.extDeps.forEach(function (d) { edges.push({ from: 'ext:' + d, to: u.code, ext: true }); });
-  });
-  sinks.forEach(function (c) { edges.push({ from: c, to: '__goal' }); });
-  // 段を飛ばす線には、途中の段に見えない中継点を置く（線が単元を貫かないように）
-  var LY = {}; nodes.forEach(function (n) { LY[n.id] = n.layer; });
-  var oe = [], dn = 0;
-  edges.forEach(function (e) {
-    var a = LY[e.from], b = LY[e.to]; e.via = [];
-    if (e.to !== '__goal' && b - a > 1) { for (var k = a + 1; k < b; k++) { var id = '__d' + (dn++); nodes.push({ id: id, kind: 'dummy', layer: k, label: '', sub: '' }); e.via.push(id); } }
-    var ch = [e.from].concat(e.via, [e.to]); for (var i = 0; i < ch.length - 1; i++) oe.push({ from: ch[i], to: ch[i + 1] });
-  });
-
-  // order within layers
-  var layers = {}; nodes.forEach(function (n) { (layers[n.layer] = layers[n.layer] || []).push(n); });
-  var pos = {};
-  Object.keys(layers).map(Number).sort(function (a, b) { return a - b; }).forEach(function (k) {
-    var row = layers[k];
-    row.forEach(function (n, i) {
-      var preds = oe.filter(function (e) { return e.to === n.id && pos[e.from] != null; }).map(function (e) { return pos[e.from]; });
-      n.bary = n.kind === 'ext' ? 999 + i : (preds.length ? preds.reduce(function (a, b) { return a + b; }, 0) / preds.length : i * 0.01);
-      n.order = i;
-    });
-    row.sort(function (a, b) { return a.bary - b.bary || a.order - b.order; });
-    row.forEach(function (n, i) { n.lane = i; pos[n.id] = i; });
-  });
-  // 上下に何度かならし直して交差を減らす
-  var keysL = Object.keys(layers).map(Number).sort(function (a, b) { return a - b; });
-  for (var it = 0; it < 4; it++) {
-    var down = it % 2 === 0, seq = down ? keysL.slice().reverse() : keysL;
-    seq.forEach(function (k) {
-      var row = layers[k];
-      row.forEach(function (n) {
-        var nb = oe.filter(function (e) { return down ? e.from === n.id : e.to === n.id; }).map(function (e) { return pos[down ? e.to : e.from]; }).filter(function (v) { return v != null; });
-        n.bary2 = n.kind === 'ext' ? 999 : (nb.length ? nb.reduce(function (a, b) { return a + b; }, 0) / nb.length : n.lane);
-      });
-      row.sort(function (a, b) { return a.bary2 - b.bary2 || a.lane - b.lane; });
-      row.forEach(function (n, i) { n.lane = i; pos[n.id] = i; });
-    });
-  }
-  var maxLanes = 1; Object.keys(layers).forEach(function (k) { maxLanes = Math.max(maxLanes, layers[k].length); });
-  return { nodes: nodes, edges: edges, errs: errs, units: units, maxL: maxL + (units.length ? 1 : 0), maxLanes: maxLanes, by: by };
-}
-
-function mapSVG(g, sel, avail) {
-  var COL = Math.max(132, Math.min(180, Math.floor(((avail || 600) - 52) / g.maxLanes))), ROW = 86, PX = 26, PY = 30;
-  var W = PX * 2 + g.maxLanes * COL, H = PY * 2 + g.maxL * ROW + 20;
-  var at = {}; g.nodes.forEach(function (n) { at[n.id] = { x: PX + n.lane * COL + 10, y: PY + n.layer * ROW }; });
-  function seg(a, b) {
-    var x1 = a.x, y1 = a.y + 9, x2 = b.x, y2 = b.y - 9;
-    if (x1 === x2) return 'M' + x1 + ' ' + y1 + ' V' + y2;
-    var k = TK[b.y] ? Math.max(0, TK[b.y].indexOf(a.x)) : 0, ym = Math.max(y1 + 14, y2 - ROW / 2 + 9 - k * 16), r = 8, dir = x2 > x1 ? 1 : -1;
-    return 'M' + x1 + ' ' + y1 + ' V' + (ym - r) + ' Q' + x1 + ' ' + ym + ' ' + (x1 + dir * r) + ' ' + ym + ' H' + (x2 - dir * r) + ' Q' + x2 + ' ' + ym + ' ' + x2 + ' ' + (ym + r) + ' V' + y2;
-  }
-  var TK = {}, KEY = {}; g.edges.forEach(function (e) { var ch = [e.from].concat(e.via || [], [e.to]); for (var i = 0; i < ch.length - 1; i++) { var a = at[ch[i]], b = at[ch[i + 1]]; if (!a || !b || a.x === b.x) continue; var id = b.y + ':' + a.x; if (KEY[id] == null) { KEY[id] = b.x > a.x ? a.x : -a.x; (TK[b.y] = TK[b.y] || []).push(a.x); } } });
-  Object.keys(TK).forEach(function (k) { TK[k].sort(function (p, q) { return KEY[k + ':' + p] - KEY[k + ':' + q]; }); });
-  var out = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="路線図">';
-  var HS = [], VS = [];
-  var OCC = g.nodes.filter(function (n) { return n.kind !== 'dummy'; }).map(function (n) { return at[n.id]; }), KIND = {}; g.nodes.forEach(function (n) { KIND[n.id] = n.kind; });
-  var blocked = function (x, ya, yb) { return OCC.some(function (p) { return p.x === x && p.y > ya && p.y < yb; }); };
-  var pathOf = function (P) {
-    var d = 'M' + P[0][0] + ' ' + P[0][1];
-    for (var i = 1; i < P.length - 1; i++) {
-      var a = P[i - 1], c = P[i], n = P[i + 1];
-      var r = Math.min(8, Math.abs(c[0] - a[0] + c[1] - a[1]) / 2, Math.abs(n[0] - c[0] + n[1] - c[1]) / 2);
-      var sx = Math.sign(c[0] - a[0]), sy = Math.sign(c[1] - a[1]), tx = Math.sign(n[0] - c[0]), ty = Math.sign(n[1] - c[1]);
-      d += ' L' + (c[0] - sx * r) + ' ' + (c[1] - sy * r) + ' Q' + c[0] + ' ' + c[1] + ' ' + (c[0] + tx * r) + ' ' + (c[1] + ty * r);
-    }
-    var L = P[P.length - 1]; return d + ' L' + L[0] + ' ' + L[1];
-  };
-  g.edges.forEach(function (e) {
-    var a = at[e.from], b = at[e.to]; if (!a || !b) return;
-    var hot = sel && (e.from === sel || e.to === sel), st = { c: hot ? '#2563EB' : '#98A2B3', w: hot ? 2.2 : 1.6, d: e.ext };
-    var x1 = a.x, y1 = a.y + 9, x2 = b.x, y2 = b.y - 9;
-    var k = TK[b.y] ? Math.max(0, TK[b.y].indexOf(a.x)) : 0, ym = Math.max(y1 + 14, y2 - ROW / 2 + 9 - k * 16), ys = a.y + ROW / 2 + 2;
-    var b1 = blocked(x1, a.y, b.y), b2 = blocked(x2, a.y, b.y), P;
-    if (KIND[e.to] === 'goal' && b1) return;
-    if (e.via && e.via.length) {
-      var ch = [e.from].concat(e.via, [e.to]); P = [[x1, y1]];
-      for (var j = 0; j < ch.length - 1; j++) {
-        var p = at[ch[j]], q = at[ch[j + 1]], qin = KIND[ch[j + 1]] === 'dummy' ? q.y : q.y - 9;
-        if (p.x === q.x) { P.push([q.x, qin]); continue; }
-        var kk = TK[q.y] ? Math.max(0, TK[q.y].indexOf(p.x)) : 0, yy = q.y - ROW / 2 + 9 - kk * 16;
-        P.push([p.x, yy]); P.push([q.x, yy]); P.push([q.x, qin]);
-      }
-      P = P.filter(function (pt, i) { var n = P[i + 1], pr = P[i - 1]; return !(pr && n && ((pr[0] === pt[0] && pt[0] === n[0]) || (pr[1] === pt[1] && pt[1] === n[1]))); });
-    }
-    else
-    if (P) {}
-    else if (x1 === x2 && !b1) P = [[x1, y1], [x2, y2]];
-    else if (!b1) P = [[x1, y1], [x1, ym], [x2, ym], [x2, y2]];
-    else if (!b2 && x1 !== x2) P = [[x1, y1], [x1, ys], [x2, ys], [x2, y2]];
-    else { var gx = Math.min(x1, x2) + COL - 14; P = [[x1, y1], [x1, ys], [gx, ys], [gx, ym], [x2, ym], [x2, y2]]; }
-    out += '<path d="' + pathOf(P) + '" fill="none" stroke="' + st.c + '" stroke-width="' + st.w + '"' + (e.ext ? ' stroke-dasharray="3 5"' : '') + ' stroke-linecap="round"/>';
-    for (var i = 0; i < P.length - 1; i++) {
-      var p0 = P[i], p1 = P[i + 1];
-      if (p0[0] === p1[0]) VS.push({ x: p0[0], y1: Math.min(p0[1], p1[1]), y2: Math.max(p0[1], p1[1]), e: e });
-      else HS.push({ y: p0[1], x1: Math.min(p0[0], p1[0]), x2: Math.max(p0[0], p1[0]), e: e, st: st });
-    }
-  });
-  var M = 12, G = 5;
-  HS.forEach(function (h) {
-    VS.forEach(function (v) {
-      if (v.e === h.e || v.e.from === h.e.from || v.e.to === h.e.to) return;
-      if (v.x > h.x1 + M && v.x < h.x2 - M && h.y > v.y1 + M && h.y < v.y2 - M) {
-        out += '<line x1="' + v.x + '" y1="' + (h.y - G) + '" x2="' + v.x + '" y2="' + (h.y + G) + '" stroke="#fff" stroke-width="5"/>' +
-          '<line x1="' + (v.x - G - 2) + '" y1="' + h.y + '" x2="' + (v.x + G + 2) + '" y2="' + h.y + '" stroke="' + h.st.c + '" stroke-width="' + h.st.w + '"' + (h.st.d ? ' stroke-dasharray="3 5"' : '') + '/>';
-      }
-    });
-  });
-  var maxChars = Math.floor((COL - 34) / 13);
-  g.nodes.forEach(function (n) {
-    if (n.kind === 'dummy') return;
-    var p = at[n.id], isSel = n.id === sel;
-    var label = n.label.length > maxChars ? n.label.slice(0, maxChars - 1) + '…' : n.label;
-    var sub = n.sub + (n.tags && n.tags.length ? ' · ' + n.tags.join(' · ') : '');
-    if (sub.length > 18) sub = sub.slice(0, 17) + '…';
-    var big = n.kind === 'start' || n.kind === 'goal';
-    var fill = big ? '#101828' : (n.kind === 'ext' ? '#FFFFFF' : (isSel ? '#2563EB' : '#FFFFFF'));
-    var stroke = n.cyc ? '#D92D20' : (big ? '#101828' : (n.kind === 'ext' ? '#98A2B3' : (isSel ? '#2563EB' : '#667085')));
-    var attrs = n.kind === 'unit' ? ' class="node" tabindex="0" role="button" data-act="pick" data-code="' + esc(n.id) + '" aria-label="' + esc(n.sub + ' ' + n.label) + '"' : '';
-    out += '<g' + attrs + '>';
-    if (n.kind === 'unit') out += '<rect x="' + (p.x - 12) + '" y="' + (p.y - 20) + '" width="' + (COL - 6) + '" height="40" rx="6" fill="' + (isSel ? 'rgba(37,99,235,0.07)' : 'transparent') + '"/>';
-    out += '<circle class="ring" cx="' + p.x + '" cy="' + p.y + '" r="' + (big ? 8 : 6) + '" fill="' + fill + '" stroke="' + stroke + '" stroke-width="2"' + (n.kind === 'ext' ? ' stroke-dasharray="2 2.5"' : '') + '/>';
-    out += '<text x="' + (p.x + 16) + '" y="' + (p.y - 4) + '" font-family="Inter,Arial,sans-serif" font-size="11" fill="' + (isSel ? '#2563EB' : '#667085') + '">' + esc(sub) + '</text>';
-    out += '<text x="' + (p.x + 16) + '" y="' + (p.y + 12) + '" font-size="13" font-weight="700" fill="' + (n.kind === 'ext' ? '#667085' : '#101828') + '">' + esc(label) + '<title>' + esc(n.label) + '</title></text>';
-    out += '</g>';
-  });
-  return out + '</svg>';
-}
 
 function detectType(url) {
   var u = String(url || '').toLowerCase();
@@ -2594,7 +2415,6 @@ function render() {
   decorateFolders();
   decorateDone();
   applyChrome12(); decorateGantt();
-  document.body.classList.toggle('tkc', !!S.tkC);
   if (UI.clip && UI.clip.mode === 'cut') { var el = document.querySelector('.fcard[data-id="' + UI.clip.id + '"], .gr[data-row="' + UI.clip.id + '"]'); if (el) el.classList.add('cut'); }
   kbDecorate();
   decorateBars39();
@@ -2612,7 +2432,6 @@ function renderMain() {
   var v = document.getElementById('view');
   if (S.view === 'none') { v.innerHTML = top('SLOPE') + '<div class="locked">このアカウントには運営画面の権限がありません</div>'; renderModal(); return; }
   v.innerHTML = ({ dash: viewDash, tracks: viewTracks, notices: viewNotices, board: viewBoard, projects: viewWork, perms: viewPerms }[S.view])();
-  if (S.view === 'tracks') { var g = renderMap(); renderDetail(g); wireEditor(); }
   if (S.view === 'projects' && S.wtab === 'gantt') {
     var gs = document.getElementById('gs'), now = document.querySelector('.gnow');
     if (UI.sp === 'g') { gs.scrollLeft = UI.sl; gs.scrollTop = UI.st; }
@@ -2641,88 +2460,13 @@ function nextCode(t) {
 function unitIdx(t, code) { var L = tl(t); for (var i = 0; i < L.length; i++) if (L[i].code === code) return i; return -1; }
 function changedTrack(t) { serialize(t); touch(t); save(); }
 var TAGS = ['実習', '対面'];
-function unitRow(t, u, i, errs) {
-  var sel = S.sel === u.code, er = errs[i + 1];
-  var deps = u.deps.map(function (d) { var ext = unitIdx(t, d) < 0; return '<span class="chip' + (ext ? ' ext' : '') + '">' + esc(d) + '<button data-act="uDepX" data-code="' + esc(u.code) + '" data-dep="' + esc(d) + '" aria-label="前提 ' + esc(d) + ' を外す">×</button></span>'; }).join('');
-  return '<div class="ur' + (sel ? ' sel' : '') + (er ? ' err' : '') + '" data-li="' + i + '" data-code="' + esc(u.code) + '">' +
-    '<span class="dh" data-ldrag="units" title="ドラッグで移動（Alt+↑↓でも可）"><svg viewBox="0 0 10 16" aria-hidden="true"><circle cx="3" cy="3" r="1.3"/><circle cx="7" cy="3" r="1.3"/><circle cx="3" cy="8" r="1.3"/><circle cx="7" cy="8" r="1.3"/><circle cx="3" cy="13" r="1.3"/><circle cx="7" cy="13" r="1.3"/></svg></span>' +
-    '<input class="cell uc num" data-u="code" data-code="' + esc(u.code) + '" value="' + esc(u.code) + '" aria-label="コード" autocomplete="off" spellcheck="false">' +
-    '<input class="cell ut" data-u="title" data-code="' + esc(u.code) + '" value="' + esc(u.title) + '" placeholder="単元名" aria-label="単元名" autocomplete="off">' +
-    '<span class="utg">' + TAGS.map(function (g) { return '<button class="tgl" data-act="uTag" data-code="' + esc(u.code) + '" data-tag="' + g + '" aria-pressed="' + (u.tags.indexOf(g) >= 0) + '">' + g + '</button>'; }).join('') +
-      u.tags.filter(function (g) { return TAGS.indexOf(g) < 0; }).map(function (g) { return '<span class="tag">' + esc(g) + '</span>'; }).join('') + '</span>' +
-    '<span class="ud"><button class="depadd dsel" data-act="uDep" data-code="' + esc(u.code) + '" aria-label="前提を選ぶ" title="' + esc(u.deps.join(', ')) + '"><span>' + (u.deps.length ? esc(u.deps.join(', ')) : '<i class="dim">なし</i>') + '</span><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 10l4 4 4-4"/></svg></button></span>' +
-    '<button class="ib udel" data-act="uDel" data-code="' + esc(u.code) + '" aria-label="' + esc(u.code) + ' を削除"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/></svg></button>' +
-    (er ? '<div class="uerr">' + esc(er) + '</div>' : '') + '</div>';
-}
-function renderMap() {
-  var t = track(), g = layout(t);
-  var m = document.getElementById('map'); if (!m) return g;
-  m.innerHTML = g.units.length ? mapSVG(g, S.sel, m.clientWidth - 8) : '<div class="empty">単元を追加すると、ここに路線図ができます</div>';
-  var uc = document.getElementById('unitCount'); if (uc) uc.textContent = g.units.length;
-  var L = tl(t);
-  document.getElementById('warn').innerHTML = g.errs.length
-    ? g.errs.sort(function (a, b) { return a.line - b.line; }).map(function (e) { var u = L[e.line - 1]; return '<div class="w"><b>' + esc(u ? u.code : e.line + '行目') + '</b><span>' + esc(e.msg) + '</span></div>'; }).join('')
-    : '';
-  return g;
-}
-function renderUnits(focus) {
-  var el = document.getElementById('units'); if (!el) return;
-  var t = track(); el.innerHTML = unitsHTML(t); var g = renderMap(); renderDetail(g);
-  if (focus) focusSel(focus);
-  if (UI.pp) openDeps(UI.pp, true);
-}
-function wireEditor() {}
-function pickUnit(code) { if (S.sel === code) return; S.sel = code; save(); document.querySelectorAll('.ur.sel').forEach(function (x) { x.classList.remove('sel'); }); var r = document.querySelector('.ur[data-code="' + CSS.escape(code) + '"]'); if (r) r.classList.add('sel'); renderMap(); renderDetail(); }
-function addUnit(t, title, at) {
-  var u = { code: nextCode(t), title: clean(title), tags: [], deps: [] }, L = tl(t);
-  if (at == null || at < 0) L.push(u); else L.splice(at, 0, u);
-  S.sel = u.code; changedTrack(t); return u;
-}
 function renameUnit(t, old, nu) {
   S.tracks.forEach(function (x) { tl(x).forEach(function (u) { u.deps = u.deps.map(function (d) { return d === old ? nu : d; }); }); serialize(x); });
   tl(t).forEach(function (u) { if (u.code === old) u.code = nu; });
   if (t.units[old]) { t.units[nu] = t.units[old]; delete t.units[old]; }
   if (S.sel === old) S.sel = nu; changedTrack(t);
 }
-function dependents(t, code) { // code に（間接的にも）依存している単元
-  var out = {}, L = tl(t), grew = true; out[code] = 1;
-  while (grew) { grew = false; L.forEach(function (u) { if (!out[u.code] && u.deps.some(function (d) { return out[d]; })) { out[u.code] = 1; grew = true; } }); }
-  return out;
-}
 // 前提の選択（その場で開く小さなリスト）
-function openDeps(code, keep) {
-  var t = track(), u = tl(t)[unitIdx(t, code)], btn = document.querySelector('.depadd[data-code="' + CSS.escape(code) + '"]');
-  var pp = document.getElementById('pp'); if (!u || !btn) { if (pp) pp.remove(); UI.pp = null; return; }
-  if (!pp) { pp = document.createElement('div'); pp.id = 'pp'; pp.className = 'pp'; document.body.appendChild(pp); }
-  UI.pp = code; var q = keep && UI.ppq ? UI.ppq : ''; if (!keep) UI.ppq = '';
-  var bad = dependents(t, code), all = allCodes();
-  var mine = tl(t).filter(function (x) { return x.code !== code && x.title; }).map(function (x) { return { code: x.code, title: x.title, dis: bad[x.code] }; });
-  var other = Object.keys(all).filter(function (c) { return unitIdx(t, c) < 0; }).map(function (c) { return { code: c, title: all[c].title, track: all[c].track }; });
-  var item = function (x) { var on = u.deps.indexOf(x.code) >= 0; return '<button class="ppi" data-act="uDepT" data-code="' + esc(code) + '" data-dep="' + esc(x.code) + '"' + (x.dis && !on ? ' disabled title="循環してしまうため選べません"' : '') + ' aria-pressed="' + on + '"><i></i><b class="num">' + esc(x.code) + '</b><span>' + esc(x.title) + '</span>' + (x.track ? '<small>' + esc(x.track) + '</small>' : '') + '</button>'; };
-  var f = function (x) { var s = (x.code + ' ' + x.title).toLowerCase(); return !q || s.indexOf(q.toLowerCase()) >= 0; };
-  var a = mine.filter(f), b = other.filter(f);
-  pp.innerHTML = '<input class="input ppq" placeholder="コードか名前で絞り込み" value="' + esc(q) + '" aria-label="前提を検索">' +
-    '<div class="ppl">' + (a.length ? a.map(item).join('') : '') + (b.length ? '<div class="pph">ほかのトラック</div>' + b.map(item).join('') : '') + (!a.length && !b.length ? '<div class="dim" style="padding:10px">該当なし</div>' : '') + '</div>';
-  var r = btn.getBoundingClientRect(), w = 300, left = Math.min(window.innerWidth - w - 8, Math.max(8, r.left));
-  pp.style.width = w + 'px'; pp.style.left = left + 'px';
-  var below = window.innerHeight - r.bottom > 320; pp.style.top = below ? (r.bottom + 4) + 'px' : ''; pp.style.bottom = below ? '' : (window.innerHeight - r.top + 4) + 'px';
-  var qi = pp.querySelector('.ppq'); if (!keep || document.activeElement === document.body || !pp.contains(document.activeElement)) { qi.focus(); qi.setSelectionRange(qi.value.length, qi.value.length); }
-}
-function closeDeps() { var pp = document.getElementById('pp'); if (pp) pp.remove(); UI.pp = null; UI.ppq = ''; }
-function toggleDep(code, dep) {
-  var t = track(), u = tl(t)[unitIdx(t, code)]; if (!u) return;
-  var i = u.deps.indexOf(dep); if (i >= 0) u.deps.splice(i, 1); else { if (dependents(t, code)[dep]) { toast('循環してしまうため選べません'); return; } u.deps.push(dep); }
-  changedTrack(t);
-  var fq = document.activeElement && document.activeElement.classList.contains('ppq');
-  renderUnits(); if (fq) { var qi = document.querySelector('#pp .ppq'); if (qi) { qi.focus(); qi.setSelectionRange(qi.value.length, qi.value.length); } }
-}
-function addMat() {
-  var t = track(), inp = document.getElementById('mUrl'); if (!inp || !S.sel) return;
-  var url = inp.value.trim(); if (!url) return;
-  if (!/^https?:\/\//i.test(url)) { if (/^[\w-]+(\.[\w-]+)+/.test(url)) url = 'https://' + url; else { toast('URLを入力してください'); return; } }
-  var ms = unitData(t, S.sel).materials; ms.push({ url: url, memo: '', type: detectType(url) }); touch(t); save(); renderDetail();
-  focusSel('.mat[data-li="' + (ms.length - 1) + '"] .cell');
-}
 
 // ---------- 外部告知：表のまま編集 ----------
 function viewNotices() {
@@ -2821,115 +2565,28 @@ function viewPerms() {
 
 // ---------- 共通：ドラッグで並べ替え（単元・教材） ----------
 var lmv = null;
-document.addEventListener('pointerdown', function (e) {
-  var h = e.target.closest && e.target.closest('.dh[data-ldrag]'); if (!h || e.button > 0) return;
-  var item = h.closest('[data-li]'), box = item && item.parentElement; if (!box) return;
-  e.preventDefault(); h.setPointerCapture(e.pointerId);
-  lmv = { kind: h.dataset.ldrag, item: item, box: box, from: +item.dataset.li, y0: e.clientY, on: false, to: null };
-});
-document.addEventListener('pointermove', function (e) {
-  if (!lmv) return;
-  if (!lmv.on) { if (Math.abs(e.clientY - lmv.y0) < 4) return; lmv.on = true; document.body.classList.add('moving'); lmv.item.classList.add('mvsrc'); lmv.line = document.createElement('div'); lmv.line.className = 'mvline'; document.body.appendChild(lmv.line); }
-  var items = Array.prototype.slice.call(lmv.box.children).filter(function (x) { return x.dataset.li != null; }), to = items.length, y;
-  for (var i = 0; i < items.length; i++) { var r = items[i].getBoundingClientRect(); if (e.clientY < r.top + r.height / 2) { to = i; break; } }
-  var br = lmv.box.getBoundingClientRect(), last = items[items.length - 1].getBoundingClientRect();
-  y = to < items.length ? items[to].getBoundingClientRect().top : last.bottom;
-  lmv.to = to; lmv.line.style.left = (br.left + 8) + 'px'; lmv.line.style.width = (br.width - 16) + 'px'; lmv.line.style.top = (y - 1) + 'px';
-});
-function lmvEnd(cancel) {
-  if (!lmv) return; var m = lmv; lmv = null; document.body.classList.remove('moving'); m.item.classList.remove('mvsrc'); if (m.line) m.line.remove();
-  if (!m.on || cancel || m.to == null) return;
-  var to = m.to > m.from ? m.to - 1 : m.to; if (to === m.from) return;
-  var t = track(); snap();
-  if (m.kind === 'units') { var L = tl(t), u = L.splice(m.from, 1)[0]; L.splice(to, 0, u); changedTrack(t); renderUnits(); toastUndo('「' + u.code + ' ' + u.title + '」を移動しました'); }
-  else { var ms = unitData(t, S.sel).materials, x = ms.splice(m.from, 1)[0]; ms.splice(to, 0, x); touch(t); save(); renderDetail(); }
-}
-document.addEventListener('pointerup', function () { lmvEnd(); });
-document.addEventListener('pointercancel', function () { lmvEnd(true); });
 
 // ---------- 入力・キー操作 ----------
-document.addEventListener('focusin', function (e) {
-  var el = e.target; if (el.dataset && el.dataset.u && el.dataset.code) pickUnit(el.dataset.code);
-});
 document.addEventListener('keydown', function (e) {
   var el = e.target; if (!el.dataset) return;
-  if (el.id === 'mUrl' && e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); addMat(); return; }
-  if (el.classList.contains('ppq')) {
-    if (e.key === 'Escape') { e.preventDefault(); var c0 = UI.pp; closeDeps(); focusSel('.depadd[data-code="' + CSS.escape(c0) + '"]'); return; }
-    if (e.key === 'ArrowDown') { e.preventDefault(); var f = document.querySelector('#pp .ppi:not([disabled])'); if (f) f.focus(); return; }
-    if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); var f2 = document.querySelector('#pp .ppi:not([disabled])'); if (f2) toggleDep(f2.dataset.code, f2.dataset.dep); return; }
-    return;
-  }
-  if (el.classList.contains('ppi') && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
-    e.preventDefault(); var its = Array.prototype.slice.call(document.querySelectorAll('#pp .ppi:not([disabled])')), k = its.indexOf(el) + (e.key === 'ArrowDown' ? 1 : -1);
-    if (k < 0) focusSel('#pp .ppq'); else if (its[k]) its[k].focus(); return;
-  }
-  if (el.classList.contains('ppi') && e.key === 'Escape') { var c1 = UI.pp; closeDeps(); focusSel('.depadd[data-code="' + CSS.escape(c1) + '"]'); return; }
-  // 単元の行
-  var uf = el.dataset.u;
-  if (uf) {
-    var t = track(), code = el.dataset.code, i = code ? unitIdx(t, code) : -1;
-    if (e.isComposing || e.keyCode === 229) return;
-    if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && e.altKey && i >= 0) {
-      e.preventDefault(); var L = tl(t), j = i + (e.key === 'ArrowDown' ? 1 : -1); if (j < 0 || j >= L.length) return;
-      if (uf === 'title') { L[i].title = clean(el.value) || L[i].title; }
-      snap(); var u = L.splice(i, 1)[0]; L.splice(j, 0, u); changedTrack(t); renderUnits('.cell[data-u="' + uf + '"][data-code="' + CSS.escape(code) + '"]'); return;
-    }
-    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      e.preventDefault(); var col = uf === 'new' ? 'title' : uf, cells = Array.prototype.slice.call(document.querySelectorAll('#units .cell[data-u="' + col + '"]' + (col === 'title' ? ', #units .cell[data-u="new"]' : '')));
-      var n2 = cells[cells.indexOf(el) + (e.key === 'ArrowDown' ? 1 : -1)]; if (n2) { n2.focus(); n2.select(); } return;
-    }
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      if (uf === 'new') { var v = clean(el.value); if (!v) return; addUnit(t, v); renderUnits('#units .cell[data-u="new"]'); return; }
-      if (uf === 'code') { el.blur(); return; }
-      var v2 = clean(el.value); if (v2) tl(t)[i].title = v2;
-      var nu = addUnit(t, '', i + 1); renderUnits('.cell[data-u="title"][data-code="' + CSS.escape(nu.code) + '"]'); return;
-    }
-    if (e.key === 'Backspace' && uf === 'title' && el.value === '' && i >= 0) {
-      e.preventDefault(); var prev = tl(t)[i - 1]; snap(); tl(t).splice(i, 1); if (S.sel === code) S.sel = prev ? prev.code : null; changedTrack(t);
-      renderUnits(prev ? '.cell[data-u="title"][data-code="' + CSS.escape(prev.code) + '"]' : '#units .cell[data-u="new"]'); return;
-    }
-    if (e.key === 'Escape') { el.value = uf === 'code' ? code : uf === 'title' ? tl(t)[i].title : ''; el.blur(); }
-    return;
-  }
-  // 告知の行
-  if (el.dataset.n === 'new' && e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) {
-    e.preventDefault(); var tt = el.value.trim(); if (!tt) return;
-    var nn = { id: uid('n'), type: 'その他', title: tt, host: '', due: isoOf(TODAY + 14 * DAY), url: '', memo: '', state: 'draft' };
-    S.notices.push(nn); save(); render(); focusSel('.cell[data-n="new"]'); toast('下書きで追加しました。公開はスイッチで'); return;
-  }
-  if (el.dataset.n && el.dataset.n !== 'new' && el.tagName === 'INPUT' && el.type !== 'date') {
+  // 告知（外部）の表
+  if (el.dataset.n && el.tagName === 'INPUT' && el.type !== 'date') {
     if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); el.blur(); return; }
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      e.preventDefault(); var cs = Array.prototype.slice.call(document.querySelectorAll('.nsheet .cell[data-n="' + el.dataset.n + '"]' + (el.dataset.n === 'title' ? ', .nsheet .cell[data-n="new"]' : '')));
+      e.preventDefault(); var cs = Array.prototype.slice.call(document.querySelectorAll('.nsheet .cell[data-n="' + el.dataset.n + '"]'));
       var n3 = cs[cs.indexOf(el) + (e.key === 'ArrowDown' ? 1 : -1)]; if (n3) { n3.focus(); if (n3.select) n3.select(); } return;
     }
     if (e.key === 'Escape') { var no = notice(el.dataset.id); el.value = no ? (no[el.dataset.n] === '—' ? '' : no[el.dataset.n]) : ''; el.blur(); }
   }
-  if (el.dataset.n === 'new' && (e.key === 'ArrowUp')) { e.preventDefault(); var ts = document.querySelectorAll('.nsheet .cell[data-n="title"]'); if (ts.length) ts[ts.length - 1].focus(); }
 });
 document.addEventListener('input', function (e) {
   var el = e.target;
-  if (el.classList && el.classList.contains('ppq')) { UI.ppq = el.value; openDeps(UI.pp, true); return; }
   if (el.id === 'mq') { UI.mq = el.value; var pos = el.selectionStart; render(); var m = document.getElementById('mq'); if (m) { m.focus(); m.setSelectionRange(pos, pos); } return; }
-  if (el.dataset && el.dataset.m === 'memo') { var t = track(), ms = unitData(t, S.sel).materials, x = ms[+el.dataset.i]; if (x) { x.memo = el.value; touch(t); save(); } }
 });
 // 確定（フォーカスが外れた / 選択を変えた）
 document.addEventListener('change', function (e) {
   var el = e.target; if (!el.dataset) return;
-  if (el.dataset.u === 'title' && el.dataset.code) {
-    var t = track(), i = unitIdx(t, el.dataset.code); if (i < 0) return; var v = clean(el.value);
-    if (v && v !== tl(t)[i].title) { tl(t)[i].title = v; changedTrack(t); renderMap(); renderDetail(); }
-    return;
-  }
-  if (el.dataset.u === 'code' && el.dataset.code) {
-    var t2 = track(), old = el.dataset.code, nu = el.value.trim().replace(/\s+/g, '');
-    if (!nu || nu === old) { el.value = old; return; }
-    if (allCodes()[nu] || unitIdx(t2, nu) >= 0) { toast('コード ' + nu + ' はすでに使われています'); el.value = old; return; }
-    snap(); renameUnit(t2, old, nu); renderUnits(); toast(old + ' → ' + nu + '（前提も書き換えました）'); return;
-  }
-  if (el.dataset.n && el.dataset.n !== 'new' && el.dataset.id) {
+  if (el.dataset.n && el.dataset.id) {
     e.stopPropagation(); var n = notice(el.dataset.id); if (!n) return; var f = el.dataset.n, val0 = el.value.trim();
     if (f === 'title' && !val0) { el.value = n.title; return; }
     if (f === 'due' && !val0) { el.value = n.due; return; }
@@ -2947,25 +2604,10 @@ document.addEventListener('change', function (e) {
 }, true);
 // クリック（既存の処理より先に受ける）
 document.addEventListener('click', function (e) {
-  var pp = document.getElementById('pp');
-  if (pp && !pp.contains(e.target) && !(e.target.closest && e.target.closest('.depadd'))) closeDeps();
   var b = e.target.closest && e.target.closest('[data-act]'); if (!b) return;
-  var a = b.dataset.act, t = track(), hit = true;
+  var a = b.dataset.act, hit = true;
   switch (a) {
     case 'undoAll': undoNow(); break;
-    case 'uTag': var u = tl(t)[unitIdx(t, b.dataset.code)], g = b.dataset.tag, k = u.tags.indexOf(g); if (k >= 0) u.tags.splice(k, 1); else u.tags.push(g); changedTrack(t); pickUnit(u.code); renderUnits(); break;
-    case 'uDep': if (UI.pp === b.dataset.code) closeDeps(); else openDeps(b.dataset.code); break;
-    case 'uDepT': toggleDep(b.dataset.code, b.dataset.dep); break;
-    case 'uDepX': toggleDep(b.dataset.code, b.dataset.dep); break;
-    case 'uDel':
-      var i = unitIdx(t, b.dataset.code); if (i < 0) break; snap(); var gone = tl(t).splice(i, 1)[0]; if (S.sel === gone.code) S.sel = null; changedTrack(t); renderUnits();
-      toastUndo('「' + gone.code + ' ' + (gone.title || '') + '」を削除しました'); break;
-    case 'pick': pickUnit(b.dataset.code); var r = document.querySelector('.ur[data-code="' + CSS.escape(b.dataset.code) + '"]'); if (r) r.scrollIntoView({ block: 'nearest' }); break;
-    case 'matDel': snap(); unitData(t, S.sel).materials.splice(+b.dataset.i, 1); touch(t); save(); renderDetail(); toastUndo('教材を削除しました'); break;
-    case 'newTrack':
-      var id = 'T' + Date.now().toString(36);
-      S.tracks.push({ id: id, name: '新しいトラック', owner: me().name, status: 'draft', start: '基礎教育 修了', goal: '修了', updated: nowLabel() + '　' + me().name, text: '', units: {}, list: [] });
-      S.cur = id; S.sel = null; save(); render(); focusSel('#tName', true); break;
     case 'nState':
       var n = notice(b.dataset.id); if (!n) break; n.state = n.state === 'pub' ? 'draft' : 'pub'; save(); b.setAttribute('aria-checked', n.state === 'pub'); renderChrome(); toast(n.state === 'pub' ? '「' + n.title + '」を公開しました' : '下書きに戻しました'); break;
     case 'nDel': var n2 = notice(b.dataset.id); snap(); S.notices = S.notices.filter(function (x) { return x !== n2; }); save(); render(); toastUndo('「' + n2.title + '」を削除しました'); break;
@@ -2982,8 +2624,6 @@ document.addEventListener('click', function (e) {
   }
   if (hit) { e.stopImmediatePropagation(); e.preventDefault(); }
 }, true);
-document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && lmv) lmvEnd(true); });
-window.addEventListener('resize', function () { if (UI.pp) closeDeps(); });
 
 
 // ガントの業務名の列幅
@@ -3336,7 +2976,6 @@ document.addEventListener('change', function (e) {
   e.stopImmediatePropagation(); pf()[el.dataset.pfs] = el.value; save(); render();
 }, true);
 
-var DOC = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></svg>';
 
 // ----- 右のパネル（イベントの記録・参加率）
 function recOK(p) { return isAdmin() || isLead(p, S.me); }
@@ -3448,70 +3087,6 @@ document.addEventListener('click', function (e) {
 }, true);
 
 // ---------- ux6: 教材＝左にトラック一覧、中央に路線図、右に単元ページ ----------
-function regRate(t) { var us = parse(t.text).units, n = us.length, d = us.filter(function (u) { return t.units[u.code] && (t.units[u.code].materials || []).length; }).length; return { n: n, d: d }; }
-function tkList() {
-  var q = (UI.tq || '').trim(), cur = track();
-  var list = S.tracks.map(function (x) { var r = regRate(x); return '<button class="tki" data-act="track" data-id="' + x.id + '" aria-pressed="' + (x.id === cur.id) + '"><span class="tkn">' + esc(x.name) + '</span>' + (x.status === 'draft' ? '<i class="drf" title="下書き"></i>' : '') + '<span class="tkr num">' + r.d + '/' + r.n + '</span></button>'; }).join('');
-  var res = '';
-  if (q) {
-    var hits = [];
-    S.tracks.forEach(function (x) {
-      tl(x).forEach(function (u) {
-        var d = x.units[u.code] || {}, mats = (d.materials || []);
-        var hay = [u.code, u.title, d.goal, d.practice, d.milestone].concat(mats.map(function (m) { return (m.memo || '') + ' ' + (m.url || '') + ' ' + (m.type || ''); })).join(' ').toLowerCase();
-        if (hay.indexOf(q.toLowerCase()) >= 0) hits.push('<button class="tkh" data-act="tqPick" data-t="' + x.id + '" data-c="' + esc(u.code) + '"><small>' + esc(x.name) + '・' + esc(u.code) + '</small><span>' + esc(u.title) + '</span>' + (mats.length ? '<em class="num">教材 ' + mats.length + '</em>' : '') + '</button>');
-      });
-    });
-    res = '<div class="tkres">' + (hits.length ? hits.join('') : '<div class="empty sm">見つかりません</div>') + '</div>';
-  }
-  return '<aside class="tkl"><input id="tq" class="input" type="search" placeholder="単元・教材を探す" value="' + esc(UI.tq || '') + '" aria-label="単元・教材を探す" autocomplete="off">' +
-    (q ? res : '<div class="tkls">' + list + '</div><button class="tkadd" data-act="newTrack">' + ic('plus') + 'トラック</button>') + '</aside>';
-}
-function renderDetail(g) {
-  var el = document.getElementById('detail'), dr = document.getElementById('udr'); if (!el) return;
-  var t = track(); g = g || layout(t);
-  var u = S.sel && g.by[S.sel];
-  if (!u) { el.innerHTML = ''; if (dr) dr.classList.remove('open'); document.body.classList.remove('recon'); return; }
-  if (dr) dr.classList.add('open'); document.body.classList.add('recon');
-  var d = unitData(t, u.code);
-  var mats = (d.materials || []).map(function (m, i) {
-    return '<div class="mat" data-li="' + i + '"><span class="dh" data-ldrag="mats" title="ドラッグで並べ替え"><svg viewBox="0 0 10 16" aria-hidden="true"><circle cx="3" cy="3" r="1.3"/><circle cx="7" cy="3" r="1.3"/><circle cx="3" cy="8" r="1.3"/><circle cx="7" cy="8" r="1.3"/><circle cx="3" cy="13" r="1.3"/><circle cx="7" cy="13" r="1.3"/></svg></span>' +
-      '<span class="tag">' + esc(m.type) + '</span>' +
-      '<span class="t"><input class="cell" data-m="memo" data-i="' + i + '" value="' + esc(m.memo) + '" placeholder="' + esc(m.url) + '" aria-label="タイトル" autocomplete="off"><a href="' + esc(m.url) + '" target="_blank" rel="noopener">' + esc(host(m.url)) + ' ↗</a></span>' +
-      '<button class="ib" data-act="matDel" data-i="' + i + '" aria-label="削除">' + ic('x') + '</button></div>';
-  }).join('');
-  var others = tl(t).filter(function (x) { return x.code !== u.code && x.title && u.deps.indexOf(x.code) < 0; });
-  var deps = u.deps.map(function (c) { var x = tl(t)[unitIdx(t, c)]; return '<span class="chip"><button class="dj" data-act="pick" data-code="' + esc(c) + '" title="' + esc(x ? x.title : c) + '">' + esc(c) + '</button><button data-act="uDepX" data-code="' + esc(u.code) + '" data-dep="' + esc(c) + '" aria-label="前提 ' + esc(c) + ' を外す">×</button></span>'; }).join('');
-  el.innerHTML = '<div class="rh"><div class="rt"><small>' + esc(t.name) + '・<span class="num">' + esc(u.code) + '</span>' + (u.tags.length ? '・' + esc(u.tags.join('・')) : '') + '</small><b>' + esc(u.title) + '</b></div><button class="ib" data-act="uClose" aria-label="閉じる">' + ic('x') + '</button></div>' +
-    '<div class="rb">' +
-      '<section><h3>目標</h3><textarea class="input" rows="2" data-ubind="goal" placeholder="この単元で何ができるようになるか">' + esc(d.goal || '') + '</textarea></section>' +
-      '<section><h3>教材</h3><div data-list="mats">' + mats + '</div><div class="matnew"><input id="mUrl" class="input" placeholder="URLを貼り付けて Enter" aria-label="教材のURL" autocomplete="off"></div></section>' +
-      
-      '<section><h3>マイルストーン</h3><input id="uMile" class="input" data-ubind="milestone" value="' + esc(d.milestone || '') + '"></section>' +
-      '<section><h3>前提</h3><div class="udeps">' + (deps || '<span class="dim">なし</span>') +
-        (others.length ? '<select class="input sm" data-udep="' + esc(u.code) + '" aria-label="前提を追加"><option value="">＋</option>' + others.map(function (x) { return '<option value="' + esc(x.code) + '">' + esc(x.code + ' ' + x.title) + '</option>'; }).join('') + '</select>' : '') + '</div></section>' +
-    '</div>';
-}
-document.addEventListener('click', function (e) {
-  var b = e.target.closest && e.target.closest('[data-act="tv"],[data-act="uClose"],[data-act="tqPick"]'); if (!b) return;
-  e.stopImmediatePropagation();
-  var a = b.dataset.act;
-  if (a === 'tv') { UI.tv = b.dataset.v; render(); }
-  else if (a === 'uClose') { S.sel = null; save(); render(); }
-  else if (a === 'tqPick') { S.cur = b.dataset.t; S.sel = b.dataset.c; UI.tq = ''; save(); render(); }
-}, true);
-document.addEventListener('input', function (e) {
-  if (e.target.id !== 'tq') return; UI.tq = e.target.value;
-  var l = document.querySelector('.tkl'); if (!l) return;
-  var pos = e.target.selectionStart; l.outerHTML = tkList(); var q = document.getElementById('tq'); q.focus(); q.setSelectionRange(pos, pos);
-}, true);
-document.addEventListener('change', function (e) {
-  var el = e.target; if (!el.dataset || !el.dataset.udep) return; e.stopImmediatePropagation();
-  if (el.value) toggleDep(el.dataset.udep, el.value); renderDetail();
-}, true);
-document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && S.view === 'tracks' && S.sel && !document.getElementById('pp')) { S.sel = null; save(); render(); } });
-document.addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('[data-act="go"][data-view="tracks"]'); if (b) S.sel = null; }, true);
-if (S && S.sel) S.sel = null;
 // ---------- ux7: 業務＝フォルダー（ファイルアプリ型） ----------
 var FOLD = '<svg class="i fi" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
 var ENTER = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 7l5 5-5 5"/></svg>';
@@ -3633,7 +3208,6 @@ function cloneKids(src, delta) {
 // ---------- ux8: フォルダーはカード、ガントは切り替えて見る ----------
 var GRID = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>';
 var GANTT = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h8M7 12h10M10 18h10"/></svg>';
-var INFO = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>';
 function avStack(ids, ls) {
   ls = ls || [];
   return '<span class="avs">' + ids.slice(0, 3).map(function (id) { var m = member(id); return '<span class="av' + (ls.indexOf(id) >= 0 ? ' lead' : '') + '" title="' + esc(m ? m.name : '') + '">' + esc(m ? initials(m.name) : '?') + '</span>'; }).join('') + (ids.length > 3 ? '<span class="more num">+' + (ids.length - 3) + '</span>' : '') + '</span>';
@@ -4115,18 +3689,6 @@ function vApply() { S.fold = {}; UI.sp = null; save(); render(); if (UI.vp) open
 // ---------- ux18: 表示パネルの高さ・強調は点に統一・教材の削除/右クリック/START・GOALを表に/コードから追加 ----------
 var HLN = { late: '期限切れ', soon: '期限が近い', over: '中身が期限超過', nobody: '担当未定', active: '進行中', mine: '自分の担当' };
 // 教材：START / GOAL を表の中に、コードから追加
-function addByCode(el) {
-  var t = track(), c = el.value.trim().toUpperCase().replace(/\s+/g, ''); if (!c) return false;
-  if (unitIdx(t, c) >= 0) { toast(c + ' はすでにあります'); el.select(); return false; }
-  el.value = ''; snap(); var u = addUnit(t, ''); renameUnit(t, u.code, c);
-  renderUnits('.cell[data-u="title"][data-code="' + CSS.escape(c) + '"]'); return true;
-}
-document.addEventListener('keydown', function (e) {
-  var el = e.target; if (!el.dataset || el.dataset.u !== 'newcode' || e.isComposing) return;
-  if (e.key === 'Enter' || e.key === 'Tab') { if (el.value.trim()) { e.preventDefault(); e.stopImmediatePropagation(); addByCode(el); } }
-}, true);
-document.addEventListener('focusout', function (e) { var el = e.target; if (el.dataset && el.dataset.u === 'newcode' && el.value.trim() && !(e.relatedTarget && e.relatedTarget.dataset && e.relatedTarget.dataset.u === 'new')) addByCode(el); }, true);
-document.addEventListener('focusout', function (e) { var el = e.target; if (el.dataset && (el.dataset.bind === 'start' || el.dataset.bind === 'goal') && S.view === 'tracks') { renderMap(); } }, true);
 // 教材：トラックの削除・右クリック
 function delTrack(id) {
   if (S.tracks.length <= 1) { toast('最後のトラックは削除できません'); return; }
@@ -4134,57 +3696,7 @@ function delTrack(id) {
   snap(); S.tracks = S.tracks.filter(function (x) { return x.id !== id; }); if (S.cur === id) { S.cur = S.tracks[0].id; S.sel = null; }
   save(); render(); toastUndo('トラック「' + t.name + '」を削除しました');
 }
-function trkCM(t, x, y) {
-  var m = document.getElementById('cm'); if (!m) { m = document.createElement('div'); m.id = 'cm'; m.className = 'cm'; m.setAttribute('role', 'menu'); document.body.appendChild(m); }
-  UI.cmT = t.id; UI.cm = null;
-  m.innerHTML = '<div class="cmh">' + BOOK + '<span>' + esc(t.name) + '</span></div>' +
-    '<button data-tcm="open">開く</button><button data-tcm="rename">名前を変更</button><button data-tcm="status">' + (t.status === 'pub' ? '下書きに戻す' : '公開する') + '</button><button data-tcm="dup">複製</button><i class="cmsep"></i><button data-tcm="del" class="cmdel">削除</button>';
-  m.style.left = '0px'; m.style.top = '0px'; var w = m.offsetWidth, h = m.offsetHeight;
-  m.style.left = Math.min(x, window.innerWidth - w - 8) + 'px'; m.style.top = Math.min(y, window.innerHeight - h - 8) + 'px';
-}
-function unitCM(code, x, y) {
-  var t = track(), u = tl(t)[unitIdx(t, code)]; if (!u) return;
-  var m = document.getElementById('cm'); if (!m) { m = document.createElement('div'); m.id = 'cm'; m.className = 'cm'; m.setAttribute('role', 'menu'); document.body.appendChild(m); }
-  UI.cmU = code; UI.cm = null; UI.cmT = null;
-  m.innerHTML = '<div class="cmh"><span class="num">' + esc(code) + '</span><span>' + esc(u.title) + '</span></div><button data-ucm="open">単元ページを開く</button><button data-ucm="up">上へ</button><button data-ucm="down">下へ</button><i class="cmsep"></i><button data-ucm="del" class="cmdel">削除</button>';
-  m.style.left = '0px'; m.style.top = '0px'; var w = m.offsetWidth, h = m.offsetHeight;
-  m.style.left = Math.min(x, window.innerWidth - w - 8) + 'px'; m.style.top = Math.min(y, window.innerHeight - h - 8) + 'px';
-}
-document.addEventListener('contextmenu', function (e) {
-  var b = e.target.closest && e.target.closest('.tki[data-id]');
-  if (b) { e.preventDefault(); var t = S.tracks.filter(function (x) { return x.id === b.dataset.id; })[0]; if (t) trkCM(t, e.clientX, e.clientY); return; }
-  var r = e.target.closest && e.target.closest('#units .ur[data-code], #map [data-code]');
-  if (r && S.view === 'tracks' && !(e.target.tagName === 'INPUT' && e.target.selectionStart !== e.target.selectionEnd)) { e.preventDefault(); unitCM(r.dataset.code, e.clientX, e.clientY); }
-});
-document.addEventListener('click', function (e) {
-  var c = e.target.closest && e.target.closest('[data-tcm],[data-ucm],[data-act="tDel"]'); if (!c) return;
-  e.stopImmediatePropagation(); e.preventDefault();
-  var isDel = c.dataset.tcm === 'del' || c.dataset.ucm === 'del' || c.dataset.act === 'tDel';
-  if (isDel && !c.classList.contains('sure')) { c.classList.add('sure'); if (c.dataset.act === 'tDel') c.innerHTML = 'もう一度押すと削除'; else c.textContent = 'もう一度押すと削除'; return; }
-  closeCM();
-  if (c.dataset.act === 'tDel') { delTrack(track().id); return; }
-  if (c.dataset.ucm) {
-    var t0 = track(), code = UI.cmU, L = tl(t0), i = unitIdx(t0, code); if (i < 0) return;
-    if (c.dataset.ucm === 'open') { S.sel = code; save(); render(); }
-    else if (c.dataset.ucm === 'up' || c.dataset.ucm === 'down') { var j = i + (c.dataset.ucm === 'down' ? 1 : -1); if (j < 0 || j >= L.length) return; snap(); var u = L.splice(i, 1)[0]; L.splice(j, 0, u); changedTrack(t0); renderUnits(); }
-    else { snap(); var gone = L.splice(i, 1)[0]; if (S.sel === gone.code) S.sel = null; changedTrack(t0); render(); toastUndo(gone.code + ' を削除しました'); }
-    return;
-  }
-  var t = S.tracks.filter(function (x) { return x.id === UI.cmT; })[0]; if (!t) return; var a = c.dataset.tcm;
-  if (a === 'open') { S.cur = t.id; S.sel = null; save(); render(); }
-  else if (a === 'rename') { S.cur = t.id; S.sel = null; save(); render(); var n = document.getElementById('tName'); if (n) { n.focus(); n.select(); } }
-  else if (a === 'status') { t.status = t.status === 'pub' ? 'draft' : 'pub'; touch(t); save(); render(); }
-  else if (a === 'dup') { var c2 = JSON.parse(JSON.stringify(t)); c2.id = uid('t'); c2.name = t.name + '（コピー）'; c2.status = 'draft'; delete c2.list; S.tracks.splice(S.tracks.indexOf(t) + 1, 0, c2); S.cur = c2.id; S.sel = null; save(); render(); toast('複製しました'); }
-  else if (a === 'del') delTrack(t.id);
-}, true);
-var BOOK = '<svg class="i bki" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H19v14H5.5A1.5 1.5 0 0 0 4 19.5z"/><path d="M4 19.5A1.5 1.5 0 0 0 5.5 21H19v-3"/></svg>';
 
-document.addEventListener('click', function (e) {
-  var b = e.target.closest && e.target.closest('.depadd.dsel'); if (!b) return;
-  e.stopImmediatePropagation(); e.preventDefault();
-  if (UI.pp === b.dataset.code) closeDeps(); else openDeps(b.dataset.code);
-}, true);
-document.addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('[data-act="tkTog"]'); if (!b) return; e.stopImmediatePropagation(); e.preventDefault(); S.tkC = !S.tkC; save(); render(); }, true);
 // ---------- ux24 告知：右下の＋とポップアップで作る・編集する ----------
 var NROLES = ['Innovator', 'Strategist', 'Negotiator', 'Advertiser', 'Engineer'];
 var PEN = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 6l4 4"/></svg>';
@@ -5012,7 +4524,6 @@ document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && M 
 
 // ---------- ux43 トラックを入れ子（グループ＋単元）で作る。前提は並び方から自動 ----------
 var GID = function () { return 'g' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36); };
-function treeCodes(items, out) { out = out || []; (items || []).forEach(function (n) { if (n.u) out.push(n.u); else treeCodes(n.items, out); }); return out; }
 function treeMigrate(t) { // 前提（deps）から段に分けて、同じ段が複数なら「順不同」グループに
   var L = tl(t), by = {}, lv = {}; L.forEach(function (u) { by[u.code] = u; });
   var f = function (c, seen) { if (lv[c] != null) return lv[c]; if (seen[c]) return 0; seen[c] = 1; var ds = (by[c].deps || []).filter(function (d) { return by[d]; }); return lv[c] = ds.length ? 1 + Math.max.apply(null, ds.map(function (d) { return f(d, seen); })) : 0; };
@@ -5032,124 +4543,14 @@ function treeOf(t) {
   codes.forEach(function (c) { if (!have[c]) t.tree.push({ u: c }); });
   return t.tree;
 }
-function treeDerive(t) { // 並び方から前提を作る（ほかのトラックの前提はそのまま残す）
-  var tree = treeOf(t), mine = {}, deps = {};
-  tl(t).forEach(function (u) { mine[u.code] = 1; });
-  var walk = function (items, order, inc) {
-    if (order === 'any') { var outs = []; items.forEach(function (n) { outs = outs.concat(node(n, inc)); }); return outs.length ? outs : inc; }
-    var cur = inc; items.forEach(function (n) { cur = node(n, cur); }); return cur;
-  };
-  var node = function (n, inc) { if (n.u) { deps[n.u] = inc.slice(); return [n.u]; } return n.items.length ? walk(n.items, n.order, inc) : inc; };
-  walk(tree, 'seq', []);
-  tl(t).forEach(function (u) { var ext = (u.deps || []).filter(function (d) { return !mine[d]; }); u.deps = (deps[u.code] || []).concat(ext); });
-}
-function treeFind(items, pred, parent) { for (var i = 0; i < items.length; i++) { var n = items[i]; if (pred(n)) return { arr: items, i: i, n: n, parent: parent || null }; if (n.items) { var r = treeFind(n.items, pred, n); if (r) return r; } } return null; }
-var CHEV = function (open) { return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + (open ? 'M7 10l5 5 5-5' : 'M10 7l5 5-5 5') + '"/></svg>'; };
-function treeRowsHTML(t, items, d, errs, doneOf) {
-  var h = '';
-  items.forEach(function (n) {
-    var ind = '<span class="uind">' + new Array(d + 1).join('<i></i>') + '</span>';
-    if (n.u) {
-      var i = unitIdx(t, n.u); if (i < 0) return;
-      var r = unitRow(t, tl(t)[i], i, errs);
-      r = r.replace(/<span class="dh"[\s\S]*?<\/svg><\/span>/, ind).replace(/<span class="ud">[\s\S]*?<\/span><\/span>/, '').replace(/<span class="ud">[\s\S]*?<\/button><\/span>/, '');
-      h += r; return;
-    }
-    var cs = treeCodes(n.items), open = n.open !== false;
-    h += '<div class="ur ugrp" data-gid="' + n.g + '">' + ind +
-      '<span class="ugn"><button class="ugc" data-act="tgOpen" data-gid="' + n.g + '" aria-label="' + (open ? '畳む' : '開く') + '">' + CHEV(open) + '</button>' +
-      '<input class="cell" data-tg="name" data-gid="' + n.g + '" value="' + esc(n.name || '') + '" placeholder="グループ名" aria-label="グループ名" autocomplete="off"></span>' +
-      '<span style="display:flex;align-items:center;gap:8px"><span class="ugo" role="group" aria-label="並び方"><button data-act="tgOrder" data-gid="' + n.g + '" data-v="seq" aria-pressed="' + (n.order !== 'any') + '">順番</button><button data-act="tgOrder" data-gid="' + n.g + '" data-v="any" aria-pressed="' + (n.order === 'any') + '">順不同</button></span><span class="ugcnt num">' + cs.length + '</span></span>' +
-      '<button class="ib udel" data-act="tgUngroup" data-gid="' + n.g + '" aria-label="グループを解除" title="グループを解除（中の単元は残る）"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>';
-    if (open) h += treeRowsHTML(t, n.items, d + 1, errs, doneOf) + '<div class="ur ghost ing" data-gin="' + n.g + '">' + '<span class="uind">' + new Array(d + 2).join('<i></i>') + '</span><input class="cell uc num" data-u="newcode" data-gin="' + n.g + '" placeholder="コード" autocomplete="off"><input class="cell ut" data-u="new" data-gin="' + n.g + '" placeholder="＋ ' + esc(n.name || 'このグループ') + 'に単元を追加" autocomplete="off"></div>';
-  });
-  return h;
-}
-function unitsHTML (t) {
-  var g = layout(t), errs = {}; g.errs.forEach(function (e) { if (!errs[e.line]) errs[e.line] = e.msg; });
-  treeOf(t);
-  var fix = function (lab, key, ph) { return '<div class="ur ufix"><span class="uind"></span><span class="uc num ufl">' + lab + '</span><input class="cell ut ufin" data-bind="' + key + '" value="' + esc(t[key] || '') + '" placeholder="' + ph + '" aria-label="' + lab + '" autocomplete="off"><span></span><span></span></div>'; };
-  return '<div class="utree"><div class="uh"><span></span><span>コード</span><span>単元名</span><span>種類</span><span></span></div>' + fix('START', 'start', '始点（前提となる状態）') +
-    '<div data-list="tree">' + treeRowsHTML(t, t.tree, 0, errs) + '</div>' +
-    '<div class="ur ghost"><span class="uind"></span><input class="cell uc num" data-u="newcode" placeholder="コード" autocomplete="off"><input class="cell ut" data-u="new" placeholder="＋ 単元を追加" aria-label="単元を追加" autocomplete="off"></div>' +
-    '<div class="uadd"><button data-act="tgNew">＋ グループ</button></div>' + fix('GOAL', 'goal', '終点（到達する状態）') + '</div>';
-}
 // グループの中に追加したときは、そのグループの最後に入れる
-var _addUnit43 = addUnit;
-addUnit = function (t, title, at) {
-  var gin = UI.addGin; UI.addGin = null;
-  var u = _addUnit43.apply(this, arguments);
-  if (gin) { treeOf(t); var top = treeFind(t.tree, function (n) { return n.u === u.code; }), g = treeFind(t.tree, function (n) { return n.g === gin; });
-    if (top && g) { top.arr.splice(top.i, 1); g.n.items.push({ u: u.code }); changedTrack(t); } }
-  return u;
-};
-document.addEventListener('keydown', function (e) { var el = e.target; if (el && el.dataset && (el.dataset.u === 'new' || el.dataset.u === 'newcode')) UI.addGin = el.dataset.gin || null; }, true);
-document.addEventListener('focusout', function (e) { var el = e.target; if (el && el.dataset && (el.dataset.u === 'new' || el.dataset.u === 'newcode')) UI.addGin = el.dataset.gin || null; }, true);
-var _renameUnit43 = renameUnit;
-renameUnit = function (t, old, nu) { var f = t.tree && treeFind(t.tree, function (n) { return n.u === old; }); if (f) f.n.u = nu; return _renameUnit43.apply(this, arguments); };
-function treeIndent(t, code, out) {
-  treeOf(t); var f = treeFind(t.tree, function (n) { return n.u === code; }); if (!f) return false;
-  if (!out) {
-    if (f.i === 0) return false;
-    var prev = f.arr[f.i - 1]; f.arr.splice(f.i, 1);
-    if (prev.items) { prev.items.push(f.n); prev.open = true; }
-    else { f.arr.splice(f.i - 1, 1, { g: GID(), name: '', order: 'any', items: [prev, f.n] }); }
-  } else {
-    if (!f.parent) return false;
-    var pf = treeFind(t.tree, function (n) { return n === f.parent; }); f.arr.splice(f.i, 1); pf.arr.splice(pf.i + 1, 0, f.n);
-    if (!f.parent.items.length) pf.arr.splice(pf.i, 1);
-    else if (f.parent.items.length === 1 && !f.parent.name) pf.arr.splice(pf.i, 1, f.parent.items[0]);
-  }
-  return true;
-}
-function treeMove(t, code, dir) {
-  treeOf(t); var f = treeFind(t.tree, function (n) { return n.u === code; }); if (!f) return false;
-  var j = f.i + dir; if (j < 0 || j >= f.arr.length) return false; var x = f.arr[j]; f.arr[j] = f.n; f.arr[f.i] = x; return true;
-}
 // Tab：ひとつ上の単元と同じグループへ（なければ2つをまとめて新しいグループに）／ Shift+Tab：グループから出す ／ Alt+↑↓：入れ替え
-document.addEventListener('keydown', function (e) {
-  var el = e.target; if (!el || !el.dataset || S.view !== 'tracks' || !el.closest || !el.closest('.utree')) return;
-  var code = el.dataset.code; if (!code || !(el.dataset.u === 'title' || el.dataset.u === 'code')) return;
-  var t = track();
-  if (e.key === 'Tab' && !e.isComposing) { e.preventDefault(); e.stopImmediatePropagation(); snap(); if (treeIndent(t, code, e.shiftKey)) { changedTrack(t); renderUnits('.cell[data-u="title"][data-code="' + CSS.escape(code) + '"]'); } return; }
-  if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) { e.preventDefault(); e.stopImmediatePropagation(); snap(); if (treeMove(t, code, e.key === 'ArrowUp' ? -1 : 1)) { changedTrack(t); renderUnits('.cell[data-u="title"][data-code="' + CSS.escape(code) + '"]'); } }
-}, true);
-document.addEventListener('click', function (e) {
-  var b = e.target.closest && e.target.closest('[data-act="tgOpen"],[data-act="tgOrder"],[data-act="tgUngroup"],[data-act="tgNew"]'); if (!b) return;
-  e.preventDefault(); e.stopImmediatePropagation();
-  var t = track(); treeOf(t); var a = b.dataset.act, f = b.dataset.gid && treeFind(t.tree, function (n) { return n.g === b.dataset.gid; });
-  if (a === 'tgNew') { snap(); var ng = { g: GID(), name: '', order: 'seq', items: [] }; t.tree.push(ng); changedTrack(t); renderUnits('.cell[data-tg="name"][data-gid="' + ng.g + '"]'); return; }
-  if (!f) return;
-  if (a === 'tgOpen') { f.n.open = f.n.open === false; save(); renderUnits(); return; }
-  if (a === 'tgOrder') { snap(); f.n.order = b.dataset.v; changedTrack(t); renderUnits(); return; }
-  if (a === 'tgUngroup') { snap(); var args = [f.i, 1].concat(f.n.items); Array.prototype.splice.apply(f.arr, args); changedTrack(t); renderUnits(); toastUndo('グループを解除しました（中の単元は残っています）'); }
-}, true);
-document.addEventListener('input', function (e) { var el = e.target; if (el.dataset && el.dataset.tg === 'name') { var t = track(), f = treeFind(treeOf(t), function (n) { return n.g === el.dataset.gid; }); if (f) { f.n.name = el.value; touch(t); save(); } } });
 // 単元の右クリックに「グループにまとめる／グループから出す」を足す
-var _unitCM43 = unitCM;
-unitCM = function (code, x, y) {
-  _unitCM43(code, x, y);
-  var m = document.getElementById('cm'); if (!m) return; var t = track(), f = treeFind(treeOf(t), function (n) { return n.u === code; });
-  var extra = '<i class="cmsep"></i>' + (f && f.i > 0 ? '<button data-ucm2="in" data-code="' + esc(code) + '">ひとつ上とまとめる（Tab）</button>' : '') + (f && f.parent ? '<button data-ucm2="out" data-code="' + esc(code) + '">グループから出す（Shift+Tab）</button>' : '');
-  var del = m.querySelector('[data-ucm="del"]'); if (del && extra.length > 30) del.insertAdjacentHTML('beforebegin', extra);
-};
-document.addEventListener('click', function (e) {
-  var b = e.target.closest && e.target.closest('[data-ucm2]'); if (!b) return; e.preventDefault(); e.stopImmediatePropagation(); closeCM();
-  var t = track(); snap(); if (treeIndent(t, b.dataset.code, b.dataset.ucm2 === 'out')) { changedTrack(t); renderUnits(); }
-}, true);
 // 上へ／下へ（右クリック）も入れ子の中で動かす
-window.addEventListener('click', function (e) {
-  var b = e.target.closest && e.target.closest('[data-ucm="up"],[data-ucm="down"]'); if (!b || S.view !== 'tracks') return;
-  var code = UI.cmU; if (!code) return;
-  e.preventDefault(); e.stopImmediatePropagation(); closeCM(); var t = track(); snap(); if (treeMove(t, code, b.dataset.ucm === 'up' ? -1 : 1)) { changedTrack(t); renderUnits(); }
-}, true);
 // トラックの種類（名前で決めず、選ぶ）
-document.addEventListener('change', function (e) { if (e.target.id === 'tKind') { var t = track(); snap(); t.kind = e.target.value; touch(t); save(); toast('種類を「' + e.target.selectedOptions[0].text + '」にしました'); } });
 
 
 // ---------- ux45 プログラム：トラック・イベント・グループの入れ子（部員の「プログラム」タブの並び） ----------
-var PIC = { t: '<svg viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/></svg>', e: '<svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>', g: '<svg viewBox="0 0 24 24"><path d="M3 7h6l2 2h10v10H3z"/></svg>' };
-var PORD = { seq: '順番', any: '順不同', one: '1つ選ぶ' };
 function progOf() {
   if (!S.program || !S.program.tree) {
     var kd = function (t) { return t.kind || (/基礎/.test(t.name) ? 'all' : (/^実務/.test(t.name) || /Innovator/.test(t.name) ? 'opt' : 'choose')); };
@@ -5164,80 +4565,9 @@ function progOf() {
   (function clean(a) { for (var i = a.length - 1; i >= 0; i--) { var n = a[i]; if (n.k === 't' && (!ids[n.id] || seen[n.id])) a.splice(i, 1); else if (n.k === 't') seen[n.id] = 1; else if (n.k === 'g') clean(n.items = n.items || []); } })(S.program.tree);
   return S.program.tree;
 }
-function pFind(pred, a, par) { a = a || progOf(); for (var i = 0; i < a.length; i++) { if (pred(a[i])) return { arr: a, i: i, n: a[i], parent: par || null }; if (a[i].items) { var r = pFind(pred, a[i].items, a[i]); if (r) return r; } } return null; }
-function pById(id) { return pFind(function (n) { return n.id === id; }); }
-function inProg(tid) { return !!pFind(function (n) { return n.k === 't' && n.id === tid; }); }
-function pSave() { if (S.program) S.program.updated = Date.now(); save(); render(); }
-function pRows(a, d) {
-  var cur = UI.pev ? null : (track() || {}).id;
-  return a.map(function (n) {
-    var ind = '<span class="ind">' + new Array(d + 1).join('<i></i>') + '</span>';
-    if (n.k === 'g') return '<div class="pr g" data-pid="' + n.id + '" tabindex="0">' + ind + '<span class="pi">' + PIC.g + '</span><span class="pn">' + esc(n.name || 'グループ') + '</span><button class="po" data-act="pOrd" data-pid="' + n.id + '" title="クリックで切り替え">' + PORD[n.order || 'seq'] + '</button></div>' + pRows(n.items, d + 1);
-    if (n.k === 'e') return '<button class="pr ev" data-act="pev" data-pid="' + n.id + '" aria-pressed="' + (UI.pev === n.id) + '">' + ind + '<span class="pi">' + PIC.e + '</span><span class="pn">' + esc(n.name || 'イベント') + '</span><span class="pc num">' + esc((n.from || '').slice(5).replace('-', '.')) + '</span></button>';
-    var t = S.tracks.filter(function (x) { return x.id === n.id; })[0]; if (!t) return '';
-    return '<button class="pr tki" data-act="track" data-id="' + t.id + '" data-pid="' + t.id + '" aria-pressed="' + (t.id === cur) + '">' + ind + '<span class="pi">' + PIC.t + '</span><span class="pn">' + esc(t.name) + '</span>' + (t.status === 'draft' ? '<i class="drf" title="下書き"></i>' : '') + '<span class="pc num">' + tl(t).length + '</span></button>';
-  }).join('');
-}
-var _tkList45 = tkList;
-tkList = function () {
-  if ((UI.tq || '').trim()) return _tkList45();
-  var tree = progOf(), out = S.tracks.filter(function (t) { return !inProg(t.id); });
-  return '<aside class="tkl"><input id="tq" class="input" type="search" placeholder="単元・教材を探す" value="" aria-label="単元・教材を探す" autocomplete="off">' +
-    '<div class="pgl">' + pRows(tree, 0) + '<div class="ph2">プログラム外</div>' + (out.length ? pRows(out.map(function (t) { return { k: 't', id: t.id }; }), 0) : '<div class="ph2" style="padding-top:0">なし</div>') + '</div>' +
-    '<div class="pgadd"><button data-act="newTrack">＋ トラック</button><button data-act="pNewEv">＋ イベント</button><button data-act="pNewG">＋ グループ</button></div></aside>';
-};
 // イベントを選んでいるときは、中央にイベントの編集
-document.addEventListener('input', function (e) { var el = e.target; if (!el.dataset || !el.dataset.pe) return; var f = pById(UI.pev); if (!f) return; f.n[el.dataset.pe] = el.value; if (S.program) S.program.updated = Date.now(); save();
-  if (el.dataset.pe === 'name' || el.dataset.pe === 'from') { var r = document.querySelector('.pr[data-pid="' + UI.pev + '"]'); if (r) { r.querySelector('.pn').textContent = f.n.name || 'イベント'; r.querySelector('.pc').textContent = (f.n.from || '').slice(5).replace('-', '.'); } } });
-document.addEventListener('click', function (e) {
-  var b = e.target.closest && e.target.closest('[data-act="pev"],[data-act="pOrd"],[data-act="pNewEv"],[data-act="pNewG"],.pgl [data-act="track"],.tkl [data-act="tqPick"]'); if (!b || S.view !== 'tracks') return;
-  var a = b.dataset.act;
-  if (a === 'track' || a === 'tqPick') { UI.pev = null; return; }
-  e.preventDefault(); e.stopImmediatePropagation();
-  if (a === 'pev') { UI.pev = b.dataset.pid; S.sel = null; render(); return; }
-  if (a === 'pOrd') { var f = pById(b.dataset.pid); if (!f) return; snap(); var o = ['seq', 'any', 'one']; f.n.order = o[(o.indexOf(f.n.order || 'seq') + 1) % 3]; pSave(); return; }
-  snap();
-  if (a === 'pNewEv') { var ev = { k: 'e', id: GID(), name: '新しいイベント', from: '', to: '', todo: '', link: '' }; progOf().push(ev); UI.pev = ev.id; pSave(); focusSel('[data-pe="name"]', true); return; }
-  if (a === 'pNewG') { progOf().push({ k: 'g', id: GID(), name: '新しいグループ', order: 'seq', items: [] }); pSave(); toast('グループを追加しました。項目を右クリック→「ひとつ上とまとめる」で中に入れます'); }
-}, true);
 // 新しいトラックはプログラムの最後に入れる
-document.addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('[data-act="newTrack"]'); if (!b) return; UI.pev = null; setTimeout(function () { var t = track(); if (t && !inProg(t.id)) { progOf().push({ k: 't', id: t.id }); pSave(); focusSel('#tName', true); } }, 0); }, true);
 // 並べ替え・まとめる・出す（右クリック／Alt+↑↓／Tab・Shift+Tab）
-function pMove(id, dir) { var f = pById(id); if (!f) return false; var j = f.i + dir; if (j < 0 || j >= f.arr.length) return false; var x = f.arr[j]; f.arr[j] = f.n; f.arr[f.i] = x; return true; }
-function pIn(id) { var f = pById(id); if (!f || f.i === 0) return false; var prev = f.arr[f.i - 1]; f.arr.splice(f.i, 1); if (prev.k === 'g') prev.items.push(f.n); else f.arr.splice(f.i - 1, 1, { k: 'g', id: GID(), name: '', order: 'seq', items: [prev, f.n] }); return true; }
-function pOut(id) { var f = pById(id); if (!f || !f.parent) return false; var pf = pById(f.parent.id); f.arr.splice(f.i, 1); pf.arr.splice(pf.i + 1, 0, f.n); if (!f.parent.items.length) pf.arr.splice(pf.i, 1); return true; }
-function pAddTrack(tid) { progOf().push({ k: 't', id: tid }); }
-function pRemove(id) { var f = pById(id); if (!f) return false; f.arr.splice(f.i, 1); if (f.n.k === 'g') Array.prototype.splice.apply(f.arr, [f.i, 0].concat(f.n.items)); return true; }
-function pMenu(id, isTrack, x, y) {
-  var f = pById(id), it = [];
-  if (f) {
-    it.push(['上へ（Alt+↑）', function () { snap(); if (pMove(id, -1)) pSave(); }, false, f.i === 0 ? '先頭' : '']);
-    it.push(['下へ（Alt+↓）', function () { snap(); if (pMove(id, 1)) pSave(); }, false, f.i === f.arr.length - 1 ? '末尾' : '']);
-    it.push(['ひとつ上とまとめる（Tab）', function () { snap(); if (pIn(id)) pSave(); }, false, f.i === 0 ? '上がない' : '']);
-    if (f.parent) it.push(['グループから出す（Shift+Tab）', function () { snap(); if (pOut(id)) pSave(); }]);
-    if (f.n.k === 'g') { it.push('sep'); ['seq', 'any', 'one'].forEach(function (o) { it.push([(f.n.order === o ? '✓ ' : '') + PORD[o], function () { snap(); f.n.order = o; pSave(); }]); });
-      it.push(['名前を変更', function () { var v = prompt('グループ名', f.n.name || ''); if (v != null) { snap(); f.n.name = v; pSave(); } }]); }
-    it.push('sep');
-    if (isTrack) it.push(['プログラムから外す（教材タブへ）', function () { snap(); pRemove(id); pSave(); }]);
-    else it.push([f.n.k === 'g' ? 'グループを解除' : 'イベントを削除', function () { snap(); pRemove(id); if (UI.pev === id) UI.pev = null; pSave(); toastUndo(f.n.k === 'g' ? 'グループを解除しました' : 'イベントを削除しました'); }, f.n.k !== 'g']);
-  } else if (isTrack) it.push(['プログラムに入れる', function () { snap(); pAddTrack(id); pSave(); }]);
-  return it;
-}
-document.addEventListener('contextmenu', function (e) {
-  var r = e.target.closest && e.target.closest('.pgl .pr'); if (!r) return;
-  e.preventDefault(); e.stopImmediatePropagation();
-  var tid = r.classList.contains('tki') ? r.dataset.id : null, id = r.dataset.pid, items = pMenu(id, !!tid, e.clientX, e.clientY);
-  if (tid) { var t = S.tracks.filter(function (x) { return x.id === tid; })[0]; items.push('sep', ['トラックを開く', function () { UI.pev = null; S.cur = tid; S.sel = null; save(); render(); }], ['トラックを削除…', function () { delTrack(tid); }, true]); }
-  openMenu(r.querySelector('.pn').textContent, items, e.clientX, e.clientY);
-}, true);
-document.addEventListener('keydown', function (e) {
-  var r = e.target.closest && e.target.closest('.pgl .pr'); if (!r || S.view !== 'tracks') return; var id = r.dataset.pid, ok = false;
-  if (e.key === 'Tab') { snap(); ok = e.shiftKey ? pOut(id) : pIn(id); }
-  else if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) { snap(); ok = pMove(id, e.key === 'ArrowUp' ? -1 : 1); }
-  else if (!e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) { var all = Array.prototype.slice.call(document.querySelectorAll('.pgl .pr')), k = all.indexOf(r) + (e.key === 'ArrowUp' ? -1 : 1); if (all[k]) { e.preventDefault(); all[k].focus(); } return; }
-  else return;
-  e.preventDefault(); e.stopImmediatePropagation(); if (ok) { pSave(); var n = document.querySelector('.pgl .pr[data-pid="' + id + '"]'); if (n) n.focus(); }
-}, true);
 // トラックの種類の選択はやめる（プログラムでの位置で決まる）
 
 // ---------- ux46 教材＝業務と同じツリー。並びがそのまま部員のプログラム。鍵＝上が済むまで開かない ----------
@@ -5851,11 +5181,10 @@ document.addEventListener('click', function (e) {
   var closeP = UI.pmenu && a0 !== 'pjDel' && a0 !== 'pmenu';
   if (closeP) { UI.pmenu = false; S.pDelProj = null; if (!b) render(); }
   if (!b) return;
-  var a = b.dataset.act, t = track();
+  var a = b.dataset.act;
   if (a === 'close' && b.classList.contains('ov') && e.target !== b) return;
-  if (['perm', 'tStatus', 'post', 'showEnded'].indexOf(a) >= 0) return;
+  if (['perm', 'post', 'showEnded'].indexOf(a) >= 0) return;
   if (b.tagName === 'A') e.preventDefault();
-  if (a !== 'pDel2') S.pDel = null;
   switch (a) {
     case 'acct': UI.acct = !UI.acct; renderChrome(); break;
     case 'switch': S.me = b.dataset.id; S.fold = {}; UI.acct = false; M = null; save(); render(); toast(me().name + 'に切り替えました'); break;
@@ -5863,40 +5192,6 @@ document.addEventListener('click', function (e) {
     case 'utab': S[b.dataset.k] = b.dataset.v; save(); render(); break;
     case 'close': M = null; renderModal(); break;
     case 'modal': M = { m: b.dataset.m, id: b.dataset.id }; if (closeP) render(); else renderModal(); break;
-    // tracks
-    case 'track': S.cur = b.dataset.id; S.sel = null; save(); render(); break;
-    case 'newTrack':
-      var id = 'T' + Date.now().toString(36);
-      S.tracks.push({ id: id, name: '新しいトラック', owner: me().name, status: 'draft', start: '基礎教育 修了', goal: '修了', updated: nowLabel() + '　' + me().name, text: '', units: {} });
-      S.cur = id; S.sel = null; save(); render(); document.getElementById('tName').select(); break;
-    case 'pick': S.sel = b.dataset.code; save(); renderMap(); renderDetail(); break;
-    case 'matAdd':
-      var url = val('mUrl');
-      if (!/^https?:\/\//i.test(url)) { toast('URLを入力してください'); return; }
-      unitData(t, S.sel).materials.push({ url: url, memo: val('mMemo'), type: detectType(url) }); touch(t); save(); renderDetail(); break;
-    case 'matDel': unitData(t, S.sel).materials.splice(+b.dataset.i, 1); touch(t); save(); renderDetail(); break;
-    case 'matUp': var ms = unitData(t, S.sel).materials, i = +b.dataset.i; var x = ms[i]; ms[i] = ms[i - 1]; ms[i - 1] = x; save(); renderDetail(); break;
-    // notices
-    case 'oYes': case 'oNo':
-      S.offers.forEach(function (o) {
-        if (o.id !== b.dataset.id) return;
-        o.state = a === 'oYes' ? 'ok' : 'no';
-        if (a === 'oYes') S.notices.push({ id: uid('n'), type: o.type, title: o.title, host: o.host, due: o.due, url: o.url, memo: o.note, state: 'pub' });
-      });
-      save(); render(); toast(a === 'oYes' ? '掲載しました' : '見送りました'); break;
-    case 'nState': S.notices.forEach(function (n) { if (n.id === b.dataset.id) n.state = n.state === 'pub' ? 'draft' : 'pub'; }); save(); render(); break;
-    case 'nDel': S.notices = S.notices.filter(function (n) { return n.id !== b.dataset.id; }); save(); render(); toast('削除しました'); break;
-    case 'nSave':
-      if (!val('nT') || !val('nD')) { toast('タイトルと締切は必須です'); return; }
-      S.notices.push({ id: uid('n'), type: val('nY'), title: val('nT'), host: val('nH') || '—', due: val('nD'), url: /^https?:\/\//i.test(val('nU')) ? val('nU') : 'https://example.com', memo: val('nM'), state: b.dataset.s });
-      M = null; S.ntab = 'list'; save(); render(); toast(b.dataset.s === 'pub' ? '公開しました' : '下書きを保存しました'); break;
-    // board
-    case 'pOk': S.posts.forEach(function (x) { if (x.id === b.dataset.id) { x.reports = 0; x.reason = ''; } }); save(); render(); break;
-    case 'pHide': S.posts.forEach(function (x) { if (x.id === b.dataset.id) x.state = 'hidden'; }); save(); render(); toast('非表示にしました'); break;
-    case 'pShow': S.posts.forEach(function (x) { if (x.id === b.dataset.id) x.state = 'ok'; }); save(); render(); break;
-    case 'pDel': S.pDel = b.dataset.id; render(); break;
-    case 'pDel2': S.posts.forEach(function (x) { if (x.id === b.dataset.id) x.state = 'deleted'; }); S.pDel = null; save(); render(); toast('削除しました'); break;
-    // 業務
     case 'open': S.view = 'projects'; if (S.wtab === 'stats') S.wtab = 'list'; expandTo(b.dataset.id); S.justDone = null; M = null; save(); render(); break;
     case 'pstats': S.view = 'projects'; S.wtab = 'stats'; save(); render(); break;
     case 'fold': reindex(); var fx = IX[b.dataset.id]; if (!S.fold) S.fold = {}; S.fold[b.dataset.id] = isOpen(fx.n, fx.d); save(); render(); break;
@@ -5904,7 +5199,6 @@ document.addEventListener('click', function (e) {
     case 'zoom': var gz = document.querySelector('.gg'); zoomTo((gz ? +gz.dataset.px : 12) * (b.dataset.v === '1' ? 1.5 : 1 / 1.5)); break;
     case 'edit': M = { m: 'edit', id: b.dataset.id }; renderModal(); break;
     case 'addc': M = { m: 'add', pid: b.dataset.id }; renderModal(); var f1 = document.getElementById('wT'); if (f1) f1.focus(); break;
-    case 'addev': M = { m: 'add' }; renderModal(); var f0 = document.getElementById('wT'); if (f0) f0.focus(); break;
     case 'wAdd':
       var wt = val('wT'), ws = val('wS'), we = val('wE');
       if (!wt || !ws || !we) { toast('名前と期間は必須です'); return; }
@@ -5950,8 +5244,6 @@ document.addEventListener('click', function (e) {
     case 'done': var kd = task(b.dataset.id); kd.done = true; S.justDone = kd.id; reportUp(kd); save(); render(); toast('完了を報告しました'); break;
     case 'undo': task(b.dataset.id).done = false; S.justDone = null; save(); render(); break;
     case 'resetAsk': UI.acct = false; if (confirm('サンプルデータに戻しますか？\n編集した内容はすべて消えます。')) { var kp = S.me, vw = S.view; S = migrateFolders(sample()); S.me = member(kp) ? kp : 'm1'; S.view = vw; M = null; save(); render(); toast('サンプルに戻しました'); } else renderChrome(); break;
-    case 'toMember': location.replace('./'); break;
-    case 'reset': var keep = S.me; S = migrateFolders(sample()); S.me = member(keep) ? keep : 'm1'; S.view = 'perms'; M = null; save(); render(); toast('サンプルに戻しました'); break;
   }
 });
 document.addEventListener('keydown', function (e) {
@@ -5959,11 +5251,6 @@ document.addEventListener('keydown', function (e) {
   var n = e.target.closest && e.target.closest('.node, .gl[role=button]');
   if (n && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); n.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); }
   if (e.key === 'Enter' && M && e.target.tagName === 'INPUT') { var pb = document.querySelector('.dlg .btn.primary'); if (pb) pb.click(); }
-});
-document.addEventListener('input', function (e) {
-  var el = e.target, t = track();
-  if (el.dataset.bind && el.tagName === 'INPUT') { t[el.dataset.bind] = el.value; touch(t); save(); if (el.dataset.bind === 'name') { var tb = document.querySelector('.utabs button[aria-pressed="true"]'); if (tb) tb.firstChild.textContent = el.value; } else renderMap(); }
-  if (el.dataset.ubind && S.sel) { unitData(t, S.sel)[el.dataset.ubind] = el.value; touch(t); save(); }
 });
 document.addEventListener('change', function (e) {
   var el = e.target, a = el.dataset.act;
@@ -5974,10 +5261,7 @@ document.addEventListener('change', function (e) {
     else m.perms = m.perms.filter(function (x) { return x !== pp; });
     save(); render(); return;
   }
-  if (a === 'post') { var pm = member(el.dataset.m); pm.unit = el.value; pm.perms = POSTS.filter(function (x) { return x[0] === el.value; })[0][1].slice(); save(); render(); toast(pm.name + 'を' + postLabel(el.value) + 'にしました'); return; }
   if (a === 'showEnded') { S.showEnded = el.checked; save(); render(); return; }
-  if (a === 'tStatus') { track().status = el.value; touch(track()); save(); render(); toast(el.value === 'pub' ? '公開しました' : '下書きに戻しました'); return; }
-  if (el.dataset.bind === 'owner') { track().owner = el.value; save(); }
 });
 window.addEventListener('resize', function () { if (S.view === 'projects' && S.wtab === 'gantt' && !drag) { clearTimeout(window.__rz); window.__rz = setTimeout(render, 150); } });
 
@@ -6591,22 +5875,6 @@ function itemChanges() {
   });
   return ops;
 }
-// トラックがまだ無いときの教材画面
-var _viewTracks0 = viewTracks;
-viewTracks = function () {
-  if (!S.tracks.length) return top('教材', '<button class="btn sm primary" data-act="newTrack">' + ic('plus') + 'トラックを作る</button>') + '<div class="body"><div class="empty">トラックはまだありません。「トラックを作る」から始めてください（基礎教育・各ロールトラック・実務教育など）。</div></div>';
-  return _viewTracks0();
-};
-var _renderMap0 = renderMap; renderMap = function () { if (!S.tracks.length) return { units: [], errs: [], by: {} }; return _renderMap0.apply(this, arguments); };
-var _renderDetail0 = renderDetail; renderDetail = function () { if (!S.tracks.length) return; return _renderDetail0.apply(this, arguments); };
-
-// 本番ではトラックが0本でも表示できるので、最後の1本も削除できる
-delTrack = function (id) {
-  var t = S.tracks.filter(function (x) { return x.id === id; })[0]; if (!t) return;
-  snap(); S.tracks = S.tracks.filter(function (x) { return x.id !== id; }); if (S.cur === id) { S.cur = S.tracks[0] ? S.tracks[0].id : null; S.sel = null; }
-  save(); render(); toastUndo('トラック「' + t.name + '」を削除しました');
-};
-
 // ---------- アクセス記録と統計 ----------
 function __trackMk(sb, app) {
   return function (tab) {
