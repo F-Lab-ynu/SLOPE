@@ -88,7 +88,8 @@ async def main():
         await pg.click('#stage button:has-text("予定に追加")'); await pg.wait_for_timeout(300)
         # その他
         await pg.click('#stage button:has-text("フリー")'); await pg.wait_for_timeout(200)
-        await pg.fill('#otText', '定例会のあとご飯行く人'); await pg.click('#stage button[aria-label="投稿"]'); await pg.wait_for_timeout(400)
+        await pg.click('#stage button:has-text("投稿する")'); await pg.wait_for_timeout(300)
+        await pg.fill('#otText', '定例会のあとご飯行く人'); await pg.click('#stage button:has-text("投稿する")'); await pg.wait_for_timeout(400)
         print('other:', [i['data'] for i in await db(pg, 'items') if i['kind'] == 'other'])
         # 予定
         await pg.click('#stage nav button:has-text("予定")'); await pg.wait_for_timeout(300)
