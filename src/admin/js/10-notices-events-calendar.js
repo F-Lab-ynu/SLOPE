@@ -41,9 +41,11 @@ function calDlg() {
     '<div class="fld"><label for="cP">場所</label><input id="cP" class="input" value="' + esc(d.place || '') + '" autocomplete="off"' + (ro ? ' disabled' : '') + '></div>' +
     '<div class="fld"><label for="cM">部員がやること・説明</label><textarea id="cM" class="input" rows="3"' + (ro ? ' disabled' : '') + '>' + esc(d.memo || '') + '</textarea></div>' +
     '<div class="fld"><label for="cL">リンク</label><input id="cL" class="input" value="' + esc(d.link || '') + '" placeholder="https://" autocomplete="off"' + (ro ? ' disabled' : '') + '></div>' +
-    '<label style="display:flex;align-items:center;gap:8px" title="予定タブの部内イベントに出て、参加登録できる"><input id="cS" type="checkbox" class="check"' + (d.state === 'pub' ? ' checked' : '') + (ro ? ' disabled' : '') + '>部員に公開</label>';
-  var prog = c && can('tracks') ? '<button class="btn ghost" data-act="' + (inPg ? 'evOutProg' : 'evToProg') + '" data-id="' + c.id + '">' + (inPg ? '学ぶから外す' : '学ぶにも追加') + '</button>' : '';
-  var foot = ro ? '<button class="btn" data-act="close">閉じる</button>' : (c ? '<span class="dlgl"><button class="btn ghost" data-act="calDel" data-id="' + c.id + '" style="color:var(--red,#DC2626)">削除</button>' + prog + '</span>' : '') + '<button class="btn" data-act="close">キャンセル</button><button class="btn primary" data-act="calSave">保存</button>';
+    '<div class="opts">' +
+      '<label class="opt"><span class="ot"><b>部員に公開</b><small>予定タブに出て、参加登録できる</small></span><input id="cS" type="checkbox" class="tsw"' + (d.state === 'pub' ? ' checked' : '') + (ro ? ' disabled' : '') + '></label>' +
+      (can('tracks') ? '<label class="opt"><span class="ot"><b>学ぶに出す</b><small>学ぶのプログラムに入る</small></span><input id="cG" type="checkbox" class="tsw"' + (inPg ? ' checked' : '') + (ro ? ' disabled' : '') + '></label>' : '') +
+    '</div>';
+  var foot = ro ? '<button class="btn" data-act="close">閉じる</button>' : (c ? '<button class="btn ghost" data-act="calDel" data-id="' + c.id + '" style="margin-right:auto;color:var(--red,#DC2626)">削除</button>' : '') + '<button class="btn" data-act="close">キャンセル</button><button class="btn primary" data-act="calSave">保存</button>';
   return dlg(c ? 'イベントを編集' : 'イベントを追加', body, foot, true);
 }
 function evDlg() {
@@ -78,7 +80,11 @@ document.addEventListener('click', function (e) {
     var data = { title: v('cT'), date: v('cD'), to: to === v('cD') ? '' : to, time: v('cH'), place: v('cP'), memo: v('cM'), link: v('cL'), state: document.getElementById('cS').checked ? 'pub' : 'draft' };
     snap(); var cid = M.id; if (cid) Object.assign(calsInit().filter(function (x) { return x.id === cid; })[0], data); else { cid = uid('c'); calsInit().push(Object.assign({ id: cid }, data)); }
     var cc = evCal(cid); if (cc && cc.inNotice === false) cc.inNotice = true;
-    evSync(); M = null; save(); render(); toast('保存しました'); return;
+    var g = document.getElementById('cG'), want = g && g.checked, had = evInProg(cid);
+    evSync(); M = null; save(); render(); toast('保存しました');
+    if (g && want && !had) evToProg(cid); // 学ぶに出す（同じ名前があれば確認）
+    if (g && !want && had) { evOutProg(cid); evSync(); save(); render(); }
+    return;
   }
   if (a === 'evSave') {
     var n2 = task(M.id); if (!n2 || !canEv(n2)) return;

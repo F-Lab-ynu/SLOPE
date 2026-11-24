@@ -42,7 +42,7 @@ function viewNotices() {
           (ok ? '<a class="evp evlink" href="' + esc(n.url) + '" target="_blank" rel="noopener">' + esc(host0(n.url)) + ' ↗</a>' : '<span class="evp dim">—</span>') +
           '<span class="evg"><span class="tag">' + esc(n.type) + '</span></span>' +
           (past ? '<span class="muted nsw" style="font-size:12px">終了</span>' : '<button class="sw nsw" role="switch" data-act="nState" data-id="' + n.id + '" aria-checked="' + (n.state === 'pub') + '" aria-label="公開"><i></i></button>') +
-          '<button class="ib" data-act="nEdit" data-id="' + n.id + '" aria-label="編集" title="編集">' + PEN + '</button></div>';
+          '<span class="evact"><button class="ib" data-act="nEdit" data-id="' + n.id + '" aria-label="編集" title="編集">' + PEN + '</button>' + '<button class="rmore" type="button" tabindex="-1" aria-label="その他" title="その他">' + ic('more') + '</button>' + '</span></div>';
       }).join('') + '</div>' : '<div class="empty big">告知はまだありません</div>';
   } else {
     body = '<div class="tw"><table><thead><tr><th>タイトル</th><th>種類</th><th class="hide-sm">提供者</th><th>締切</th><th></th></tr></thead><tbody>' +

@@ -1261,7 +1261,7 @@ body.mvin .mvline{display:none !important}
 
 /* ux42 告知：イベント・カレンダー・外部 */
 .evl{border:1px solid var(--line);border-radius:8px;background:#fff}
-.evr{display:grid;grid-template-columns:minmax(0,1.6fr) 150px minmax(0,1fr) 90px 56px 40px;align-items:center;gap:8px;min-height:48px;padding:6px 12px;border-bottom:1px solid #F0F1F3}
+.evr{display:grid;grid-template-columns:minmax(0,1.6fr) 150px minmax(0,1fr) 90px 56px 64px;align-items:center;gap:8px;min-height:48px;padding:6px 12px;border-bottom:1px solid #F0F1F3}
 .evr:last-child{border-bottom:0}
 .evr.evh{min-height:36px;font-size:12px;color:var(--muted)}
 .evr .evn{display:flex;flex-direction:column;min-width:0}
@@ -1291,8 +1291,8 @@ body.mvin .mvline{display:none !important}
 .calleg{display:flex;gap:14px;margin-top:8px;font-size:12px;color:var(--muted)}
 .calleg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
 @media (max-width:760px){
-  .evr{grid-template-columns:auto minmax(0,1fr) 56px 36px;grid-template-areas:"n n s e" "d p p p";gap:2px 12px;padding:10px 12px}
-  .evr.evh{display:none}.evr .evn{grid-area:n}.evr .evq{grid-area:d;font-size:12px;color:var(--muted)}.evr .evp{grid-area:p}.evr .evp.dim{visibility:hidden}.evr .evg{display:none}.evr .nsw{grid-area:s}.evr .ib{grid-area:e}
+  .evr{grid-template-columns:auto minmax(0,1fr) 56px 64px;grid-template-areas:"n n s e" "d p p p";gap:2px 12px;padding:10px 12px}
+  .evr.evh{display:none}.evr .evn{grid-area:n}.evr .evq{grid-area:d;font-size:12px;color:var(--muted)}.evr .evp{grid-area:p}.evr .evp.dim{visibility:hidden}.evr .evg{display:none}.evr .nsw{grid-area:s}.evr .evact{grid-area:e}
   .calg .cd{min-height:64px}.cchip{font-size:10px;padding:1px 4px}
 }
 
@@ -1599,3 +1599,28 @@ select.cell{padding-right:26px;background-repeat:no-repeat;background-position:r
 }
 .iqr{align-items:center}.iqrt{flex:1;min-width:0}.iqr .btn{flex:none}
 .iqr .btn.ghost{margin-right:-10px}
+
+/* 設定の行：名前・短い説明・右にスイッチ */
+.opts{border:1px solid var(--line);border-radius:10px;background:#fff}
+.opt{display:flex;align-items:center;gap:16px;min-height:52px;padding:8px 16px;cursor:pointer}
+.opt + .opt{border-top:1px solid var(--line)}
+.ot{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.ot b{font-size:13px;font-weight:600;color:var(--text)}
+.ot b em{font-style:normal;margin-left:8px;font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-soft);padding:1px 6px;border-radius:8px}
+.ot small{font-size:12px;color:var(--muted)}
+.tsw{appearance:none;-webkit-appearance:none;flex:none;position:relative;width:36px;height:22px;margin:0;border-radius:11px;background:var(--line2);cursor:pointer;transition:background .15s}
+.tsw::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:transform .15s}
+.tsw:checked{background:var(--accent)}
+.tsw:checked::after{transform:translateX(14px)}
+.tsw:disabled{opacity:.5;cursor:default}
+.tsw:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.opt:has(.tsw:disabled){cursor:default}
+
+/* 「⋯」：右クリックと同じメニュー。カーソルを合わせたとき（スマホでは常に）出す */
+.rmore{flex:none;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:6px;background:transparent;color:var(--muted);cursor:pointer;padding:0;opacity:0}
+.rmore svg.i{width:16px;height:16px}
+.rmore:hover{background:rgba(17,24,39,.06);color:var(--text)}
+.p2r:hover .rmore,.p2r.on .rmore,.ft:hover .rmore,.ft.on .rmore,.evr:hover .rmore,.rmore:focus-visible{opacity:1}
+.evact{display:flex;align-items:center;justify-content:flex-end;gap:2px}
+.evact .ib{width:28px;height:28px}
+@media (hover:none){ .rmore{opacity:1} }

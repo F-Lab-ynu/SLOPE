@@ -46,7 +46,7 @@ function ftree() {
     var open = UI.fopen[n.id] != null ? UI.fopen[n.id] : anc.indexOf(n.id) >= 0;
     return '<div class="ft' + (cur === n.id ? ' on' : '') + '" style="--d:' + d + '">' +
       (ch.length ? '<button class="ftc" data-act="ftog" data-id="' + n.id + '" aria-expanded="' + open + '" aria-label="開閉"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="' + (open ? 'M7 10l5 5 5-5' : 'M10 7l5 5-5 5') + '"/></svg></button>' : '<span class="ftc"></span>') +
-      '<button class="ftn' + (mine[n.id] ? ' mine' : '') + '" data-act="fgo" data-id="' + n.id + '"' + (cur === n.id ? ' aria-current="true"' : '') + (mine[n.id] ? ' title="自分の担当"' : '') + '>' + (isFolder(n) ? FOLD : FILE) + '<span>' + esc(ttl(n)) + '</span>' + (isEvent(n) ? '<i class="evd" title="イベント"></i>' : '') + '</button></div>' +
+      '<button class="ftn' + (mine[n.id] ? ' mine' : '') + '" data-act="fgo" data-id="' + n.id + '"' + (cur === n.id ? ' aria-current="true"' : '') + (mine[n.id] ? ' title="自分の担当"' : '') + '>' + (isFolder(n) ? FOLD : FILE) + '<span>' + esc(ttl(n)) + '</span>' + (isEvent(n) ? '<i class="evd" title="イベント"></i>' : '') + '</button>' + '<button class="rmore" type="button" tabindex="-1" aria-label="その他" title="その他">' + ic('more') + '</button>' + '</div>' +
       (open ? ch.map(function (c) { return row(c, d + 1); }).join('') : '');
   };
   return '<div class="ftbar"><span>フォルダー</span><button class="ib" data-act="ftreeTog" title="畳む" aria-label="フォルダー一覧を畳む"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button></div>' +
@@ -157,11 +157,12 @@ function fcard(n) {
       (n.memo ? '<div class="fmemo sm">' + esc(n.memo) + '</div>' : '') +
       '<div class="fcb"><span class="b"><i style="width:' + (g.n ? Math.round(g.d / g.n * 100) : 0) + '%"></i></span><span class="num">' + g.d + '/' + g.n + '</span></div>' +
       '<div class="fcf">' + teamBtn(n, canAssign(n) ? '' : ' disabled', true) + '<span class="fcc">' + (nf ? FOLD + nf : '') + (nt ? '<span class="tci"></span>' + nt : '') + '</span></div>' +
-      (ed ? '<button class="fcx" data-act="edit" data-id="' + n.id + '" aria-label="編集" title="編集">' + ic('more') + '</button>' : '') +
+      '<button class="fcx rmore" type="button" aria-label="その他" title="その他">' + ic('more') + '</button>' +
     '</div>';
   }
   var can = ed || n.who === S.me, lt = late(n) && !n.done;
   return '<div class="fcard istc' + (n.done ? ' dn' : '') + (lt ? ' lt' : '') + '" data-act="fgo" data-id="' + n.id + '" tabindex="0" role="button" aria-label="' + esc(ttl(n)) + 'を開く">' +
+    '<button class="fcx rmore" type="button" aria-label="その他" title="その他">' + ic('more') + '</button>' +
     '<div class="fct">' + FILE + '<button class="tck" data-act="tdone" data-id="' + n.id + '" aria-pressed="' + !!n.done + '"' + (can ? '' : ' disabled') + ' aria-label="完了"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12l4 4 8-8"/></svg></button><span class="sp"></span><span class="fcm num' + (n.nodate ? ' nodt' : '') + (lt ? ' bad' : '') + '">' + (n.nodate ? '期間未定' : shortDate(n.end)) + '</span></div>' +
     nm +
     (n.memo ? '<div class="fmemo">' + esc(memoText(n.memo).slice(0, 160)) + '</div>' : '') +

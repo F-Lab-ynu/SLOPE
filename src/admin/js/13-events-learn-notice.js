@@ -48,7 +48,7 @@ function viewEvents () {
       '<span class="evq num">' + (c.date ? pmd(c.date) + (c.to ? ' – ' + pmd(c.to) : '') + (c.time ? ' ' + esc(c.time) : '') : '<span class="dim">未定</span>') + '</span>' + (c.place ? '<span class="evp">' + esc(c.place) + '</span>' : '<span class="evp dim">—</span>') +
       '<span class="evg num">' + (pub ? ((S.joins || {})[c.id] || 0) + ' 人' : '<span class="dim">—</span>') + '</span>' +
       (past ? '<span class="muted nsw" style="font-size:12px">終了</span>' : '<button class="sw nsw" role="switch" data-act="calPub" data-id="' + c.id + '" aria-checked="' + pub + '" aria-label="部員に公開"' + (okc ? '' : ' disabled') + '><i></i></button>') +
-      '<button class="ib" data-act="calItem" data-k="cal" data-id="' + c.id + '" aria-label="編集" title="編集">' + PEN + '</button></div>';
+      '<span class="evact"><button class="ib" data-act="calItem" data-k="cal" data-id="' + c.id + '" aria-label="編集" title="編集">' + PEN + '</button>' + '<button class="rmore" type="button" tabindex="-1" aria-label="その他" title="その他">' + ic('more') + '</button>' + '</span></div>';
   }).join('') + '</div>';
 }
 
@@ -67,6 +67,10 @@ function evToNotice(cid, force) {
   snap(); c.inNotice = true; save(); render(); toast('「' + c.title + '」を告知に追加しました。告知で公開すると部員に出ます');
 }
 function evOutNotice(cid) { var c = evCal(cid); if (!c) return; snap(); c.inNotice = false; c.state = 'draft'; evSync(); save(); render(); toast('告知から外しました（学ぶには残っています）'); }
+document.addEventListener('change', function (e) {
+  var el = e.target; if (!el.dataset || !el.dataset.evn || S.view !== 'tracks') return; var f = p2Get(UI.psel); if (!f || !f.n.ref) return;
+  if (el.checked) evToNotice(f.n.ref); else evOutNotice(f.n.ref);
+}, true);
 function evGc(cid) { var c = evCal(cid); if (c && !evInNotice(c) && !evInProg(cid)) S.cals = S.cals.filter(function (x) { return x !== c; }); }
 document.addEventListener('click', function (e) {
   var b = e.target.closest && e.target.closest('[data-act="evdupRep"],[data-act="evdupBoth"],[data-act="evToProg"],[data-act="evOutProg"],[data-act="evToNotice"],[data-act="evOutNotice"]'); if (!b) return;
@@ -90,7 +94,7 @@ window.addEventListener('contextmenu', function (e) {
   e.preventDefault(); e.stopImmediatePropagation(); var c = evCal(r.dataset.calid); if (!c) return; var pg = evInProg(c.id), ok = can('notices');
   openMenu(c.title, [['編集', function () { M = { m: 'cal', id: c.id }; renderModal(); }],
     [c.state === 'pub' ? '部員に非公開にする' : '部員に公開する', function () { snap(); c.state = c.state === 'pub' ? 'draft' : 'pub'; evSync(); save(); render(); }, false, ok ? '' : '告知の権限が必要'],
-    'sep', [pg ? '学ぶから外す' : '学ぶにも追加', function () { if (pg) { snap(); evOutProg(c.id); evSync(); save(); render(); toast('学ぶから外しました'); } else evToProg(c.id); }, false, can('tracks') ? '' : '教材の権限が必要'],
+    'sep', [pg ? '学ぶから外す' : '学ぶに出す', function () { if (pg) { snap(); evOutProg(c.id); evSync(); save(); render(); toast('学ぶから外しました'); } else evToProg(c.id); }, false, can('tracks') ? '' : '教材の権限が必要'],
     'sep', ['削除', function () { snap(); evOutProg(c.id); S.cals = S.cals.filter(function (x) { return x !== c; }); save(); render(); toastUndo('「' + c.title + '」を削除しました'); }, true, ok ? '' : '告知の権限が必要']], e.clientX, e.clientY);
 }, true);
 // 学ぶのツリーのイベントの右クリックに「告知に追加／外す」
