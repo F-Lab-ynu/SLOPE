@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '9a3c528598', FILE = 'admin.ver';
+  var VER = '31b36dab35', FILE = 'admin.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -1652,6 +1652,24 @@ select.cell{padding-right:26px;background-repeat:no-repeat;background-position:r
 .evact .ib{width:28px;height:28px}
 @media (hover:none){ .rmore{opacity:1} }
 
+/* イベント：選ぶ一覧・公開のボタン・記録パネル */
+.evpkl{display:flex;flex-direction:column;max-height:50vh;overflow:auto;margin:-4px -8px}
+.evpk{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;padding:0 8px;border:0;border-radius:8px;background:transparent;font:inherit;text-align:left;cursor:pointer;color:var(--text)}
+.evpk:hover,.evpk:focus-visible{background:var(--hover);outline:none}
+.evpk b{font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.evpk span{font-size:12px;color:var(--muted);flex:none}
+.evpk.new b{color:var(--accent)}
+.pubc{height:24px;padding:0 10px;border:1px solid var(--line);border-radius:12px;background:#fff;font:inherit;font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;white-space:nowrap;justify-self:start}
+.pubc.on{background:#ECFDF3;border-color:#ABEFC6;color:#067647}
+.pubc:hover{border-color:var(--line2)}
+.evtag.wkt{background:#EEF2FF;color:#3538CD}
+.dlgp{margin:0;line-height:1.7;font-size:14px}
+.btn.danger{background:var(--bad);border-color:var(--bad);color:#fff}
+.rev{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.revt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.revt b{font-size:14px}.revt span{font-size:12px;color:var(--muted)}
+.rec .p2box{margin-bottom:12px}
+
 /* ===== 本番 ===== */
 [data-act="reset"]{display:none !important}
 #gate{position:fixed;inset:0;z-index:200;background:var(--side,#F7F8FA);display:flex;align-items:center;justify-content:center;padding:24px}
@@ -1910,7 +1928,8 @@ function proj() { return null; }
 function progress(p) { var l = leavesOf(p); return { n: l.length, d: l.filter(function (k) { return k.done; }).length, late: l.filter(late).length }; }
 function isEvent(p) { return p.kind === 'event'; }
 function ended(p) { return dayOf(p.end) < TODAY; }
-function pct(p) { return Math.round((p.reg || 0) / (S.club || 150) * 100); }
+function evCount(p) { var c = p.ev && evCal(p.ev); return c ? ((c.att || []).length || (S.joins || {})[c.id] || 0) : (p.reg || 0); }
+function pct(p) { return Math.round(evCount(p) / (S.club || 150) * 100); }
 var LEVELS = [['1', 'イベント'], ['2', '部'], ['3', 'チーム'], ['9', '個人']];
 function byStart(a, b) { return dayOf(a.start) - dayOf(b.start); }
 function manualRoots() { if (!S.manualOrder) { S.projects.sort(byStart); S.manualOrder = true; } } // 一度でも並べ替えたら手動順
@@ -2019,7 +2038,7 @@ function projStats() {
     var r = pct(p), live = !ended(p);
     return '<div class="hb" style="padding:10px 14px"><span class="l" style="width:120px;display:flex;flex-direction:column;line-height:1.35"><span style="font-weight:500;color:var(--text)">' + esc(p.name) + '</span><span class="muted num" style="font-size:11px">' + fmtDate(p.end) + (live ? '・受付中' : '') + '</span></span>' +
       '<span class="b" style="height:8px"><i style="width:' + r + '%;' + (live ? 'background:var(--accent)' : '') + '"></i></span>' +
-      '<span class="num" style="width:96px;text-align:right;font-size:12px"><b style="font-weight:600">' + r + '%</b> <span class="muted">' + p.reg + '/' + S.club + '</span></span></div>';
+      '<span class="num" style="width:96px;text-align:right;font-size:12px"><b style="font-weight:600">' + r + '%</b> <span class="muted">' + evCount(p) + '/' + S.club + '</span></span></div>';
   }).join('');
   return '<div class="kpis">' + kpi('平均参加率', avg + '%', '終了したイベント ' + fin.length + ' 件') + kpi('最も高い', hi ? pct(hi) + '%' : '—', hi ? esc(hi.name) : '') +
       kpi('最も低い', lo ? pct(lo) + '%' : '—', lo ? esc(lo.name) : '') + kpi('告知前', before.length, before.map(function (p) { return esc(p.name); }).join('・') || 'なし') + '</div>' +
@@ -2149,8 +2168,9 @@ function dlg(title, body, foot, wide) {
 function renderModal() {
   var el = document.getElementById('modal'), f;
   if (!M) { el.innerHTML = ''; return; }
-  if (M.m === 'evdup') { el.innerHTML = evdupDlg(); f = document.querySelector('[data-act="evdupRep"]'); if (f) f.focus(); return; }
-  if (M.m === 'cal' || M.m === 'ev') { el.innerHTML = M.m === 'cal' ? calDlg() : evDlg(); f = document.getElementById(M.m === 'cal' ? 'cT' : 'eP'); if (f && !f.disabled && !M.id) f.focus(); return; }
+  if (M.m === 'pub') { el.innerHTML = evPubDlg(); f = el.querySelector('.btn.primary, .btn.danger'); if (f) f.focus(); return; }
+  if (M.m === 'evpick') { el.innerHTML = evPickDlg(); f = el.querySelector('.evpk'); if (f) f.focus(); return; }
+  if (M.m === 'cal') { el.innerHTML = calDlg(); f = document.getElementById('cT'); if (f && !f.disabled && !M.id) f.focus(); return; }
   if (M.m === 'patch') { el.innerHTML = patchDlg(); f = document.getElementById('pT'); if (f && !M.id) f.focus(); return; }
   if (M.m === 'notice') { el.innerHTML = noticeDlg(); f = document.getElementById('nT'); if (f && !M.id) f.focus(); return; }
   var h = '';
@@ -2160,17 +2180,6 @@ function renderModal() {
   if (M.m === 'member') h = memberModal(member(M.id));
   el.innerHTML = h;
   f = el.querySelector('.c input:not([type=checkbox]), .c select'); if (f && M.m === 'add') f.focus();
-}
-// 学ぶと告知に同じ名前のイベントがあるとき
-function evdupDlg() {
-  var c = evCal(M.cid), toP = M.dir === 'prog', o = toP ? p2Get(M.other) : null, oc = toP ? (o && evCal(o.n.ref)) : evCal(M.other);
-  var where = toP ? '学ぶ（プログラム）' : '告知', nm = esc(c ? c.title : '');
-  var oInfo = oc ? esc(oc.title) + '　' + (oc.date ? pmd(oc.date) + (oc.to ? ' – ' + pmd(oc.to) : '') : '日程未定') + (oc.place ? '・' + esc(oc.place) : '') : '';
-  var body = '<p style="margin:0 0 12px;line-height:1.7">' + where + 'に、同じ名前のイベント「' + nm + '」がすでにあります。</p>' +
-    '<div class="evdupc"><small>' + where + 'にあるもの</small><b>' + oInfo + '</b></div>' +
-    '<p class="muted" style="margin:12px 0 0;font-size:12px;line-height:1.7">置き換えると、' + where + 'のそのイベントは今追加しようとしているものになります' + (!toP && oc && oc.state === 'pub' ? '（公開中・参加登録 ' + ((S.joins || {})[oc.id] || 0) + '人は引き継がれません）' : '') + '。</p>';
-  var foot = '<button class="btn" data-act="close">やめる</button><button class="btn" data-act="evdupBoth">両方残す</button><button class="btn primary" data-act="evdupRep">置き換える</button>';
-  return dlg('同じ名前のイベントがあります', body, foot);
 }
 
 // ---------------- render ----------------
@@ -2199,6 +2208,7 @@ function render() {
   if (S.view === 'perms' && lvNodes().length) Array.prototype.forEach.call(document.querySelectorAll('.mname[data-id] .cell2 > span:first-child'), function (sp) { var id = sp.closest('.mname').dataset.id; if (!sp.querySelector('.mlv')) sp.insertAdjacentHTML('beforeend', '<span class="mlv num">Lv' + lvOf(id) + '</span>'); });
 }
 function renderMain() {
+  if (S.projects && S.projects.length) evMigrate();
   var items = navItems().map(function (t) { return t.id; });
   if (items.indexOf(S.view) < 0) S.view = items[0] || 'none';
   renderChrome();
@@ -2269,7 +2279,7 @@ function viewNotices() {
           '<td class="a"><div class="acts"><button class="btn sm ghost" data-act="oNo" data-id="' + o.id + '">見送る</button><button class="btn sm primary" data-act="oYes" data-id="' + o.id + '">掲載</button></div></td></tr>';
       }).join('') : '<tr><td colspan="5" class="empty">新しい情報はありません</td></tr>') + '</tbody></table></div>';
   }
-  var evn = (S.cals || []).filter(function (c) { return c.inNotice !== false && (c.to || c.date || '9') >= isoOf(TODAY); }).length;
+  var evn = (S.cals || []).filter(function (c) { return (c.to || c.date || '9') >= isoOf(TODAY); }).length;
   return top('告知') + utabs('ntab', [['ev', 'イベント', evn], ['cal', 'カレンダー', null], ['list', '外部', S.notices.length], ['offer', '部員からの情報', wait.length]]) + '<div class="body">' + body + '</div>';
 }
 
@@ -2725,20 +2735,20 @@ document.addEventListener('change', function (e) {
 // ----- 右のパネル（イベントの記録・参加率）
 function recOK(p) { return isAdmin() || isLead(p, S.me); }
 function recHTML(p) {
-  var ok = recOK(p), dis = ok ? '' : ' disabled', g = progress(p), lk = p.links || [], ev = isEvent(p), fo = curFolder();
+  var ok = recOK(p), dis = ok ? '' : ' disabled', g = progress(p), lk = p.links || [], c = isEvent(p) && p.ev ? evCal(p.ev) : null, fo = curFolder();
   var f = function (label, inner) { return '<div class="rf"><label>' + label + '</label>' + inner + '</div>'; };
   return '<div class="rh"><div class="rt"><small>' + esc(seriesOf(p)) + '・' + fyOf(p) + '年度</small><b>' + esc('name' in p ? p.name : ttl(p)) + '</b></div><button class="ib" data-act="recClose" aria-label="閉じる">' + ic('x') + '</button></div>' +
     '<div class="rb">' +
-    '<section><h3>概要</h3><label class="evt"><input type="checkbox" class="check" data-evt="1"' + (ev ? ' checked' : '') + (ok ? '' : ' disabled') + '>イベント（参加数を記録して統計に入れる）</label>' +
+    '<section><h3>イベント</h3>' + (c
+      ? '<div class="rev"><div class="revt"><b>' + esc(c.title) + '</b><span class="num">' + esc(evWhen(c)) + '</span></div><button class="btn sm" data-act="calItem" data-k="cal" data-id="' + c.id + '">開く</button></div>' +
+        '<div class="p2box"><div class="p2st"><span class="p2pub' + (c.state === 'pub' ? ' on' : '') + '">' + (c.state === 'pub' ? '公開中' : '非公開') + '</span>' + (c.state === 'pub' ? '<span class="p2stn">参加登録 <b class="num">' + evJoins(c) + '</b> 人</span>' : '') + '</div>' +
+        '<div class="p2st"><span class="p2stn">出席 <b class="num">' + (c.att || []).length + '</b> 人・' + pct(p) + '%</span>' + (ok ? '<button class="btn sm" data-attopen="' + c.id + '">' + ((c.att || []).length ? '出席を変更' : '出席を付ける') + '</button>' : '') + '</div></div>'
+      : (ok ? '<button class="btn sm" data-act="recEv">イベントにする</button>' : '<span class="dim">—</span>')) +
       f('目的', '<textarea class="input" rows="2" data-rf="purpose"' + dis + '>' + esc(p.purpose || '') + '</textarea>') +
-      '<div class="two">' + f('日程', '<div class="rv num">' + shortDate(p.start) + ' – ' + shortDate(p.end) + '</div>') + f('場所', '<input class="input" data-rf="place"' + dis + ' value="' + esc(p.place || '') + '">') + '</div>' +
-      (ev ? '<div class="two">' + f('担当部', '<select class="input" data-rf="unit"' + dis + '>' + ['教育部', '催事部', '外務部', '会計', '代表'].map(function (u) { return '<option' + (p.unit === u ? ' selected' : '') + '>' + u + '</option>'; }).join('') + '</select>') +
-        f('告知', '<select class="input" data-rf="announce"' + dis + '><option value="before"' + (p.announce !== 'done' ? ' selected' : '') + '>告知前</option><option value="done"' + (p.announce === 'done' ? ' selected' : '') + '>告知済み</option></select>') + '</div>' : '') +
     '</section>' +
     '<section><h3>体制</h3>' + f('リーダー・メンバー', '<div class="mfield">' + teamBtn(p, editSelf(p) ? '' : ' disabled') + '</div>') +
       '<div class="rv muted">業務 ' + g.n + '件・完了 ' + g.d + (g.late ? '・<span class="bad">遅れ ' + g.late + '</span>' : '') + '</div></section>' +
     '<section><h3>結果</h3>' +
-      (ev ? '<div class="two">' + f('参加数', '<input class="input num" type="number" min="0" data-rf="reg"' + dis + ' value="' + (p.reg || 0) + '">') + f('参加率', '<div class="rv num">' + pct(p) + '%<small class="muted">（部員 ' + (S.club || 150) + '）</small></div>') + '</div>' : '') +
       f('振り返り', '<textarea class="input" rows="4" data-rf="review"' + dis + '>' + esc(p.review || '') + '</textarea>') +
       f('資料', '<div class="rl">' + lk.map(function (u, i) { return '<div class="rli"><a href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(host(u) || u) + ' ↗</a>' + (ok ? '<button class="ib" data-act="recLinkDel" data-i="' + i + '" aria-label="削除">' + ic('x') + '</button>' : '') + '</div>'; }).join('') +
         (ok ? '<input class="input" data-rlink="1" placeholder="URL を貼って Enter" autocomplete="off">' : (lk.length ? '' : '<span class="dim">—</span>')) + '</div>') +
@@ -2757,26 +2767,24 @@ function drawRec() {
   if (keep) { var el = d.querySelector(keep === 'rlink' ? '[data-rlink]' : '[data-rf="' + keep + '"]'); if (el) el.focus(); }
 }
 document.addEventListener('click', function (e) {
-  var b = e.target.closest && e.target.closest('[data-act="rec"],[data-act="recClose"],[data-act="recLinkDel"],[data-act="pstats"]'); if (!b) return;
+  var b = e.target.closest && e.target.closest('[data-act="rec"],[data-act="recClose"],[data-act="recLinkDel"],[data-act="pstats"],[data-act="recEv"]'); if (!b) return;
   e.stopImmediatePropagation(); e.preventDefault();
   var a = b.dataset.act;
   if (a === 'rec') UI.rec = UI.rec === b.dataset.id ? null : b.dataset.id;
   else if (a === 'pstats') UI.rec = 'stats';
   else if (a === 'recClose') UI.rec = null;
+  else if (a === 'recEv') return evPickAsk('folder', UI.rec);
   else if (a === 'recLinkDel') { var p = task(UI.rec); if (p && p.links) { p.links.splice(+b.dataset.i, 1); save(); } }
   render();
 }, true);
 document.addEventListener('input', function (e) {
   var el = e.target; if (!el.dataset || !el.dataset.rf || el.tagName === 'SELECT') return;
   var p = task(UI.rec); if (!p || !recOK(p)) return;
-  p[el.dataset.rf] = el.dataset.rf === 'reg' ? Math.max(0, +el.value || 0) : el.value; save();
-  if (el.dataset.rf === 'reg') { var v = el.closest('.two').querySelectorAll('.rv')[0]; if (v) v.firstChild.textContent = pct(p) + '%'; }
+  p[el.dataset.rf] = el.value; save();
 }, true);
 document.addEventListener('change', function (e) {
   var el = e.target; if (!el.dataset || !el.dataset.rf) return;
   var p = task(UI.rec); if (!p || !recOK(p)) return; e.stopImmediatePropagation();
-  if (el.tagName === 'SELECT') { p[el.dataset.rf] = el.value; if (el.dataset.rf === 'announce') p.kind = 'event'; save(); render(); }
-  else if (el.dataset.rf === 'reg') render();
 }, true);
 document.addEventListener('keydown', function (e) {
   var el = e.target;
@@ -2903,12 +2911,6 @@ function decorateFolders() {
     }
   });
 }
-document.addEventListener('change', function (e) {
-  if (!e.target.dataset || !e.target.dataset.evt) return; e.stopImmediatePropagation();
-  var p = task(UI.rec); if (!p || !recOK(p)) return;
-  if (e.target.checked) { p.kind = 'event'; if (!p.announce) p.announce = 'before'; if (p.reg == null) p.reg = 0; } else p.kind = 'folder';
-  save(); render();
-}, true);
 function dupModal(f) {
   return dlg('フォルダーを複製',
     '<div class="two"><div class="fld"><label for="cpN">名前</label><input id="cpN" class="input" value="' + esc(nextName(ttl(f))) + '"></div><div class="fld"><label for="cpD">開始日</label><input id="cpD" class="input num" type="date" value="' + isoOf(dayOf(f.start) + 364 * DAY) + '"></div></div>' +
@@ -2935,7 +2937,7 @@ document.addEventListener('click', function (e) {
     var nm = val('cpN').trim(), d = val('cpD'); if (!f || !nm || !d) { toast('名前と開始日を入れてください'); return; }
     var delta = dayOf(d) - dayOf(f.start), par = parentOf(f);
     var c = { id: uid(par ? 'k' : 'pj'), who: '', leads: [], start: d, end: isoOf(dayOf(f.end) + delta), kind: f.kind || 'folder', purpose: f.purpose || '', place: f.place || '', unit: f.unit };
-    if (isEvent(f)) { c.announce = 'before'; c.reg = 0; }
+    if (isEvent(f)) { var ce = evNew(nm, d); if (c.end !== d) ce.to = c.end; c.ev = ce.id; }
     if (par) { c.title = nm; c.folder = true; c.kids = cloneKids(f, delta); kids(par).push(c); } else { c.name = nm; c.tasks = cloneKids(f, delta); S.projects.push(c); }
     cloneMark(c);
     closeCopy(); S.fcur = c.id; save(); render(); toast('「' + nm + '」を作りました'); return;
@@ -2945,7 +2947,7 @@ function cloneMark(c) { kids(c).forEach(function (k) { if (k.kids && k.kids.leng
 function cloneKids(src, delta) {
   return kids(src).map(function (k) {
     var c = { id: uid('k'), title: ttl(k), who: '', start: isoOf(dayOf(k.start) + delta), end: isoOf(dayOf(k.end) + delta), done: false };
-    if (isFolder(k)) { c.folder = true; c.kids = cloneKids(k, delta); delete c.done; if (isEvent(k)) { c.kind = 'event'; c.announce = 'before'; c.reg = 0; } }
+    if (isFolder(k)) { c.folder = true; c.kids = cloneKids(k, delta); delete c.done; if (isEvent(k)) { var ce = evNew(c.title, c.start); if (c.end !== c.start) ce.to = c.end; c.kind = 'event'; c.ev = ce.id; } }
     return c;
   });
 }
@@ -3019,12 +3021,11 @@ function fhead2() {
         (UI.srt ? '<div class="srtm" role="menu">' + SORTS.map(function (x) { return '<button role="menuitemradio" data-act="srtv" data-v="' + x[0] + '" aria-checked="' + (srt === x[0]) + '"' + (canSort ? '' : ' disabled') + '>' + x[1] + '</button>'; }).join('') + '</div>' : '') + '</span>' : '') +
       '<span class="vsw" role="group" aria-label="表示"><button data-act="fmode" data-v="card" aria-pressed="' + !gantt + '" title="カード" aria-label="カード">' + GRID + '</button><button data-act="fmode" data-v="gantt" aria-pressed="' + gantt + '" title="ガント" aria-label="ガント">' + GANTT + '</button></span>' +
       (f && (editSelf(f) || manages(parentOf(f)) || isLead(f, S.me)) ? '<span class="srtw"><button class="ib fhb" data-act="fmenu" aria-label="その他" title="その他" aria-expanded="' + !!UI.fmn + '">' + ic('more') + '</button>' +
-        (UI.fmn ? '<div class="srtm" role="menu">' + (editSelf(f) ? '<button role="menuitem" data-act="edit" data-id="' + f.id + '">名前・期間を編集</button>' : '') + (manages(parentOf(f)) ? '<button role="menuitem" data-act="dupF">複製</button>' : '') + (editSelf(f) || isLead(f, S.me) ? '<button role="menuitem" data-act="fEvt">' + (isEvent(f) ? 'イベントの記録をやめる' : 'イベントとして記録（参加数）') + '</button>' : '') + '</div>' : '') + '</span>' : '') +
+        (UI.fmn ? '<div class="srtm" role="menu">' + (editSelf(f) ? '<button role="menuitem" data-act="edit" data-id="' + f.id + '">名前・期間を編集</button>' : '') + (manages(parentOf(f)) ? '<button role="menuitem" data-act="dupF">複製</button>' : '') + (editSelf(f) || isLead(f, S.me) ? '<button role="menuitem" data-act="fEvt">' + (isEvent(f) ? 'イベントを外す' : 'イベントにする') + '</button>' : '') + '</div>' : '') + '</span>' : '') +
     '</div>' + (f && isEvent(f) ? fresHTML(f) : '') + fmemoHTML(f) + '</div>';
 }
 function fresHTML(f) {
-  var can = editSelf(f) || isLead(f, S.me);
-  return '<div class="fres">参加 <b class="num' + (can ? ' ied' : '') + '"' + (can ? ' data-act="ied" data-f="reg" data-id="' + f.id + '" title="タップで入力"' : '') + '>' + (f.reg || 0) + '</b><span class="muted num"> / ' + (S.club || 150) + '人・' + pct(f) + '%</span></div>';
+  return '<div class="fres">参加 <b class="num">' + evCount(f) + '</b><span class="muted num"> / ' + (S.club || 150) + '人・' + pct(f) + '%</span></div>';
 }
 function linkify(t) { return esc(t).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>'); }
 function fmemoHTML(f) {
@@ -3042,8 +3043,8 @@ document.addEventListener('click', function (e) {
     e.stopImmediatePropagation(); e.preventDefault();
     if (m.dataset.act === 'fmenu') { UI.fmn = !UI.fmn; render(); return; }
     var f0 = curFolder(); UI.fmn = false; if (!f0) return;
-    if (isEvent(f0)) f0.kind = 'folder'; else { f0.kind = 'event'; if (!f0.announce) f0.announce = 'before'; if (f0.reg == null) f0.reg = 0; }
-    save(); render(); return;
+    if (isEvent(f0)) evUnlink(f0); else evPickAsk('folder', f0.id);
+    return;
   }
   var b = e.target.closest && e.target.closest('[data-act="fmNew"],[data-act="fmx"]'); if (!b) return;
   e.stopImmediatePropagation(); e.preventDefault();
@@ -3186,7 +3187,7 @@ function cmItems(n) {
   if (editSelf(n) || (!f && n.who === S.me)) add('edit', '名前・担当・期間を編集');
   if (f && manages(n)) { sep(); add('newF', '新しいフォルダー'); add('newT', '新しいファイル'); }
   if (!f && (editSelf(n) || n.who === S.me)) { sep(); if (editSelf(n) && !n.nodate) add2('cm4', 'nodate', '期間を未定にする'); add('done', n.done ? '未完了に戻す' : '完了にする'); add('toF', 'フォルダーに変える'); }
-  if (f && (editSelf(n) || isLead(n, S.me))) add('evt', isEvent(n) ? 'イベントの記録をやめる' : 'イベントとして記録');
+  if (f && (editSelf(n) || isLead(n, S.me))) add('evt', isEvent(n) ? 'イベントを外す' : 'イベントにする');
   if (f && manages(p)) add('dup', '複製…');
   if (!f && canAssign(n) && n.who !== S.me) add2('cm2', 'me', '自分が担当する');
   if (f && !kids(n).length && p && editSelf(n)) add2('cm2', 'toFile', 'ファイルに変える');
@@ -3224,7 +3225,7 @@ document.addEventListener('click', function (e) {
     else if (a === 'newF' || a === 'newT') { var k = a === 'newF' ? addFolder(n, '新しいフォルダー') : addUnder(n, '新しいファイル'); save(); render(); editNew(k); }
     else if (a === 'done') { n.done = !n.done; if (n.done) reportUp(n); save(); render(); }
     else if (a === 'toF') { n.folder = true; n.kids = n.kids || []; delete n.done; if (n.who) setLeads(n, [n.who]); save(); render(); toast('フォルダーに変えました'); }
-    else if (a === 'evt') { if (isEvent(n)) n.kind = 'folder'; else { n.kind = 'event'; if (!n.announce) n.announce = 'before'; if (n.reg == null) n.reg = 0; } save(); render(); }
+    else if (a === 'evt') { if (isEvent(n)) evUnlink(n); else evPickAsk('folder', n.id); }
     else if (a === 'dup') { UI.dupId = n.id; var ov = document.getElementById('cpov'); if (!ov) { ov = document.createElement('div'); ov.id = 'cpov'; document.body.appendChild(ov); } ov.innerHTML = dupModal(n); ov.querySelector('#cpN').focus(); }
     else if (a === 'del') {
       snap(); var par = parentOf(n), cur = curFolder(), gone = cur && (cur === n || ancestors(cur).indexOf(n) >= 0);
@@ -4189,12 +4190,10 @@ function calsInit() {
   }
   return S.cals;
 }
-function evNodes() { return allNodes().filter(function (n) { return isFolder(n) && isEvent(n); }).sort(function (a, b) { return dayOf(a.start) - dayOf(b.start); }); }
 function canEv(n) { return editSelf(n) || isLead(n, S.me); }
 function calItems(y, m) {
   var out = {}, add = function (iso, o) { (out[iso] = out[iso] || []).push(o); };
-  calsInit().filter(function (c) { return c.inNotice !== false; }).forEach(function (c) { add(c.date, { k: 'cal', id: c.id, t: (c.time ? c.time + ' ' : '') + c.title, draft: c.state !== 'pub' }); });
-  evNodes().forEach(function (n) { add(n.end, { k: 'ev', id: n.id, t: ttl(n), draft: n.announce !== 'done' }); }); // 部員のカレンダーと同じく、当日（終了日）に出す
+  calsInit().forEach(function (c) { add(c.date, { k: 'cal', id: c.id, t: (c.time ? c.time + ' ' : '') + c.title, draft: c.state !== 'pub' }); });
   S.notices.forEach(function (n) { if (n.state === 'pub' && /^\d{4}-\d{2}-\d{2}$/.test(n.due || '')) add(n.due, { k: 'ext', id: n.id, t: '締切 ' + n.title }); });
   return out;
 }
@@ -4220,59 +4219,37 @@ function calDlg() {
     '<div class="fld"><label for="cP">場所</label><input id="cP" class="input" value="' + esc(d.place || '') + '" autocomplete="off"' + (ro ? ' disabled' : '') + '></div>' +
     '<div class="fld"><label for="cM">部員がやること・説明</label><textarea id="cM" class="input" rows="3"' + (ro ? ' disabled' : '') + '>' + esc(d.memo || '') + '</textarea></div>' +
     '<div class="fld"><label for="cL">リンク</label><input id="cL" class="input" value="' + esc(d.link || '') + '" placeholder="https://" autocomplete="off"' + (ro ? ' disabled' : '') + '></div>' +
-    '<div class="opts">' +
-      '<label class="opt"><span class="ot"><b>部員に公開</b><small>予定タブに出て、参加登録できる</small></span><input id="cS" type="checkbox" class="tsw"' + (d.state === 'pub' ? ' checked' : '') + (ro ? ' disabled' : '') + '></label>' +
-      (can('tracks') ? '<label class="opt"><span class="ot"><b>学ぶに出す</b><small>学ぶのプログラムに入る</small></span><input id="cG" type="checkbox" class="tsw"' + (inPg ? ' checked' : '') + (ro ? ' disabled' : '') + '></label>' : '') +
-    '</div>';
+    (c ? '<div class="p2box"><div class="p2st"><span class="p2pub' + (d.state === 'pub' ? ' on' : '') + '">' + (d.state === 'pub' ? '公開中' : '非公開') + '</span>' + (d.state === 'pub' ? '<span class="p2stn">参加登録 <b class="num">' + evJoins(c) + '</b> 人</span>' : '') + (ro ? '' : '<button class="btn sm" data-act="evPub" data-id="' + c.id + '">' + (d.state === 'pub' ? (evJoins(c) ? '中止する' : '非公開にする') : '部員に公開') + '</button>') + '</div></div>' : '') +
+    (can('tracks') ? '<div class="opts"><label class="opt"><span class="ot"><b>学ぶに出す</b></span><input id="cG" type="checkbox" class="tsw"' + (inPg ? ' checked' : '') + (ro ? ' disabled' : '') + '></label></div>' : '');
   var foot = ro ? '<button class="btn" data-act="close">閉じる</button>' : (c ? '<button class="btn ghost" data-act="calDel" data-id="' + c.id + '" style="margin-right:auto;color:var(--red,#DC2626)">削除</button>' : '') + '<button class="btn" data-act="close">キャンセル</button><button class="btn primary" data-act="calSave">保存</button>';
   return dlg(c ? 'イベントを編集' : 'イベントを追加', body, foot, true);
 }
-function evDlg() {
-  var n = task(M.id); if (!n) return '';
-  var ok = canEv(n), dis = ok ? '' : ' disabled';
-  var body = '<div class="muted" style="font-size:12px">' + esc(ancestors(n).map(ttl).join(' › ')) + '</div>' +
-    '<div class="fld"><label>イベント</label><div style="font-weight:600;font-size:15px">' + esc(ttl(n)) + '</div></div>' +
-    '<div class="two"><div class="fld"><label for="eS">開始</label><input id="eS" type="date" class="input" value="' + esc(n.start) + '"' + dis + '></div><div class="fld"><label for="eE">終了</label><input id="eE" type="date" class="input" value="' + esc(n.end) + '"' + dis + '></div></div>' +
-    '<div class="fld"><label for="eP">場所</label><input id="eP" class="input" value="' + esc(n.place || '') + '" autocomplete="off"' + dis + '></div>' +
-    '<div class="fld"><label for="eD">告知文</label><textarea id="eD" class="input" rows="5"' + dis + '>' + esc(memoText(n.purpose || '')) + '</textarea></div>' +
-    '<label style="display:flex;align-items:center;gap:8px"><input id="eA" type="checkbox" class="check"' + (n.announce === 'done' ? ' checked' : '') + dis + '>部員に公開</label>' +
-    (ok ? '' : '<div class="muted" style="font-size:12px">編集できるのは、このイベントのリーダーか、ひとつ上のフォルダーのリーダーです</div>');
-  var foot = ok ? '<button class="btn" data-act="close">キャンセル</button><button class="btn primary" data-act="evSave">保存</button>' : '<button class="btn" data-act="close">閉じる</button>';
-  return dlg('イベントの告知', body, foot, true);
-}
 document.addEventListener('click', function (e) {
-  var b = e.target.closest && e.target.closest('[data-act="evPub"],[data-act="evEdit"],[data-act="calMv"],[data-act="calNew"],[data-act="calDay"],[data-act="calItem"],[data-act="calSave"],[data-act="calDel"],[data-act="evSave"]'); if (!b) return;
+  var b = e.target.closest && e.target.closest('[data-act="calMv"],[data-act="calNew"],[data-act="calDay"],[data-act="calItem"],[data-act="calSave"],[data-act="calDel"]'); if (!b) return;
   if (b.dataset.act === 'calDay' && e.target.closest('.cchip') && e.target.closest('.cchip') !== b) return;
   e.preventDefault(); e.stopImmediatePropagation();
   var a = b.dataset.act, v = function (id) { var x = document.getElementById(id); return x ? x.value.trim() : ''; };
-  if (a === 'evPub') { var n = task(b.dataset.id); if (!n || !canEv(n)) return; snap(); n.announce = n.announce === 'done' ? 'before' : 'done'; save(); render(); toast(n.announce === 'done' ? '部員に公開しました' : '非公開にしました'); return; }
-  if (a === 'evEdit') { M = { m: 'ev', id: b.dataset.id }; renderModal(); return; }
   if (a === 'calMv') { var dv = +b.dataset.v, base = new Date(TODAY); if (!dv) { UI.calY = null; UI.calM = null; } else { var y = UI.calY != null ? UI.calY : base.getUTCFullYear(), m = (UI.calM != null ? UI.calM : base.getUTCMonth()) + dv; UI.calY = y + Math.floor(m / 12); UI.calM = (m % 12 + 12) % 12; } render(); return; }
   if (a === 'calNew') { if (!can('notices')) return; M = { m: 'cal' }; renderModal(); return; }
   if (a === 'calDay') { if (!can('notices')) return; M = { m: 'cal', d: b.dataset.d }; renderModal(); return; }
-  if (a === 'calItem') { var k = b.dataset.k; if (k === 'cal') M = { m: 'cal', id: b.dataset.id }; else if (k === 'ev') M = { m: 'ev', id: b.dataset.id }; else { S.ntab = 'list'; render(); return; } renderModal(); return; }
+  if (a === 'calItem') { var k = b.dataset.k; if (k === 'cal') M = { m: 'cal', id: b.dataset.id }; else { S.ntab = 'list'; render(); return; } renderModal(); return; }
   if (a === 'calDel') { var c0 = calsInit().filter(function (x) { return x.id === b.dataset.id; })[0]; if (!c0) return; snap(); S.cals = S.cals.filter(function (x) { return x !== c0; }); M = null; save(); render(); toastUndo('「' + c0.title + '」を削除しました'); return; }
   if (a === 'calSave') {
     if (!v('cT')) { toast('イベント名を入れてください'); document.getElementById('cT').focus(); return; }
     if (!v('cD')) { toast('開始日を入れてください'); return; }
     var to = v('cE'); if (to && to < v('cD')) { toast('終了日が開始日より前です'); return; }
-    var data = { title: v('cT'), date: v('cD'), to: to === v('cD') ? '' : to, time: v('cH'), place: v('cP'), memo: v('cM'), link: v('cL'), state: document.getElementById('cS').checked ? 'pub' : 'draft' };
-    snap(); var cid = M.id; if (cid) Object.assign(calsInit().filter(function (x) { return x.id === cid; })[0], data); else { cid = uid('c'); calsInit().push(Object.assign({ id: cid }, data)); }
-    var cc = evCal(cid); if (cc && cc.inNotice === false) cc.inNotice = true;
+    var data = { title: v('cT'), date: v('cD'), to: to === v('cD') ? '' : to, time: v('cH'), place: v('cP'), memo: v('cM'), link: v('cL') };
+    snap(); var cid = M.id; if (cid) Object.assign(calsInit().filter(function (x) { return x.id === cid; })[0], data); else { cid = uid('c'); calsInit().push(Object.assign({ id: cid, state: 'draft' }, data)); }
+    var cc = evCal(cid); if (cc && M.id) evChanged(cc);
     var g = document.getElementById('cG'), want = g && g.checked, had = evInProg(cid);
     evSync(); M = null; save(); render(); toast('保存しました');
     if (g && want && !had) evToProg(cid); // 学ぶに出す（同じ名前があれば確認）
     if (g && !want && had) { evOutProg(cid); evSync(); save(); render(); }
     return;
   }
-  if (a === 'evSave') {
-    var n2 = task(M.id); if (!n2 || !canEv(n2)) return;
-    var s0 = v('eS'), e0 = v('eE'); if (s0 && e0 && dayOf(e0) < dayOf(s0)) { toast('終了が開始より前になっています'); return; }
-    snap(); if (s0) n2.start = s0; if (e0) n2.end = e0; n2.place = v('eP'); n2.purpose = document.getElementById('eD').value.trim(); n2.announce = document.getElementById('eA').checked ? 'done' : 'before';
-    M = null; save(); render(); toast('保存しました'); return;
-  }
+
 }, true);
-document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && M && (M.m === 'cal' || M.m === 'ev')) { M = null; renderModal(); } });
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && M && (M.m === 'cal' || M.m === 'pub' || M.m === 'evpick')) { M = null; renderModal(); } });
 
 // ---------- ux43 トラックを入れ子（グループ＋単元）で作る。前提は並び方から自動 ----------
 var GID = function () { return 'g' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36); };
@@ -4401,7 +4378,7 @@ function p2Rows(a, d) {
     return '<div class="p2r' + (on ? ' on' : '') + (n.out ? ' out' : '') + '" data-p2="' + n.id + '" style="--d:' + d + '" draggable="' + (!n.out) + '" tabindex="' + (on || (!UI.psel && d === 0 && a.indexOf(n) === 0) ? 0 : -1) + '" role="treeitem" aria-selected="' + on + '"' + (n.k === 'f' ? ' aria-expanded="' + open + '"' : '') + '>' +
       (n.k === 'f' ? '<button class="p2c" data-p2a="tog" tabindex="-1" aria-label="' + (open ? '畳む' : '開く') + '" style="transform:rotate(' + (open ? 90 : 0) + 'deg)">' + PI2.chev + '</button>' : '<span class="p2c"></span>') +
       PI2[n.k] + name + meta +
-      (n.out ? '' : '<button class="p2l' + (n.lock ? ' on' : '') + '" data-p2a="lock" tabindex="-1" aria-label="' + (n.lock ? '鍵を外す' : '鍵をかける') + '" title="' + (n.lock ? '上が済むまで開かない（クリックで外す）' : '鍵をかける：上が済むまで開かない') + '">' + PI2.lock + '</button>') + '<button class="rmore" type="button" tabindex="-1" aria-label="その他" title="その他">' + ic('more') + '</button>' + '</div>' +
+      (n.out ? '' : '<button class="p2l' + (n.lock ? ' on' : '') + '" data-p2a="lock" tabindex="-1" aria-label="' + (n.lock ? '鍵を外す' : '鍵をかける') + '" title="' + (n.lock ? '順番に進める（クリックで外す）' : '順番に進める') + '">' + PI2.lock + '</button>') + '<button class="rmore" type="button" tabindex="-1" aria-label="その他" title="その他">' + ic('more') + '</button>' + '</div>' +
       (open ? p2Rows(n.items || [], d + 1) : '');
   }).join('');
 }
@@ -4417,13 +4394,13 @@ document.addEventListener('focusout', function (e) {
 });
 // 設定の行：名前と短い説明、右にスイッチ
 function optRow(attr, on, title, sub, dis) { return '<label class="opt"><span class="ot"><b>' + title + '</b>' + (sub ? '<small>' + sub + '</small>' : '') + '</span><input type="checkbox" class="tsw" ' + attr + (on ? ' checked' : '') + (dis ? ' disabled' : '') + '></label>'; }
-var LOCK_SUB = '前の項目が終わるまで開けない';
+var LOCK_T = '順番に進める', LOCK_SUB = '前が終わると開く';
 function p2Crumb(id) { var out = [], f = p2Get(id); while (f && f.parent) { out.unshift(f.parent); f = p2Get(f.parent.id); } return out; }
 function p2Editor() {
   var f = p2Get(UI.psel); if (!f) return '<div class="p2empty">左のツリーから選ぶか、右クリックで作成</div>';
   var n = f.n; if (n.k === 'e') return p2EventEditor(n);
   var crumb = p2Crumb(n.id).map(function (x) { return '<button data-p2go="' + x.id + '">' + esc(x.name) + '</button>'; }).join('<span>/</span>');
-  var lock = n.out ? '' : '<div class="opts">' + optRow('data-p2f="lock"', n.lock, '鍵', LOCK_SUB) + '</div>';
+  var lock = n.out ? '' : '<div class="opts">' + optRow('data-p2f="lock"', n.lock, LOCK_T, LOCK_SUB) + '</div>';
   var head = '<div class="p2crumb">' + (crumb || '<span>プログラム</span>') + '</div>';
   if (n.k === 'f') {
     var kids = (n.items || []).map(function (x) { return '<button class="p2kid" data-p2go="' + x.id + '">' + PI2[x.k] + '<span class="p2n">' + (esc(p2Name(x)) || '<i class="dim">名前なし</i>') + '</span>' + (x.lock ? '<span class="p2lk">' + PI2.lock + '</span>' : '') + '</button>'; }).join('');
@@ -4450,17 +4427,16 @@ function p2Editor() {
 // 学ぶのイベント＝告知のイベント（予定）そのものを編集する
 function p2EventEditor(n) {
   var c = evCal(n.ref); if (!c) return '';
-  var crumb = p2Crumb(n.id).map(function (x) { return '<button data-p2go="' + x.id + '">' + esc(x.name) + '</button>'; }).join('<span>/</span>'), ro = !can('notices'), inN = evInNotice(c);
+  var crumb = p2Crumb(n.id).map(function (x) { return '<button data-p2go="' + x.id + '">' + esc(x.name) + '</button>'; }).join('<span>/</span>'), ro = !can('notices');
   var inp = function (k, lab, type, ph) { return '<label>' + lab + '<input class="input" ' + (type ? 'type="' + type + '" ' : '') + 'data-ce="' + k + '" value="' + esc(c[k] || '') + '"' + (ph ? ' placeholder="' + ph + '"' : '') + (ro ? ' disabled' : '') + ' autocomplete="off"></label>'; };
   var i = lvNodes().indexOf(n), att = (c.att || []).filter(function (id) { return member(id); }), pubOn = c.state === 'pub';
-  var joins = (S.joins || {})[c.id] || 0;
+  var joins = evJoins(c);
   var toggles = '<div class="opts">' +
-    optRow('data-evn="1"', inN, '告知に出す', '告知のイベント一覧に載る', ro) +
-    (inN ? optRow('data-ce="state"', pubOn, '部員に公開', pubOn ? '予定タブに出ています・参加登録 ' + joins + '人' : '予定タブに出て、参加登録できる', ro) : '') +
-    optRow('data-p2f="lock"', n.lock, '鍵', LOCK_SUB) +
-    optRow('data-p2lv="1"', n.lv, 'レベル' + (n.lv ? '<em class="num">Lv' + (i + 1) + '</em>' : ''), '出席すると、この順番のレベルになる') + '</div>';
+    optRow('data-p2f="lock"', n.lock, LOCK_T, LOCK_SUB) +
+    optRow('data-p2lv="1"', n.lv, 'Level-up event', n.lv ? '出席で Lv' + (i + 1) : '出席でレベルが上がる') + '</div>';
+  var stat = '<div class="p2st"><span class="p2pub' + (pubOn ? ' on' : '') + '">' + (pubOn ? '公開中' : '非公開') + '</span>' + (pubOn ? '<span class="p2stn">参加登録 <b class="num">' + joins + '</b> 人</span>' : '') + (ro ? '' : '<button class="btn sm" data-act="evPub" data-id="' + c.id + '">' + (pubOn ? (joins ? '中止する' : '非公開にする') : '部員に公開') + '</button>') + '</div>';
   var chips = att.map(function (id) { return '<span class="attc">' + av(id) + esc(member(id).name) + '</span>'; }).join('');
-  var attend = '<div class="p2box"><div class="p2st"><span class="p2stn">出席 <b class="num">' + att.length + '</b> 人</span>' + (ro ? '' : '<button class="btn sm" data-attopen="' + c.id + '">' + (att.length ? '出席を変更' : '出席を付ける') + '</button>') + '</div>' + (chips ? '<div class="attl">' + chips + '</div>' : '') + '</div>';
+  var attend = '<div class="p2box">' + stat + '<div class="p2st"><span class="p2stn">出席 <b class="num">' + att.length + '</b> 人</span>' + (ro ? '' : '<button class="btn sm" data-attopen="' + c.id + '">' + (att.length ? '出席を変更' : '出席を付ける') + '</button>') + '</div>' + (chips ? '<div class="attl">' + chips + '</div>' : '') + '</div>';
   return '<div class="p2crumb">' + (crumb || '<span>プログラム</span>') + '</div>' +
     '<input class="p2title" data-ce="title" value="' + esc(c.title) + '" placeholder="イベント名" aria-label="イベント名" autocomplete="off"' + (ro ? ' disabled' : '') + '>' +
     '<div class="p2grid3">' + inp('date', '開始日', 'date') + inp('to', '終了日', 'date') + inp('time', '時間', 'time') + '</div>' +
@@ -4482,13 +4458,7 @@ function p2Target() { // 新しく作る場所：選んでいるのがフォル�
 }
 function p2New(k, where) {
   snap(); var w = where || p2Target(), n;
-  if (k === 'e') { // イベントは告知のイベント（予定）を本体として作る。告知には出さない
-    var cid = uid('c');
-    calsInit().push({ id: cid, title: '新しいイベント', date: isoOf(TODAY), to: '', time: '', place: '', memo: '', link: '', state: 'draft' });
-    n = { id: GID(), k: 'e', ref: cid }; w.arr.splice(w.at, 0, n); evSync(); UI.psel = n.id; UI.pren = n.id; p2Save();
-    var c = evCal(cid); if (c) { c.inNotice = false; save(); }
-    return;
-  }
+  if (k === 'e') return evPickAsk('prog', where || p2Target());
   if (k === 'f') n = { id: GID(), k: 'f', name: '新しいフォルダ', items: [] };
   if (k === 'u') n = { id: GID(), k: 'u', t: '', c: '' };
   w.arr.splice(w.at, 0, n);
@@ -4519,14 +4489,13 @@ function p2Menu(id, x, y) {
   UI.psel = id;
   if (n.k === 'f') it.push(['中に新しいフォルダ', function () { n.open = true; p2New('f', { arr: n.items, at: n.items.length }); p2Focus(UI.psel); }], ['中に新しい単元', function () { n.open = true; p2New('u', { arr: n.items, at: n.items.length }); p2Focus(UI.psel); }], ['中に新しいイベント', function () { n.open = true; p2New('e', { arr: n.items, at: n.items.length }); p2Focus(UI.psel); }], 'sep');
   if (!n.out) {
-    it.push(['名前を変更（F2）', function () { UI.pren = id; render(); p2Focus(id); }], [(n.lock ? '鍵を外す' : '鍵をかける（上が済むまで開かない）'), function () { p2Lock(id); }], 'sep');
+    it.push(['名前を変更（F2）', function () { UI.pren = id; render(); p2Focus(id); }], [(n.lock ? '順番に進めるをやめる' : '順番に進める'), function () { p2Lock(id); }], 'sep');
     it.push(['上へ（Alt+↑）', function () { snap(); if (p2Step(id, -1)) p2Save(); }, false, f.i === 0 ? '先頭' : ''], ['下へ（Alt+↓）', function () { snap(); if (p2Step(id, 1)) p2Save(); }, false, f.i >= f.arr.length - 1 || f.arr[f.i + 1].out ? '末尾' : '']);
     it.push(['上のフォルダに入れる（Tab）', function () { snap(); if (p2Indent(id)) p2Save(); }, false, f.arr[f.i - 1] && f.arr[f.i - 1].k === 'f' ? '' : '上がフォルダでない']);
     if (f.parent) it.push(['フォルダから出す（Shift+Tab）', function () { snap(); if (p2Indent(id, true)) p2Save(); }]);
     var outF = p2().filter(function (z) { return z.out; })[0];
     if (f.parent !== outF) it.push(['プログラム外へ', function () { snap(); p2Move(id, outF.items, outF.items.length); p2Save(); }]);
     else it.push(['プログラムに戻す', function () { snap(); p2Move(id, p2(), p2().length - 1); p2Save(); }]);
-    var c = n.k === 'e' && evCal(n.ref); if (c) it.push('sep', [evInNotice(c) ? '告知から外す' : '告知に出す', function () { if (evInNotice(c)) evOutNotice(c.id); else evToNotice(c.id); }]);
     it.push('sep', ['削除（Delete）', function () { p2Del(id); }, true]);
   } else it.push(['中をすべて開く', function () { n.open = true; p2Walk(n.items, function (z) { if (z.k === 'f') z.open = true; }); save(); render(); }]);
   render(); openMenu(p2Name(n) || '項目', it, x, y);
@@ -4695,22 +4664,16 @@ document.addEventListener('click', function (e) { var b = e.target.closest && e.
 // 教材を変えたら、少し待って部員の画面を読み込み直す（本番はデータベースへの保存を待つ）
 var P2RT = null;
 
-// ---------- ux51 告知のイベント＝学ぶのイベント＋部内の予定。公開したものだけ部員に出て参加登録できる ----------
+// ---------- イベント：本体は1つ（予定）。学ぶの項目と業務のフォルダーは、それを指すだけ ----------
+// 告知の「イベント」一覧には、どこで作ったものも全部並ぶ。部員に見えるかは「公開」だけで決まる
 function pmd(x) { return x ? x.slice(5).replace('-', '.') : ''; }
-document.addEventListener('click', function (e) {
-  var b = e.target.closest && e.target.closest('[data-act="pevPub"],[data-act="pevEdit"],[data-act="calPub"]'); if (!b) return; e.preventDefault(); e.stopImmediatePropagation();
-  if (b.dataset.act === 'calPub') { if (b.disabled) return; var c = (S.cals || []).filter(function (x) { return x.id === b.dataset.id; })[0]; if (!c) return; snap(); c.state = c.state === 'pub' ? 'draft' : 'pub'; evSync(); save(); render(); toast(c.state === 'pub' ? '「' + c.title + '」を公開しました' : '「' + c.title + '」を非公開にしました'); return; }
-  var f = p2Get(b.dataset.id); if (!f) return;
-  if (b.dataset.act === 'pevEdit') { S.view = 'tracks'; UI.psel = f.n.id; UI.pren = null; save(); render(); return; }
-  if (b.disabled) return; snap(); f.n.pub = !f.n.pub; S.program.updated = Date.now(); save(); render(); toast(f.n.pub ? '「' + f.n.name + '」を公開しました' : '「' + f.n.name + '」を非公開にしました');
-}, true);
-document.addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('[data-p2tonotice]'); if (!b) return; e.preventDefault(); e.stopImmediatePropagation(); S.view = 'notices'; S.ntab = 'ev'; save(); render(); }, true);
-
-// ---------- ux52 イベントは1種類：告知のイベント（予定）が本体。学ぶ（プログラム）のイベントはそれを指すだけ ----------
 function evCal(id) { return (S.cals || []).filter(function (x) { return x.id === id; })[0] || null; }
 function evInProg(cid) { return !!(S.program && S.program.v2 && p2Find(function (n) { return n.k === 'e' && n.ref === cid; })); }
 function evOutProg(cid) { var f; while ((f = p2Find(function (n) { return n.k === 'e' && n.ref === cid; }))) f.arr.splice(f.i, 1); }
-function evSync() { // プログラムの中のイベントに、本体（予定）の中身を写す（部員側で本体が見られないときの控え）
+function evFolder(cid) { return allNodes().filter(function (n) { return isFolder(n) && isEvent(n) && n.ev === cid; })[0] || null; }
+function evJoins(c) { return (S.joins || {})[c.id] || 0; }
+function evNew(title, date) { var c = { id: uid('c'), title: title || '新しいイベント', date: date || isoOf(TODAY), to: '', time: '', place: '', memo: '', link: '', state: 'draft' }; calsInit().push(c); return c; }
+function evSync() { // プログラムの中のイベントに、本体（予定）の中身を写す（部員側の控え）
   if (!S.program || !S.program.v2) return; calsInit();
   p2Walk(S.program.v2, function (n) {
     if (n.k !== 'e') return;
@@ -4720,83 +4683,132 @@ function evSync() { // プログラムの中のイベントに、本体（予定
   });
   (function rm(a) { for (var i = a.length - 1; i >= 0; i--) { if (a[i]._dead) a.splice(i, 1); else if (a[i].items) rm(a[i].items); } })(S.program.v2);
 }
-// 教材でイベントを作る＝予定（下書き）を作って、プログラムに置く
-// 教材の中央：告知と同じ項目をそのまま編集
+// 前の形から：業務の「イベント」フォルダーには予定を作って結びつける。告知に出す／出さないの区別はなくす
+function evMigrate() {
+  if (UI._evmig || (typeof SYNC !== 'undefined' && !SYNC.ready)) return; UI._evmig = 1; calsInit(); var ch = false;
+  S.cals.forEach(function (c) { if ('inNotice' in c) { delete c.inNotice; ch = true; } });
+  allNodes().forEach(function (n) {
+    if (!isFolder(n) || !isEvent(n) || (n.ev && evCal(n.ev))) return;
+    var c = evNew(ttl(n), n.start); if (n.end && n.end !== n.start) c.to = n.end; c.place = n.place || ''; c.state = n.announce === 'done' ? 'pub' : 'draft';
+    n.ev = c.id; ch = true;
+  });
+  if (ch) setTimeout(save, 0);
+}
+
+// 学ぶの編集欄：同じ項目をそのまま編集
 document.addEventListener('input', function (e) {
   var el = e.target; if (!el.dataset || !el.dataset.ce || S.view !== 'tracks') return; var f = p2Get(UI.psel); if (!f || f.n.k !== 'e') return; var c = evCal(f.n.ref); if (!c) return;
-  var k = el.dataset.ce; if (k === 'state') return; c[k] = el.value; evSync(); save();
+  var k = el.dataset.ce; c[k] = el.value; evSync(); save();
   if (k === 'title') { var r = document.querySelector('.p2r[data-p2="' + f.n.id + '"] .p2n'); if (r) r.textContent = el.value; }
 }, true);
 document.addEventListener('change', function (e) {
   var el = e.target; if (!el.dataset || !el.dataset.ce || S.view !== 'tracks') return; var f = p2Get(UI.psel); if (!f) return; var c = evCal(f.n.ref); if (!c) return;
-  if (el.dataset.ce === 'state') { snap(); c.state = el.checked ? 'pub' : 'draft'; evSync(); save(); render(); toast(el.checked ? '公開しました' : '非公開にしました'); }
-  else if (el.dataset.ce === 'date' || el.dataset.ce === 'to') { if (c.to && c.to <= c.date) c.to = ''; evSync(); save(); render(); }
+  if (el.dataset.ce === 'date' || el.dataset.ce === 'to') { if (c.to && c.to <= c.date) c.to = ''; evSync(); save(); render(); }
+  if (['date', 'to', 'time', 'place'].indexOf(el.dataset.ce) >= 0) evChanged(c);
 }, true);
-// 学ぶのツリーでイベントを消す＝プログラムから外すだけ（告知のイベントは残る）
-// 告知のイベント一覧：予定がすべて。学ぶに入っているものには印
+
+// ---------- 公開・非公開・中止（確認してから。参加登録した人がいれば知らせる） ----------
+function evWhen(c) { return (c.date ? pmd(c.date) + (c.to ? ' – ' + pmd(c.to) : '') + (c.time ? ' ' + c.time : '') : '日程未定') + (c.place ? '・' + c.place : ''); }
+function evTell(c, text, sub) { ((S.joinIds || {})[c.id] || []).forEach(function (uid) { if (window.notify) window.notify(uid, text, sub || ''); }); }
+function evPubAsk(cid) { if (!can('notices')) { toast('告知の権限が必要です'); return; } M = { m: 'pub', id: cid }; renderModal(); }
+function evPubDlg() {
+  var c = evCal(M.id); if (!c) return ''; var n = evJoins(c), on = c.state === 'pub', t = esc(c.title);
+  if (!on) return dlg('部員に公開', '<p class="dlgp">「' + t + '」が予定タブとカレンダーに出て、参加登録が始まります。</p>', '<button class="btn" data-act="close">やめる</button><button class="btn primary" data-act="evPubDo">公開する</button>');
+  if (!n) return dlg('非公開にする', '<p class="dlgp">「' + t + '」を部員から見えなくします。</p>', '<button class="btn" data-act="close">やめる</button><button class="btn primary" data-act="evPubDo">非公開にする</button>');
+  return dlg('中止する', '<p class="dlgp">参加登録した ' + n + '人に、「' + t + '」の中止を知らせます。</p>', '<button class="btn" data-act="close">やめる</button><button class="btn danger" data-act="evPubDo">中止を知らせる</button>');
+}
+function evPubDo() {
+  var c = evCal(M.id); M = null; if (!c) { renderModal(); return; }
+  snap(); var was = c.state === 'pub', n = evJoins(c);
+  c.state = was ? 'draft' : 'pub'; if (!was) evSnap(c);
+  if (was && n) evTell(c, '「' + c.title + '」は中止になりました', 'カレンダーに追加していた場合は消してください');
+  evSync(); save(); render(); toast(was ? (n ? '中止を知らせました' : '非公開にしました') : '公開しました');
+}
+// 公開中に日時・場所が変わったら、参加登録した人に知らせる（続けて直したときは最後にまとめて1回）
+function evSnap(c) { UI.evSnap = UI.evSnap || {}; UI.evSnap[c.id] = evWhen(c); }
+function evChanged(c) {
+  UI.evT = UI.evT || {}; clearTimeout(UI.evT[c.id]);
+  UI.evT[c.id] = setTimeout(function () {
+    UI.evSnap = UI.evSnap || {}; var now = evWhen(c), was = UI.evSnap[c.id];
+    if (c.state === 'pub' && was && was !== now && evJoins(c)) { evTell(c, '「' + c.title + '」の日時・場所が変わりました', now); toast('参加登録した人に知らせました'); }
+    UI.evSnap[c.id] = now;
+  }, 1500);
+}
+document.addEventListener('click', function (e) {
+  var b = e.target.closest && e.target.closest('[data-act="evPub"],[data-act="evPubDo"],[data-act="evToProg"],[data-act="evOutProg"],[data-evpick]'); if (!b) return;
+  e.preventDefault(); e.stopImmediatePropagation(); var a = b.dataset.act;
+  if (a === 'evPub') return evPubAsk(b.dataset.id);
+  if (a === 'evPubDo') return evPubDo();
+  if (a === 'evToProg') { M = null; renderModal(); return evToProg(b.dataset.id); }
+  if (a === 'evOutProg') { snap(); evOutProg(b.dataset.id); M = null; save(); render(); toast('学ぶから外しました'); return; }
+  if (b.dataset.evpick) return evPicked(b.dataset.evpick);
+}, true);
+
+// ---------- 学ぶ・業務にイベントを置く：今あるイベントから選ぶか、新しく作る（名前では結びつけない） ----------
+function evToProg(cid) {
+  var c = evCal(cid); if (!c) return; if (evInProg(cid)) return;
+  snap(); var T = p2(); T.splice(T.length - 1, 0, { id: GID(), k: 'e', ref: cid }); evSync(); save(); render(); toast('「' + c.title + '」を学ぶに出しました');
+}
+function evPickAsk(mode, where) { M = { m: 'evpick', mode: mode, where: where }; renderModal(); }
+function evPickDlg() {
+  var used = function (c) { return M.mode === 'merge' ? c.id === M.where : M.mode === 'prog' ? evInProg(c.id) : !!evFolder(c.id); };
+  var dist = function (c) { return c.date ? Math.abs(dayOf(c.date) - TODAY) : 9e15; };
+  var list = calsInit().filter(function (c) { return !used(c); }).sort(function (a, b) { return dist(a) - dist(b); });
+  var rows = (M.mode === 'merge' ? '' : '<button class="evpk new" data-evpick="new"><b>＋ 新しく作る</b></button>') + list.map(function (c) { return '<button class="evpk" data-evpick="' + c.id + '"><b>' + esc(c.title) + '</b><span class="num">' + esc(c.date ? pmd(c.date) + (c.to ? ' – ' + pmd(c.to) : '') : '日程未定') + '</span></button>'; }).join('');
+  return dlg(M.mode === 'merge' ? 'まとめる先' : 'イベント', '<div class="evpkl">' + rows + '</div>', '<button class="btn" data-act="close">やめる</button>');
+}
+function evPicked(cid) {
+  var m = M; M = null; renderModal(); if (!m) return;
+  if (m.mode === 'merge') return evMerge(m.where, cid);
+  snap();
+  if (m.mode === 'prog') {
+    var c = cid === 'new' ? evNew() : evCal(cid); if (!c) return; var w = m.where || p2Target(), n = { id: GID(), k: 'e', ref: c.id };
+    w.arr.splice(w.at, 0, n); evSync(); UI.psel = n.id; UI.pren = cid === 'new' ? n.id : null; p2Save(); if (cid === 'new') p2Focus(n.id);
+    return;
+  }
+  var f = task(m.where); if (!f) return;
+  var c2 = cid === 'new' ? evNew(ttl(f), f.start) : evCal(cid); if (!c2) return;
+  if (cid === 'new' && f.end && f.end !== f.start) c2.to = f.end;
+  f.kind = 'event'; f.ev = c2.id; save(); render(); toast('「' + ttl(f) + '」をイベントにしました');
+}
+// 同じイベントが2つあったとき：まとめる先に、学ぶ・業務のつながりと出席を移して、元を消す
+function evMerge(fromId, toId) {
+  var a = evCal(fromId), b = evCal(toId); if (!a || !b) return;
+  if (evJoins(a)) { toast('参加登録がある「' + a.title + '」の方を、まとめる先にしてください'); return; }
+  snap();
+  var inB = evInProg(b.id); p2Walk(p2(), function (n) { if (n.k === 'e' && n.ref === a.id) { if (inB) n._dead = 1; else { n.ref = b.id; inB = true; } } });
+  var fa = evFolder(a.id), fb = evFolder(b.id); if (fa) { if (fb) { fa.kind = 'folder'; delete fa.ev; } else fa.ev = b.id; }
+  b.att = (b.att || []).concat((a.att || []).filter(function (x) { return (b.att || []).indexOf(x) < 0; }));
+  ['to', 'time', 'place', 'memo', 'link'].forEach(function (k) { if (!b[k] && a[k]) b[k] = a[k]; });
+  S.cals = S.cals.filter(function (x) { return x !== a; }); evSync(); save(); render(); toastUndo('「' + a.title + '」を「' + b.title + '」にまとめました');
+}
+function evUnlink(n) { snap(); n.kind = 'folder'; delete n.ev; save(); render(); toast('イベントを外しました（イベント自体は告知に残っています）'); }
+
+// ---------- 告知のイベント一覧：全部。学ぶ・業務とつながっているものには印 ----------
 function viewEvents () {
   calsInit(); p2();
-  var cs = S.cals.filter(evInNotice).sort(function (a, b) { return (a.date || '') < (b.date || '') ? -1 : 1; });
-  if (!cs.length) return '<div class="empty big">イベントはまだありません。右下の＋で追加できます</div>';
-  var okc = can('notices'), today = isoOf(TODAY);
+  var cs = S.cals.slice().sort(function (a, b) { return (a.date || '') < (b.date || '') ? -1 : 1; });
+  if (!cs.length) return '<div class="empty big">イベントはまだありません</div>';
+  var today = isoOf(TODAY);
   return '<div class="evl"><div class="evr evh"><span>イベント</span><span>期間</span><span>場所</span><span>参加登録</span><span>公開</span><span></span></div>' + cs.map(function (c) {
-    var end = c.to || c.date, past = !!end && end < today, pub = c.state === 'pub', pg = evInProg(c.id);
-    return '<div class="evr" data-calid="' + c.id + '"><span class="evn"><b>' + esc(c.title || 'イベント') + (pg ? '<i class="evtag">学ぶ</i>' : '') + '</b>' + (c.memo ? '<span>' + esc(memoText(c.memo).slice(0, 60)) + '</span>' : '') + '</span>' +
+    var end = c.to || c.date, past = !!end && end < today, pub = c.state === 'pub', pg = evInProg(c.id), fo = evFolder(c.id);
+    return '<div class="evr" data-calid="' + c.id + '"><span class="evn"><b>' + esc(c.title || 'イベント') + (pg ? '<i class="evtag">学ぶ</i>' : '') + (fo ? '<i class="evtag wkt">業務</i>' : '') + '</b>' + (c.memo ? '<span>' + esc(memoText(c.memo).slice(0, 60)) + '</span>' : '') + '</span>' +
       '<span class="evq num">' + (c.date ? pmd(c.date) + (c.to ? ' – ' + pmd(c.to) : '') + (c.time ? ' ' + esc(c.time) : '') : '<span class="dim">未定</span>') + '</span>' + (c.place ? '<span class="evp">' + esc(c.place) + '</span>' : '<span class="evp dim">—</span>') +
-      '<span class="evg num">' + (pub ? ((S.joins || {})[c.id] || 0) + ' 人' : '<span class="dim">—</span>') + '</span>' +
-      (past ? '<span class="muted nsw" style="font-size:12px">終了</span>' : '<button class="sw nsw" role="switch" data-act="calPub" data-id="' + c.id + '" aria-checked="' + pub + '" aria-label="部員に公開"' + (okc ? '' : ' disabled') + '><i></i></button>') +
+      '<span class="evg num">' + (pub ? evJoins(c) + ' 人' : '<span class="dim">—</span>') + '</span>' +
+      (past ? '<span class="muted nsw" style="font-size:12px">終了</span>' : '<button class="pubc nsw' + (pub ? ' on' : '') + '" data-act="evPub" data-id="' + c.id + '" title="' + (pub ? '非公開にする' : '部員に公開する') + '">' + (pub ? '公開中' : '非公開') + '</button>') +
       '<span class="evact"><button class="ib" data-act="calItem" data-k="cal" data-id="' + c.id + '" aria-label="編集" title="編集">' + PEN + '</button>' + '<button class="rmore" type="button" tabindex="-1" aria-label="その他" title="その他">' + ic('more') + '</button>' + '</span></div>';
   }).join('') + '</div>';
 }
-
-// ---------- ux53 学ぶと告知はそれぞれでイベントを作り、右クリック・詳細から「お互いに追加」。同じ名前があれば置き換えるか聞く ----------
-function evInNotice(c) { return c && c.inNotice !== false; }
-function evSameName(a, b) { return (a || '').replace(/\s+/g, '').toLowerCase() === (b || '').replace(/\s+/g, '').toLowerCase(); }
-function evDupDlg(dir, cid, other) { M = { m: 'evdup', dir: dir, cid: cid, other: other }; renderModal(); }
-function evToProg(cid, force) {
-  var c = evCal(cid); if (!c) return; if (evInProg(cid)) { toast('もう学ぶに入っています'); return; }
-  if (!force) { var d = p2Find(function (n) { return n.k === 'e' && n.ref !== cid && evSameName(n.name, c.title); }); if (d) return evDupDlg('prog', cid, d.n.id); }
-  snap(); var T = p2(); T.splice(T.length - 1, 0, { id: GID(), k: 'e', ref: cid }); evSync(); save(); render(); toast('「' + c.title + '」を学ぶ（プログラムの最後）に追加しました');
-}
-function evToNotice(cid, force) {
-  var c = evCal(cid); if (!c) return; if (evInNotice(c)) { toast('もう告知に入っています'); return; }
-  if (!force) { var d = (S.cals || []).filter(function (x) { return x.id !== cid && evInNotice(x) && evSameName(x.title, c.title); })[0]; if (d) return evDupDlg('notice', cid, d.id); }
-  snap(); c.inNotice = true; save(); render(); toast('「' + c.title + '」を告知に追加しました。告知で公開すると部員に出ます');
-}
-function evOutNotice(cid) { var c = evCal(cid); if (!c) return; snap(); c.inNotice = false; c.state = 'draft'; evSync(); save(); render(); toast('告知から外しました（学ぶには残っています）'); }
-document.addEventListener('change', function (e) {
-  var el = e.target; if (!el.dataset || !el.dataset.evn || S.view !== 'tracks') return; var f = p2Get(UI.psel); if (!f || !f.n.ref) return;
-  if (el.checked) evToNotice(f.n.ref); else evOutNotice(f.n.ref);
-}, true);
-function evGc(cid) { var c = evCal(cid); if (c && !evInNotice(c) && !evInProg(cid)) S.cals = S.cals.filter(function (x) { return x !== c; }); }
-document.addEventListener('click', function (e) {
-  var b = e.target.closest && e.target.closest('[data-act="evdupRep"],[data-act="evdupBoth"],[data-act="evToProg"],[data-act="evOutProg"],[data-act="evToNotice"],[data-act="evOutNotice"]'); if (!b) return;
-  e.preventDefault(); e.stopImmediatePropagation(); var a = b.dataset.act;
-  if (a === 'evToProg') { M = null; renderModal(); return evToProg(b.dataset.id); }
-  if (a === 'evOutProg') { snap(); evOutProg(b.dataset.id); M = null; evGc(b.dataset.id); save(); render(); toast('学ぶから外しました（告知には残っています）'); return; }
-  if (a === 'evToNotice') return evToNotice(b.dataset.id);
-  if (a === 'evOutNotice') return evOutNotice(b.dataset.id);
-  var m = M; M = null; renderModal(); if (!m) return;
-  if (a === 'evdupBoth') return m.dir === 'prog' ? evToProg(m.cid, true) : evToNotice(m.cid, true);
-  snap();
-  if (m.dir === 'prog') { var o = p2Get(m.other); if (o) { var old = o.n.ref; o.n.ref = m.cid; evGc(old); } }
-  else { var c = evCal(m.cid), oc = evCal(m.other); if (c) c.inNotice = true; if (oc) { p2Walk(p2(), function (n) { if (n.k === 'e' && n.ref === oc.id) n.ref = m.cid; }); S.cals = S.cals.filter(function (x) { return x !== oc; }); } }
-  evSync(); save(); render(); toast('置き換えました');
-}, true);
-// 学ぶで作るイベントは、まだ告知に入っていない
-// 告知の一覧：告知に入っているものだけ
 // 告知の行の右クリック
 window.addEventListener('contextmenu', function (e) {
   if (S.view !== 'notices' || !e.target.closest) return; var r = e.target.closest('.evr[data-calid]'); if (!r) return;
   e.preventDefault(); e.stopImmediatePropagation(); var c = evCal(r.dataset.calid); if (!c) return; var pg = evInProg(c.id), ok = can('notices');
   openMenu(c.title, [['編集', function () { M = { m: 'cal', id: c.id }; renderModal(); }],
-    [c.state === 'pub' ? '部員に非公開にする' : '部員に公開する', function () { snap(); c.state = c.state === 'pub' ? 'draft' : 'pub'; evSync(); save(); render(); }, false, ok ? '' : '告知の権限が必要'],
+    [c.state === 'pub' ? (evJoins(c) ? '中止する' : '非公開にする') : '部員に公開する', function () { evPubAsk(c.id); }, false, ok ? '' : '告知の権限が必要'],
     'sep', [pg ? '学ぶから外す' : '学ぶに出す', function () { if (pg) { snap(); evOutProg(c.id); evSync(); save(); render(); toast('学ぶから外しました'); } else evToProg(c.id); }, false, can('tracks') ? '' : '教材の権限が必要'],
-    'sep', ['削除', function () { snap(); evOutProg(c.id); S.cals = S.cals.filter(function (x) { return x !== c; }); save(); render(); toastUndo('「' + c.title + '」を削除しました'); }, true, ok ? '' : '告知の権限が必要']], e.clientX, e.clientY);
+    ['ほかのイベントとまとめる', function () { evPickAsk('merge', c.id); }, false, ok ? '' : '告知の権限が必要'],
+    'sep', ['削除', function () { snap(); evOutProg(c.id); var fo = evFolder(c.id); if (fo) { fo.kind = 'folder'; delete fo.ev; } S.cals = S.cals.filter(function (x) { return x !== c; }); save(); render(); toastUndo('「' + c.title + '」を削除しました'); }, true, ok ? '' : '告知の権限が必要']], e.clientX, e.clientY);
 }, true);
-// 学ぶのツリーのイベントの右クリックに「告知に追加／外す」
-// 教材のイベントの詳細：告知に入っていなければ公開はできず、「告知にも追加」を出す
-
 // ---------- ux54 ファイルも担当を複数に。下の段の担当は、上のフォルダのメンバーからだけ選べる ----------
 function pickFrom(n) { for (var a = parentOf(n); a; a = parentOf(a)) { if (teamOf(a).length) return a; } return null; }
 function pickable(n) { if (isAdmin()) return null; var a = pickFrom(n); return a ? teamOf(a) : []; } // null＝制限なし。代表以外は、自分に与えられた（上の段の）メンバーからだけ選べる
@@ -5326,7 +5338,7 @@ function savePrefs() { var p = {}; PREF_KEYS.forEach(function (k) { if (S[k] !==
 function save() { savePrefs(); SYNC.ver = (SYNC.ver || 0) + 1; if (SYNC.ready) queueSync(); }
 
 // ---------- ツリー ⇄ 行 ----------
-var DKEYS = ['leads', 'memo', 'folder', 'purpose', 'place', 'review', 'links', 'nodate'];
+var DKEYS = ['leads', 'memo', 'folder', 'purpose', 'place', 'review', 'links', 'nodate', 'ev'];
 function cleanData(d) { var o = {}; DKEYS.forEach(function (k) { var v = d && d[k]; if (v == null || v === '' || v === false || (Array.isArray(v) && !v.length)) return; o[k] = v; }); return o; }
 function norm(r) {
   return { id: r.id, parent_id: r.parent_id || null, pos: +r.pos || 0, title: r.title || '', kind: r.kind || null, announce: r.announce || null,
@@ -5342,7 +5354,7 @@ function rowsFromTree() {
       var ev = n.kind === 'event', fo = isFolder(n);
       out[n.id] = norm({ id: n.id, parent_id: par, pos: i, title: t, who: n.who, team: n.team, start_date: n.start, end_date: n.end, done: !fo ? n.done : false,
         kind: ev ? 'event' : (fo ? 'folder' : null), announce: ev ? (n.announce || 'before') : null, reg: ev ? (n.reg || 0) : null, unit: ev ? (n.unit || '') : null,
-        data: { leads: n.leads, memo: n.memo, folder: fo && d > 0, purpose: n.purpose, place: n.place, review: n.review, links: n.links, nodate: !fo && !!n.nodate } });
+        data: { leads: n.leads, memo: n.memo, folder: fo && d > 0, purpose: n.purpose, place: n.place, review: n.review, links: n.links, nodate: !fo && !!n.nodate, ev: ev ? n.ev : null } });
       each(kids(n), n.id, d + 1);
     });
   })(S.projects, null, 0);

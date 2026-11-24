@@ -125,7 +125,7 @@ function p2Rows(a, d) {
     return '<div class="p2r' + (on ? ' on' : '') + (n.out ? ' out' : '') + '" data-p2="' + n.id + '" style="--d:' + d + '" draggable="' + (!n.out) + '" tabindex="' + (on || (!UI.psel && d === 0 && a.indexOf(n) === 0) ? 0 : -1) + '" role="treeitem" aria-selected="' + on + '"' + (n.k === 'f' ? ' aria-expanded="' + open + '"' : '') + '>' +
       (n.k === 'f' ? '<button class="p2c" data-p2a="tog" tabindex="-1" aria-label="' + (open ? '畳む' : '開く') + '" style="transform:rotate(' + (open ? 90 : 0) + 'deg)">' + PI2.chev + '</button>' : '<span class="p2c"></span>') +
       PI2[n.k] + name + meta +
-      (n.out ? '' : '<button class="p2l' + (n.lock ? ' on' : '') + '" data-p2a="lock" tabindex="-1" aria-label="' + (n.lock ? '鍵を外す' : '鍵をかける') + '" title="' + (n.lock ? '上が済むまで開かない（クリックで外す）' : '鍵をかける：上が済むまで開かない') + '">' + PI2.lock + '</button>') + '<button class="rmore" type="button" tabindex="-1" aria-label="その他" title="その他">' + ic('more') + '</button>' + '</div>' +
+      (n.out ? '' : '<button class="p2l' + (n.lock ? ' on' : '') + '" data-p2a="lock" tabindex="-1" aria-label="' + (n.lock ? '鍵を外す' : '鍵をかける') + '" title="' + (n.lock ? '順番に進める（クリックで外す）' : '順番に進める') + '">' + PI2.lock + '</button>') + '<button class="rmore" type="button" tabindex="-1" aria-label="その他" title="その他">' + ic('more') + '</button>' + '</div>' +
       (open ? p2Rows(n.items || [], d + 1) : '');
   }).join('');
 }
@@ -141,13 +141,13 @@ document.addEventListener('focusout', function (e) {
 });
 // 設定の行：名前と短い説明、右にスイッチ
 function optRow(attr, on, title, sub, dis) { return '<label class="opt"><span class="ot"><b>' + title + '</b>' + (sub ? '<small>' + sub + '</small>' : '') + '</span><input type="checkbox" class="tsw" ' + attr + (on ? ' checked' : '') + (dis ? ' disabled' : '') + '></label>'; }
-var LOCK_SUB = '前の項目が終わるまで開けない';
+var LOCK_T = '順番に進める', LOCK_SUB = '前が終わると開く';
 function p2Crumb(id) { var out = [], f = p2Get(id); while (f && f.parent) { out.unshift(f.parent); f = p2Get(f.parent.id); } return out; }
 function p2Editor() {
   var f = p2Get(UI.psel); if (!f) return '<div class="p2empty">左のツリーから選ぶか、右クリックで作成</div>';
   var n = f.n; if (n.k === 'e') return p2EventEditor(n);
   var crumb = p2Crumb(n.id).map(function (x) { return '<button data-p2go="' + x.id + '">' + esc(x.name) + '</button>'; }).join('<span>/</span>');
-  var lock = n.out ? '' : '<div class="opts">' + optRow('data-p2f="lock"', n.lock, '鍵', LOCK_SUB) + '</div>';
+  var lock = n.out ? '' : '<div class="opts">' + optRow('data-p2f="lock"', n.lock, LOCK_T, LOCK_SUB) + '</div>';
   var head = '<div class="p2crumb">' + (crumb || '<span>プログラム</span>') + '</div>';
   if (n.k === 'f') {
     var kids = (n.items || []).map(function (x) { return '<button class="p2kid" data-p2go="' + x.id + '">' + PI2[x.k] + '<span class="p2n">' + (esc(p2Name(x)) || '<i class="dim">名前なし</i>') + '</span>' + (x.lock ? '<span class="p2lk">' + PI2.lock + '</span>' : '') + '</button>'; }).join('');
@@ -174,17 +174,16 @@ function p2Editor() {
 // 学ぶのイベント＝告知のイベント（予定）そのものを編集する
 function p2EventEditor(n) {
   var c = evCal(n.ref); if (!c) return '';
-  var crumb = p2Crumb(n.id).map(function (x) { return '<button data-p2go="' + x.id + '">' + esc(x.name) + '</button>'; }).join('<span>/</span>'), ro = !can('notices'), inN = evInNotice(c);
+  var crumb = p2Crumb(n.id).map(function (x) { return '<button data-p2go="' + x.id + '">' + esc(x.name) + '</button>'; }).join('<span>/</span>'), ro = !can('notices');
   var inp = function (k, lab, type, ph) { return '<label>' + lab + '<input class="input" ' + (type ? 'type="' + type + '" ' : '') + 'data-ce="' + k + '" value="' + esc(c[k] || '') + '"' + (ph ? ' placeholder="' + ph + '"' : '') + (ro ? ' disabled' : '') + ' autocomplete="off"></label>'; };
   var i = lvNodes().indexOf(n), att = (c.att || []).filter(function (id) { return member(id); }), pubOn = c.state === 'pub';
-  var joins = (S.joins || {})[c.id] || 0;
+  var joins = evJoins(c);
   var toggles = '<div class="opts">' +
-    optRow('data-evn="1"', inN, '告知に出す', '告知のイベント一覧に載る', ro) +
-    (inN ? optRow('data-ce="state"', pubOn, '部員に公開', pubOn ? '予定タブに出ています・参加登録 ' + joins + '人' : '予定タブに出て、参加登録できる', ro) : '') +
-    optRow('data-p2f="lock"', n.lock, '鍵', LOCK_SUB) +
-    optRow('data-p2lv="1"', n.lv, 'レベル' + (n.lv ? '<em class="num">Lv' + (i + 1) + '</em>' : ''), '出席すると、この順番のレベルになる') + '</div>';
+    optRow('data-p2f="lock"', n.lock, LOCK_T, LOCK_SUB) +
+    optRow('data-p2lv="1"', n.lv, 'Level-up event', n.lv ? '出席で Lv' + (i + 1) : '出席でレベルが上がる') + '</div>';
+  var stat = '<div class="p2st"><span class="p2pub' + (pubOn ? ' on' : '') + '">' + (pubOn ? '公開中' : '非公開') + '</span>' + (pubOn ? '<span class="p2stn">参加登録 <b class="num">' + joins + '</b> 人</span>' : '') + (ro ? '' : '<button class="btn sm" data-act="evPub" data-id="' + c.id + '">' + (pubOn ? (joins ? '中止する' : '非公開にする') : '部員に公開') + '</button>') + '</div>';
   var chips = att.map(function (id) { return '<span class="attc">' + av(id) + esc(member(id).name) + '</span>'; }).join('');
-  var attend = '<div class="p2box"><div class="p2st"><span class="p2stn">出席 <b class="num">' + att.length + '</b> 人</span>' + (ro ? '' : '<button class="btn sm" data-attopen="' + c.id + '">' + (att.length ? '出席を変更' : '出席を付ける') + '</button>') + '</div>' + (chips ? '<div class="attl">' + chips + '</div>' : '') + '</div>';
+  var attend = '<div class="p2box">' + stat + '<div class="p2st"><span class="p2stn">出席 <b class="num">' + att.length + '</b> 人</span>' + (ro ? '' : '<button class="btn sm" data-attopen="' + c.id + '">' + (att.length ? '出席を変更' : '出席を付ける') + '</button>') + '</div>' + (chips ? '<div class="attl">' + chips + '</div>' : '') + '</div>';
   return '<div class="p2crumb">' + (crumb || '<span>プログラム</span>') + '</div>' +
     '<input class="p2title" data-ce="title" value="' + esc(c.title) + '" placeholder="イベント名" aria-label="イベント名" autocomplete="off"' + (ro ? ' disabled' : '') + '>' +
     '<div class="p2grid3">' + inp('date', '開始日', 'date') + inp('to', '終了日', 'date') + inp('time', '時間', 'time') + '</div>' +
@@ -206,13 +205,7 @@ function p2Target() { // 新しく作る場所：選んでいるのがフォル�
 }
 function p2New(k, where) {
   snap(); var w = where || p2Target(), n;
-  if (k === 'e') { // イベントは告知のイベント（予定）を本体として作る。告知には出さない
-    var cid = uid('c');
-    calsInit().push({ id: cid, title: '新しいイベント', date: isoOf(TODAY), to: '', time: '', place: '', memo: '', link: '', state: 'draft' });
-    n = { id: GID(), k: 'e', ref: cid }; w.arr.splice(w.at, 0, n); evSync(); UI.psel = n.id; UI.pren = n.id; p2Save();
-    var c = evCal(cid); if (c) { c.inNotice = false; save(); }
-    return;
-  }
+  if (k === 'e') return evPickAsk('prog', where || p2Target());
   if (k === 'f') n = { id: GID(), k: 'f', name: '新しいフォルダ', items: [] };
   if (k === 'u') n = { id: GID(), k: 'u', t: '', c: '' };
   w.arr.splice(w.at, 0, n);
@@ -243,14 +236,13 @@ function p2Menu(id, x, y) {
   UI.psel = id;
   if (n.k === 'f') it.push(['中に新しいフォルダ', function () { n.open = true; p2New('f', { arr: n.items, at: n.items.length }); p2Focus(UI.psel); }], ['中に新しい単元', function () { n.open = true; p2New('u', { arr: n.items, at: n.items.length }); p2Focus(UI.psel); }], ['中に新しいイベント', function () { n.open = true; p2New('e', { arr: n.items, at: n.items.length }); p2Focus(UI.psel); }], 'sep');
   if (!n.out) {
-    it.push(['名前を変更（F2）', function () { UI.pren = id; render(); p2Focus(id); }], [(n.lock ? '鍵を外す' : '鍵をかける（上が済むまで開かない）'), function () { p2Lock(id); }], 'sep');
+    it.push(['名前を変更（F2）', function () { UI.pren = id; render(); p2Focus(id); }], [(n.lock ? '順番に進めるをやめる' : '順番に進める'), function () { p2Lock(id); }], 'sep');
     it.push(['上へ（Alt+↑）', function () { snap(); if (p2Step(id, -1)) p2Save(); }, false, f.i === 0 ? '先頭' : ''], ['下へ（Alt+↓）', function () { snap(); if (p2Step(id, 1)) p2Save(); }, false, f.i >= f.arr.length - 1 || f.arr[f.i + 1].out ? '末尾' : '']);
     it.push(['上のフォルダに入れる（Tab）', function () { snap(); if (p2Indent(id)) p2Save(); }, false, f.arr[f.i - 1] && f.arr[f.i - 1].k === 'f' ? '' : '上がフォルダでない']);
     if (f.parent) it.push(['フォルダから出す（Shift+Tab）', function () { snap(); if (p2Indent(id, true)) p2Save(); }]);
     var outF = p2().filter(function (z) { return z.out; })[0];
     if (f.parent !== outF) it.push(['プログラム外へ', function () { snap(); p2Move(id, outF.items, outF.items.length); p2Save(); }]);
     else it.push(['プログラムに戻す', function () { snap(); p2Move(id, p2(), p2().length - 1); p2Save(); }]);
-    var c = n.k === 'e' && evCal(n.ref); if (c) it.push('sep', [evInNotice(c) ? '告知から外す' : '告知に出す', function () { if (evInNotice(c)) evOutNotice(c.id); else evToNotice(c.id); }]);
     it.push('sep', ['削除（Delete）', function () { p2Del(id); }, true]);
   } else it.push(['中をすべて開く', function () { n.open = true; p2Walk(n.items, function (z) { if (z.k === 'f') z.open = true; }); save(); render(); }]);
   render(); openMenu(p2Name(n) || '項目', it, x, y);

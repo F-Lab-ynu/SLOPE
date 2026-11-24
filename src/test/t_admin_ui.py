@@ -29,15 +29,30 @@ async def main():
             await pg.locator('[data-attm]').first.check(); await pg.wait_for_timeout(300)
             await pg.mouse.click(5, 5); await pg.wait_for_timeout(300)
             print(w, 'attend chips:', await pg.locator('.p2box .attc').count(), '| button:', (await pg.locator('[data-attopen]').text_content()).strip())
-            # 設定のスイッチ：告知に出す・鍵
+            # 設定のスイッチ：順番に進める／公開は確認してから
             await pg.evaluate("document.querySelector('[data-act=go][data-view=tracks]').click()"); await pg.wait_for_timeout(300)
             await pg.evaluate("[...document.querySelectorAll('.p2r')].find(r=>/MIRA/.test(r.textContent)).click()"); await pg.wait_for_timeout(300)
             await pg.click('.opt:has([data-p2f=lock])'); await pg.wait_for_timeout(300)
             lock = await pg.evaluate("[...document.querySelectorAll('.p2r')].find(r=>/MIRA/.test(r.textContent)).querySelector('.p2l').classList.contains('on')")
-            await pg.click('.opt:has([data-evn])'); await pg.wait_for_timeout(400)
-            inN = await pg.locator('[data-evn]').is_checked()
-            print(w, 'lock on:', lock, '| notice off:', not inN, '| public row hidden:', await pg.locator('[data-ce=state]').count() == 0)
-            await pg.click('.opt:has([data-evn])'); await pg.wait_for_timeout(400)
+            await pg.click('.p2ed [data-act=evPub]'); await pg.wait_for_timeout(300)
+            dlg = await pg.locator('#modal .dlg').count(); await pg.click('[data-act=evPubDo]'); await pg.wait_for_timeout(400)
+            st = (await pg.locator('.p2ed .p2pub').first.text_content()).strip()
+            print(w, 'lock on:', lock, '| publish asks first:', dlg == 1, '| status:', st, '| names:', await pg.locator('.opt b').all_text_contents())
+            # 学ぶにイベントを置く：選ぶ
+            if w < 600: await pg.click('.p2back'); await pg.wait_for_timeout(300)
+            await pg.evaluate("document.querySelector('.p2tb [data-p2a=ne]').click()"); await pg.wait_for_timeout(300)
+            names = await pg.locator('.evpk b').all_text_contents()
+            await pg.evaluate("[...document.querySelectorAll('.evpk')].find(b=>/演習会/.test(b.textContent)).click()"); await pg.wait_for_timeout(400)
+            print(w, 'picker:', names[:3], '| placed:', await pg.evaluate("[...document.querySelectorAll('.p2r')].some(r=>/演習会/.test(r.textContent))"))
+            # 業務のフォルダーをイベントに
+            await pg.evaluate("document.querySelector('[data-act=go][data-view=projects]').click()"); await pg.wait_for_timeout(300)
+            await pg.evaluate("[...document.querySelectorAll('.fcard.isfc')].find(c=>/教育コンテンツ/.test(c.textContent)).dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,cancelable:true,clientX:300,clientY:300}))"); await pg.wait_for_timeout(300)
+            await pg.click('#cm [data-cm=evt]'); await pg.wait_for_timeout(300)
+            await pg.click('.evpk.new'); await pg.wait_for_timeout(400)
+            await pg.evaluate("document.querySelector('[data-act=go][data-view=notices]').click()"); await pg.wait_for_timeout(300)
+            await pg.click('.utabs button[data-v=ev]'); await pg.wait_for_timeout(300)
+            print(w, 'folder event in notices:', await pg.evaluate("[...document.querySelectorAll('.evr[data-calid]')].some(r=>/教育コンテンツ/.test(r.textContent) && r.querySelector('.evtag.wkt'))"))
+            await pg.evaluate("document.querySelector('[data-act=go][data-view=tracks]').click()"); await pg.wait_for_timeout(300)
             # ⋯ でメニュー
             if w < 600: await pg.click('.p2back'); await pg.wait_for_timeout(300)
             await pg.click('.p2r >> nth=2 >> .rmore'); await pg.wait_for_timeout(300)
@@ -45,9 +60,9 @@ async def main():
             # 告知のダイアログ：学ぶに出すを切って保存
             await pg.evaluate("document.querySelector('[data-act=go][data-view=notices]').click()"); await pg.wait_for_timeout(300)
             await pg.click('.utabs button[data-v=ev]'); await pg.wait_for_timeout(300)
-            await pg.evaluate("[...document.querySelectorAll('.evr[data-calid]')].find(r=>/MIRA/.test(r.textContent)).querySelector('[data-act=calItem]').click()"); await pg.wait_for_timeout(300)
+            await pg.evaluate("[...document.querySelectorAll('.evr[data-calid]')].find(r=>r.querySelector('.evn b').firstChild.textContent==='MIRA').querySelector('[data-act=calItem]').click()"); await pg.wait_for_timeout(300)
             await pg.click('.opt:has(#cG)'); await pg.click('[data-act=calSave]'); await pg.wait_for_timeout(400)
-            print(w, 'learn tag gone:', await pg.evaluate("![...document.querySelectorAll('.evr[data-calid]')].find(r=>/MIRA/.test(r.textContent)).querySelector('.evtag')"))
+            print(w, 'learn tag gone:', await pg.evaluate("![...document.querySelectorAll('.evr[data-calid]')].find(r=>r.querySelector('.evn b').firstChild.textContent==='MIRA').querySelector('.evtag:not(.wkt)')"))
             # 外部告知：ペンで編集ダイアログ
             await pg.evaluate("document.querySelector('[data-act=go][data-view=notices]').click()"); await pg.wait_for_timeout(300)
             await pg.click('.utabs button[data-v=list]'); await pg.wait_for_timeout(300)

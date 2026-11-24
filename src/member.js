@@ -99,7 +99,7 @@
     },
     clubEvents: function () { // 部内イベント：告知で公開したイベント（日程未定のものは最後に）
       var out = [];
-      ITEMS.filter(function (x) { return x.kind === 'cal' && x.state === 'ok' && (x.data || {}).state === 'pub' && (x.data || {}).inNotice !== false; }).forEach(function (x) { var d = x.data || {}; var ok = /^\d{4}-\d{2}-\d{2}$/.test(d.date || ''); if (!d.title) return; out.push({ id: x.id, title: d.title, start: ok ? d.date : '', end: ok ? (d.to || d.date) : '', tbd: !ok, sub: [d.time, d.place, d.memo].filter(Boolean).join(' · '), pub: d.state === 'pub' && d.inNotice !== false }); });
+      ITEMS.filter(function (x) { return x.kind === 'cal' && x.state === 'ok' && (x.data || {}).state === 'pub'; }).forEach(function (x) { var d = x.data || {}; var ok = /^\d{4}-\d{2}-\d{2}$/.test(d.date || ''); if (!d.title) return; out.push({ id: x.id, title: d.title, start: ok ? d.date : '', end: ok ? (d.to || d.date) : '', tbd: !ok, sub: [d.time, d.place, d.memo].filter(Boolean).join(' · '), pub: d.state === 'pub' }); });
       return out.sort(function (a, b) { return a.tbd !== b.tbd ? (a.tbd ? 1 : -1) : (a.start < b.start ? -1 : 1); }); // 日程が決まっていないものは最後に
     },
     calendar: function () {

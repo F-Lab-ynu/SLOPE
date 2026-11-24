@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
   const u = new URL(req.url), t = u.searchParams.get('t'), one = u.searchParams.get('e');
   // 公開しているイベント（告知で公開し、日付が入っているもの）
   const { data: items } = await sb.from('items').select('id,data,state').eq('kind', 'cal').eq('state', 'ok');
-  const pub = (items || []).filter((x: any) => { const d = x.data || {}; return d.state === 'pub' && d.inNotice !== false && ISO.test(d.date || '') && d.title; })
+  const pub = (items || []).filter((x: any) => { const d = x.data || {}; return d.state === 'pub' && ISO.test(d.date || '') && d.title; })
     .map((x: any) => ({ uid: x.id, title: x.data.title, date: x.data.date, to: x.data.to, time: x.data.time, place: x.data.place, memo: x.data.memo, link: x.data.link } as Ev));
   if (one) {
     const e = pub.find((x) => x.uid === one); if (!e) return new Response('not found', { status: 404 });

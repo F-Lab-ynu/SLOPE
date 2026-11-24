@@ -1624,3 +1624,21 @@ select.cell{padding-right:26px;background-repeat:no-repeat;background-position:r
 .evact{display:flex;align-items:center;justify-content:flex-end;gap:2px}
 .evact .ib{width:28px;height:28px}
 @media (hover:none){ .rmore{opacity:1} }
+
+/* イベント：選ぶ一覧・公開のボタン・記録パネル */
+.evpkl{display:flex;flex-direction:column;max-height:50vh;overflow:auto;margin:-4px -8px}
+.evpk{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;padding:0 8px;border:0;border-radius:8px;background:transparent;font:inherit;text-align:left;cursor:pointer;color:var(--text)}
+.evpk:hover,.evpk:focus-visible{background:var(--hover);outline:none}
+.evpk b{font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.evpk span{font-size:12px;color:var(--muted);flex:none}
+.evpk.new b{color:var(--accent)}
+.pubc{height:24px;padding:0 10px;border:1px solid var(--line);border-radius:12px;background:#fff;font:inherit;font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;white-space:nowrap;justify-self:start}
+.pubc.on{background:#ECFDF3;border-color:#ABEFC6;color:#067647}
+.pubc:hover{border-color:var(--line2)}
+.evtag.wkt{background:#EEF2FF;color:#3538CD}
+.dlgp{margin:0;line-height:1.7;font-size:14px}
+.btn.danger{background:var(--bad);border-color:var(--bad);color:#fff}
+.rev{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.revt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.revt b{font-size:14px}.revt span{font-size:12px;color:var(--muted)}
+.rec .p2box{margin-bottom:12px}

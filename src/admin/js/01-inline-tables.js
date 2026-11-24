@@ -51,7 +51,7 @@ function viewNotices() {
           '<td class="a"><div class="acts"><button class="btn sm ghost" data-act="oNo" data-id="' + o.id + '">見送る</button><button class="btn sm primary" data-act="oYes" data-id="' + o.id + '">掲載</button></div></td></tr>';
       }).join('') : '<tr><td colspan="5" class="empty">新しい情報はありません</td></tr>') + '</tbody></table></div>';
   }
-  var evn = (S.cals || []).filter(function (c) { return c.inNotice !== false && (c.to || c.date || '9') >= isoOf(TODAY); }).length;
+  var evn = (S.cals || []).filter(function (c) { return (c.to || c.date || '9') >= isoOf(TODAY); }).length;
   return top('告知') + utabs('ntab', [['ev', 'イベント', evn], ['cal', 'カレンダー', null], ['list', '外部', S.notices.length], ['offer', '部員からの情報', wait.length]]) + '<div class="body">' + body + '</div>';
 }
 

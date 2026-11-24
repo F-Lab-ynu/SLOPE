@@ -70,12 +70,6 @@ function decorateFolders() {
     }
   });
 }
-document.addEventListener('change', function (e) {
-  if (!e.target.dataset || !e.target.dataset.evt) return; e.stopImmediatePropagation();
-  var p = task(UI.rec); if (!p || !recOK(p)) return;
-  if (e.target.checked) { p.kind = 'event'; if (!p.announce) p.announce = 'before'; if (p.reg == null) p.reg = 0; } else p.kind = 'folder';
-  save(); render();
-}, true);
 function dupModal(f) {
   return dlg('フォルダーを複製',
     '<div class="two"><div class="fld"><label for="cpN">名前</label><input id="cpN" class="input" value="' + esc(nextName(ttl(f))) + '"></div><div class="fld"><label for="cpD">開始日</label><input id="cpD" class="input num" type="date" value="' + isoOf(dayOf(f.start) + 364 * DAY) + '"></div></div>' +
@@ -102,7 +96,7 @@ document.addEventListener('click', function (e) {
     var nm = val('cpN').trim(), d = val('cpD'); if (!f || !nm || !d) { toast('名前と開始日を入れてください'); return; }
     var delta = dayOf(d) - dayOf(f.start), par = parentOf(f);
     var c = { id: uid(par ? 'k' : 'pj'), who: '', leads: [], start: d, end: isoOf(dayOf(f.end) + delta), kind: f.kind || 'folder', purpose: f.purpose || '', place: f.place || '', unit: f.unit };
-    if (isEvent(f)) { c.announce = 'before'; c.reg = 0; }
+    if (isEvent(f)) { var ce = evNew(nm, d); if (c.end !== d) ce.to = c.end; c.ev = ce.id; }
     if (par) { c.title = nm; c.folder = true; c.kids = cloneKids(f, delta); kids(par).push(c); } else { c.name = nm; c.tasks = cloneKids(f, delta); S.projects.push(c); }
     cloneMark(c);
     closeCopy(); S.fcur = c.id; save(); render(); toast('「' + nm + '」を作りました'); return;
@@ -112,7 +106,7 @@ function cloneMark(c) { kids(c).forEach(function (k) { if (k.kids && k.kids.leng
 function cloneKids(src, delta) {
   return kids(src).map(function (k) {
     var c = { id: uid('k'), title: ttl(k), who: '', start: isoOf(dayOf(k.start) + delta), end: isoOf(dayOf(k.end) + delta), done: false };
-    if (isFolder(k)) { c.folder = true; c.kids = cloneKids(k, delta); delete c.done; if (isEvent(k)) { c.kind = 'event'; c.announce = 'before'; c.reg = 0; } }
+    if (isFolder(k)) { c.folder = true; c.kids = cloneKids(k, delta); delete c.done; if (isEvent(k)) { var ce = evNew(c.title, c.start); if (c.end !== c.start) ce.to = c.end; c.kind = 'event'; c.ev = ce.id; } }
     return c;
   });
 }
@@ -186,12 +180,11 @@ function fhead2() {
         (UI.srt ? '<div class="srtm" role="menu">' + SORTS.map(function (x) { return '<button role="menuitemradio" data-act="srtv" data-v="' + x[0] + '" aria-checked="' + (srt === x[0]) + '"' + (canSort ? '' : ' disabled') + '>' + x[1] + '</button>'; }).join('') + '</div>' : '') + '</span>' : '') +
       '<span class="vsw" role="group" aria-label="表示"><button data-act="fmode" data-v="card" aria-pressed="' + !gantt + '" title="カード" aria-label="カード">' + GRID + '</button><button data-act="fmode" data-v="gantt" aria-pressed="' + gantt + '" title="ガント" aria-label="ガント">' + GANTT + '</button></span>' +
       (f && (editSelf(f) || manages(parentOf(f)) || isLead(f, S.me)) ? '<span class="srtw"><button class="ib fhb" data-act="fmenu" aria-label="その他" title="その他" aria-expanded="' + !!UI.fmn + '">' + ic('more') + '</button>' +
-        (UI.fmn ? '<div class="srtm" role="menu">' + (editSelf(f) ? '<button role="menuitem" data-act="edit" data-id="' + f.id + '">名前・期間を編集</button>' : '') + (manages(parentOf(f)) ? '<button role="menuitem" data-act="dupF">複製</button>' : '') + (editSelf(f) || isLead(f, S.me) ? '<button role="menuitem" data-act="fEvt">' + (isEvent(f) ? 'イベントの記録をやめる' : 'イベントとして記録（参加数）') + '</button>' : '') + '</div>' : '') + '</span>' : '') +
+        (UI.fmn ? '<div class="srtm" role="menu">' + (editSelf(f) ? '<button role="menuitem" data-act="edit" data-id="' + f.id + '">名前・期間を編集</button>' : '') + (manages(parentOf(f)) ? '<button role="menuitem" data-act="dupF">複製</button>' : '') + (editSelf(f) || isLead(f, S.me) ? '<button role="menuitem" data-act="fEvt">' + (isEvent(f) ? 'イベントを外す' : 'イベントにする') + '</button>' : '') + '</div>' : '') + '</span>' : '') +
     '</div>' + (f && isEvent(f) ? fresHTML(f) : '') + fmemoHTML(f) + '</div>';
 }
 function fresHTML(f) {
-  var can = editSelf(f) || isLead(f, S.me);
-  return '<div class="fres">参加 <b class="num' + (can ? ' ied' : '') + '"' + (can ? ' data-act="ied" data-f="reg" data-id="' + f.id + '" title="タップで入力"' : '') + '>' + (f.reg || 0) + '</b><span class="muted num"> / ' + (S.club || 150) + '人・' + pct(f) + '%</span></div>';
+  return '<div class="fres">参加 <b class="num">' + evCount(f) + '</b><span class="muted num"> / ' + (S.club || 150) + '人・' + pct(f) + '%</span></div>';
 }
 function linkify(t) { return esc(t).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>'); }
 function fmemoHTML(f) {
@@ -209,8 +202,8 @@ document.addEventListener('click', function (e) {
     e.stopImmediatePropagation(); e.preventDefault();
     if (m.dataset.act === 'fmenu') { UI.fmn = !UI.fmn; render(); return; }
     var f0 = curFolder(); UI.fmn = false; if (!f0) return;
-    if (isEvent(f0)) f0.kind = 'folder'; else { f0.kind = 'event'; if (!f0.announce) f0.announce = 'before'; if (f0.reg == null) f0.reg = 0; }
-    save(); render(); return;
+    if (isEvent(f0)) evUnlink(f0); else evPickAsk('folder', f0.id);
+    return;
   }
   var b = e.target.closest && e.target.closest('[data-act="fmNew"],[data-act="fmx"]'); if (!b) return;
   e.stopImmediatePropagation(); e.preventDefault();
@@ -353,7 +346,7 @@ function cmItems(n) {
   if (editSelf(n) || (!f && n.who === S.me)) add('edit', '名前・担当・期間を編集');
   if (f && manages(n)) { sep(); add('newF', '新しいフォルダー'); add('newT', '新しいファイル'); }
   if (!f && (editSelf(n) || n.who === S.me)) { sep(); if (editSelf(n) && !n.nodate) add2('cm4', 'nodate', '期間を未定にする'); add('done', n.done ? '未完了に戻す' : '完了にする'); add('toF', 'フォルダーに変える'); }
-  if (f && (editSelf(n) || isLead(n, S.me))) add('evt', isEvent(n) ? 'イベントの記録をやめる' : 'イベントとして記録');
+  if (f && (editSelf(n) || isLead(n, S.me))) add('evt', isEvent(n) ? 'イベントを外す' : 'イベントにする');
   if (f && manages(p)) add('dup', '複製…');
   if (!f && canAssign(n) && n.who !== S.me) add2('cm2', 'me', '自分が担当する');
   if (f && !kids(n).length && p && editSelf(n)) add2('cm2', 'toFile', 'ファイルに変える');
@@ -391,7 +384,7 @@ document.addEventListener('click', function (e) {
     else if (a === 'newF' || a === 'newT') { var k = a === 'newF' ? addFolder(n, '新しいフォルダー') : addUnder(n, '新しいファイル'); save(); render(); editNew(k); }
     else if (a === 'done') { n.done = !n.done; if (n.done) reportUp(n); save(); render(); }
     else if (a === 'toF') { n.folder = true; n.kids = n.kids || []; delete n.done; if (n.who) setLeads(n, [n.who]); save(); render(); toast('フォルダーに変えました'); }
-    else if (a === 'evt') { if (isEvent(n)) n.kind = 'folder'; else { n.kind = 'event'; if (!n.announce) n.announce = 'before'; if (n.reg == null) n.reg = 0; } save(); render(); }
+    else if (a === 'evt') { if (isEvent(n)) evUnlink(n); else evPickAsk('folder', n.id); }
     else if (a === 'dup') { UI.dupId = n.id; var ov = document.getElementById('cpov'); if (!ov) { ov = document.createElement('div'); ov.id = 'cpov'; document.body.appendChild(ov); } ov.innerHTML = dupModal(n); ov.querySelector('#cpN').focus(); }
     else if (a === 'del') {
       snap(); var par = parentOf(n), cur = curFolder(), gone = cur && (cur === n || ancestors(cur).indexOf(n) >= 0);

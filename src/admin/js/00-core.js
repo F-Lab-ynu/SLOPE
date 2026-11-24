@@ -210,7 +210,8 @@ function proj() { return null; }
 function progress(p) { var l = leavesOf(p); return { n: l.length, d: l.filter(function (k) { return k.done; }).length, late: l.filter(late).length }; }
 function isEvent(p) { return p.kind === 'event'; }
 function ended(p) { return dayOf(p.end) < TODAY; }
-function pct(p) { return Math.round((p.reg || 0) / (S.club || 150) * 100); }
+function evCount(p) { var c = p.ev && evCal(p.ev); return c ? ((c.att || []).length || (S.joins || {})[c.id] || 0) : (p.reg || 0); }
+function pct(p) { return Math.round(evCount(p) / (S.club || 150) * 100); }
 var LEVELS = [['1', 'イベント'], ['2', '部'], ['3', 'チーム'], ['9', '個人']];
 function byStart(a, b) { return dayOf(a.start) - dayOf(b.start); }
 function manualRoots() { if (!S.manualOrder) { S.projects.sort(byStart); S.manualOrder = true; } } // 一度でも並べ替えたら手動順
@@ -319,7 +320,7 @@ function projStats() {
     var r = pct(p), live = !ended(p);
     return '<div class="hb" style="padding:10px 14px"><span class="l" style="width:120px;display:flex;flex-direction:column;line-height:1.35"><span style="font-weight:500;color:var(--text)">' + esc(p.name) + '</span><span class="muted num" style="font-size:11px">' + fmtDate(p.end) + (live ? '・受付中' : '') + '</span></span>' +
       '<span class="b" style="height:8px"><i style="width:' + r + '%;' + (live ? 'background:var(--accent)' : '') + '"></i></span>' +
-      '<span class="num" style="width:96px;text-align:right;font-size:12px"><b style="font-weight:600">' + r + '%</b> <span class="muted">' + p.reg + '/' + S.club + '</span></span></div>';
+      '<span class="num" style="width:96px;text-align:right;font-size:12px"><b style="font-weight:600">' + r + '%</b> <span class="muted">' + evCount(p) + '/' + S.club + '</span></span></div>';
   }).join('');
   return '<div class="kpis">' + kpi('平均参加率', avg + '%', '終了したイベント ' + fin.length + ' 件') + kpi('最も高い', hi ? pct(hi) + '%' : '—', hi ? esc(hi.name) : '') +
       kpi('最も低い', lo ? pct(lo) + '%' : '—', lo ? esc(lo.name) : '') + kpi('告知前', before.length, before.map(function (p) { return esc(p.name); }).join('・') || 'なし') + '</div>' +
@@ -449,8 +450,9 @@ function dlg(title, body, foot, wide) {
 function renderModal() {
   var el = document.getElementById('modal'), f;
   if (!M) { el.innerHTML = ''; return; }
-  if (M.m === 'evdup') { el.innerHTML = evdupDlg(); f = document.querySelector('[data-act="evdupRep"]'); if (f) f.focus(); return; }
-  if (M.m === 'cal' || M.m === 'ev') { el.innerHTML = M.m === 'cal' ? calDlg() : evDlg(); f = document.getElementById(M.m === 'cal' ? 'cT' : 'eP'); if (f && !f.disabled && !M.id) f.focus(); return; }
+  if (M.m === 'pub') { el.innerHTML = evPubDlg(); f = el.querySelector('.btn.primary, .btn.danger'); if (f) f.focus(); return; }
+  if (M.m === 'evpick') { el.innerHTML = evPickDlg(); f = el.querySelector('.evpk'); if (f) f.focus(); return; }
+  if (M.m === 'cal') { el.innerHTML = calDlg(); f = document.getElementById('cT'); if (f && !f.disabled && !M.id) f.focus(); return; }
   if (M.m === 'patch') { el.innerHTML = patchDlg(); f = document.getElementById('pT'); if (f && !M.id) f.focus(); return; }
   if (M.m === 'notice') { el.innerHTML = noticeDlg(); f = document.getElementById('nT'); if (f && !M.id) f.focus(); return; }
   var h = '';
@@ -460,17 +462,6 @@ function renderModal() {
   if (M.m === 'member') h = memberModal(member(M.id));
   el.innerHTML = h;
   f = el.querySelector('.c input:not([type=checkbox]), .c select'); if (f && M.m === 'add') f.focus();
-}
-// 学ぶと告知に同じ名前のイベントがあるとき
-function evdupDlg() {
-  var c = evCal(M.cid), toP = M.dir === 'prog', o = toP ? p2Get(M.other) : null, oc = toP ? (o && evCal(o.n.ref)) : evCal(M.other);
-  var where = toP ? '学ぶ（プログラム）' : '告知', nm = esc(c ? c.title : '');
-  var oInfo = oc ? esc(oc.title) + '　' + (oc.date ? pmd(oc.date) + (oc.to ? ' – ' + pmd(oc.to) : '') : '日程未定') + (oc.place ? '・' + esc(oc.place) : '') : '';
-  var body = '<p style="margin:0 0 12px;line-height:1.7">' + where + 'に、同じ名前のイベント「' + nm + '」がすでにあります。</p>' +
-    '<div class="evdupc"><small>' + where + 'にあるもの</small><b>' + oInfo + '</b></div>' +
-    '<p class="muted" style="margin:12px 0 0;font-size:12px;line-height:1.7">置き換えると、' + where + 'のそのイベントは今追加しようとしているものになります' + (!toP && oc && oc.state === 'pub' ? '（公開中・参加登録 ' + ((S.joins || {})[oc.id] || 0) + '人は引き継がれません）' : '') + '。</p>';
-  var foot = '<button class="btn" data-act="close">やめる</button><button class="btn" data-act="evdupBoth">両方残す</button><button class="btn primary" data-act="evdupRep">置き換える</button>';
-  return dlg('同じ名前のイベントがあります', body, foot);
 }
 
 // ---------------- render ----------------
@@ -499,6 +490,7 @@ function render() {
   if (S.view === 'perms' && lvNodes().length) Array.prototype.forEach.call(document.querySelectorAll('.mname[data-id] .cell2 > span:first-child'), function (sp) { var id = sp.closest('.mname').dataset.id; if (!sp.querySelector('.mlv')) sp.insertAdjacentHTML('beforeend', '<span class="mlv num">Lv' + lvOf(id) + '</span>'); });
 }
 function renderMain() {
+  if (S.projects && S.projects.length) evMigrate();
   var items = navItems().map(function (t) { return t.id; });
   if (items.indexOf(S.view) < 0) S.view = items[0] || 'none';
   renderChrome();

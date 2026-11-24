@@ -18,7 +18,7 @@ function savePrefs() { var p = {}; PREF_KEYS.forEach(function (k) { if (S[k] !==
 function save() { savePrefs(); SYNC.ver = (SYNC.ver || 0) + 1; if (SYNC.ready) queueSync(); }
 
 // ---------- ツリー ⇄ 行 ----------
-var DKEYS = ['leads', 'memo', 'folder', 'purpose', 'place', 'review', 'links', 'nodate'];
+var DKEYS = ['leads', 'memo', 'folder', 'purpose', 'place', 'review', 'links', 'nodate', 'ev'];
 function cleanData(d) { var o = {}; DKEYS.forEach(function (k) { var v = d && d[k]; if (v == null || v === '' || v === false || (Array.isArray(v) && !v.length)) return; o[k] = v; }); return o; }
 function norm(r) {
   return { id: r.id, parent_id: r.parent_id || null, pos: +r.pos || 0, title: r.title || '', kind: r.kind || null, announce: r.announce || null,
@@ -34,7 +34,7 @@ function rowsFromTree() {
       var ev = n.kind === 'event', fo = isFolder(n);
       out[n.id] = norm({ id: n.id, parent_id: par, pos: i, title: t, who: n.who, team: n.team, start_date: n.start, end_date: n.end, done: !fo ? n.done : false,
         kind: ev ? 'event' : (fo ? 'folder' : null), announce: ev ? (n.announce || 'before') : null, reg: ev ? (n.reg || 0) : null, unit: ev ? (n.unit || '') : null,
-        data: { leads: n.leads, memo: n.memo, folder: fo && d > 0, purpose: n.purpose, place: n.place, review: n.review, links: n.links, nodate: !fo && !!n.nodate } });
+        data: { leads: n.leads, memo: n.memo, folder: fo && d > 0, purpose: n.purpose, place: n.place, review: n.review, links: n.links, nodate: !fo && !!n.nodate, ev: ev ? n.ev : null } });
       each(kids(n), n.id, d + 1);
     });
   })(S.projects, null, 0);
