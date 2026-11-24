@@ -110,8 +110,8 @@ rline('font-size: 16px">修了にする</button>', '<button onClick="{{ unit.tog
 
 # ---------- 掲示板 ----------
 rep('<button style="flex: 1; height: 44px; border-radius: 6px; border: 1px solid #383836; background: #1C1C1B; color: #F3F1EC; font-weight: 700; font-size: 14px">詳細を見る</button>', '<button onClick="{{ x.detailGo }}" style="flex: 1; height: 44px; border-radius: 6px; border: 1px solid #383836; background: #1C1C1B; color: #F3F1EC; font-weight: 700; font-size: 14px">詳細を見る</button>')
-rep('<input type="text" aria-label="投稿を書く" placeholder="読んだ本でも、雑談でも"', '<input id="otText" type="text" aria-label="投稿を書く" placeholder="読んだ本でも、雑談でも"')
-rep('<button aria-label="投稿" style="flex: none; width: 46px;', '<button onClick="{{ postOther }}" aria-label="投稿" style="flex: none; width: 46px;')
+# (フリーは作り直し) rep('<input type="text" aria-label="投稿を書く" placeholder="読んだ本でも、雑談でも"', '<input id="otText" type="text" aria-label="投稿を書く" placeholder="読んだ本でも、雑談でも"')
+# (フリーは作り直し) rep('<button aria-label="投稿" style="flex: none; width: 46px;', '<button onClick="{{ postOther }}" aria-label="投稿" style="flex: none; width: 46px;')
 rep('<button style="height: 40px; padding: 0 16px; border: 0; border-radius: 6px; background: #F3F1EC; color: #070707; font-weight: 700; font-size: 14px">応募する</button>', '<button onClick="{{ s.apply }}" style="height: 40px; padding: 0 16px; border: 0; border-radius: 6px; background: #F3F1EC; color: #070707; font-weight: 700; font-size: 14px">応募する</button>')
 rline('flex: none">切り替える</bu', lambda l: l.replace('<button style=', '<button onClick="{{ curToRecruit }}" style='))
 rep('<div class="card" style="padding: 16px; border-radius: 8px; display: flex; align-items: center; gap: 12px; margin-top: 4px">', '<sc-if value="{{ curMine }}"><div class="card" style="padding: 16px; border-radius: 8px; display: flex; align-items: center; gap: 12px; margin-top: 4px">')

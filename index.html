@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '6020c55ace', FILE = 'index.ver';
+  var VER = '50b017d411', FILE = 'index.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -319,6 +319,32 @@ body.wide .iqsheet{bottom:auto;top:50%;transform:translate(-50%,-50%);border-bot
 .iqm p{margin:0;font-size:14px;line-height:1.6;color:#F3F1EC;white-space:pre-wrap}
 .iqm p.iqrep{padding-top:8px;border-top:1px solid #232322;color:#D2CFC8}
 .mth{flex:none;width:84px;height:56px;border-radius:6px;object-fit:cover;background:#1E1E1D;display:flex;align-items:center;justify-content:center;font-size:11px;color:#7D7B76}
+.fr{display:flex;flex-direction:column;gap:14px}
+.frnew{display:flex;align-items:flex-end;gap:8px}
+.frnew textarea{flex:1;min-width:0;min-height:46px;max-height:200px;resize:none;box-sizing:border-box;padding:12px 16px;background:#131313;border:1px solid #383836;border-radius:10px;color:#F3F1EC;font:inherit;font-size:15px;line-height:1.5}
+.frnew textarea:focus{outline:none;border-color:#7D7B76}
+.frnew button{flex:none;width:46px;height:46px;border:0;border-radius:50%;background:#F3F1EC;color:#070707;display:flex;align-items:center;justify-content:center}
+.frnew.sm textarea{min-height:40px;padding:9px 14px;font-size:14px}
+.frnew.sm button{width:40px;height:40px}
+.frtags{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -20px;padding:0 20px}
+.frtags::-webkit-scrollbar{display:none}
+.frtags button{flex:none;height:32px;padding:0 12px;border:1px solid #383836;border-radius:16px;background:transparent;color:#D2CFC8;font:inherit;font-size:13px;white-space:nowrap}
+.frtags button[aria-pressed="true"]{background:#F3F1EC;border-color:#F3F1EC;color:#070707;font-weight:700}
+.frlist{display:flex;flex-direction:column}
+.frp{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid #1E1E1D}
+.frav{flex:none;width:36px;height:36px;border-radius:50%;background:#2C2C2A;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+.frm{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.frmeta{font-size:13px;color:#A3A19B}
+.frbook{display:flex;flex-direction:column;padding:10px 12px;border-radius:8px;background:#131313;border:1px solid #252524}
+.frbook b{font-size:15px}.frbook small{font-size:13px;color:#A3A19B}
+.frtext{margin:0;font-size:15px;line-height:1.65;color:#E9E6DF;white-space:pre-wrap;overflow-wrap:anywhere}
+.fract{display:flex;gap:18px}
+.fract button{height:36px;padding:0;border:0;background:transparent;color:#A3A19B;display:flex;align-items:center;gap:6px;font:inherit;font-size:13px;font-weight:700}
+.fract button[aria-expanded="true"]{color:#F3F1EC}
+.frth{display:flex;flex-direction:column;gap:12px;padding:8px 0 2px 12px;border-left:2px solid #232322}
+.frr{display:flex;flex-direction:column;gap:3px}
+.frr .frtext{font-size:14px}
+.frnone{margin:0;padding:24px 0;text-align:center;font-size:14px;color:#7D7B76}
 
 #mgate{position:fixed;inset:0;z-index:1000;background:#070707;color:#F3F1EC;display:flex;align-items:center;justify-content:center;padding:24px;font-family:inherit}
 #mgate .gc{width:100%;max-width:360px;display:flex;flex-direction:column;gap:14px}
@@ -721,8 +747,9 @@ function memberExtras(v) {
         .then(function (r) { if (r) { self.setState({ sub: null, tab: 'board', seg: 'event', npRoles: {} }); D.flash('共有しました。渉外局が確認すると公式になります'); } });
     },
     postOther: function () {
-      var t = val('otText'); if (!t) return; var tag = (s.otf === '本' || s.otf === '雑談') ? s.otf : '雑談';
-      D.add('other', { text: t, tag: tag }).then(function (r) { if (r) { var e = document.getElementById('otText'); if (e) e.value = ''; } });
+      var e0 = document.getElementById('otText'), t = e0 ? e0.value.trim() : ''; if (!t) return;
+      if (s.otf && t.indexOf(s.otf) < 0) t += ' ' + s.otf; // タグで絞り込んでいるときは、そのタグを付けて投稿
+      D.add('other', { text: t }).then(function (r) { if (r) { var e = document.getElementById('otText'); if (e) { e.value = ''; e.style.height = ''; } } });
     },
     painOpts: D.items('pain').map(function (x) { return { text: (x.data || {}).text || '' }; }),
     setLq: function (e) { self.setState({ lq: e.target.value }); }, setUq: function (e) { self.setState({ uq: e.target.value }); }
@@ -1142,7 +1169,7 @@ setInterval(window.__chrome, 400);
 <button onClick="{{ segRecruit }}" style="height: 40px; border: 0; border-radius: 6px; font-weight: 700; font-size: 15px; background: {{ seg.rBg }}; color: {{ seg.rFg }}">アイデア</button>
 <button onClick="{{ segPain }}" style="height: 40px; border: 0; border-radius: 6px; font-weight: 700; font-size: 15px; background: {{ seg.pBg }}; color: {{ seg.pFg }}">ペイン</button>
 <button onClick="{{ segEvent }}" style="height: 40px; border: 0; border-radius: 6px; font-weight: 700; font-size: 15px; background: {{ seg.eBg }}; color: {{ seg.eFg }}">イベント</button>
-<button onClick="{{ segOther }}" style="height: 40px; border: 0; border-radius: 6px; font-weight: 700; font-size: 15px; background: {{ seg.oBg }}; color: {{ seg.oFg }}">その他</button>
+<button onClick="{{ segOther }}" style="height: 40px; border: 0; border-radius: 6px; font-weight: 700; font-size: 15px; background: {{ seg.oBg }}; color: {{ seg.oFg }}">フリー</button>
 </div>
 </div>
 
@@ -1288,41 +1315,31 @@ setInterval(window.__chrome, 400);
 </div>
 </sc-if>
 <sc-if value="{{ show.other }}" hint-placeholder-val="{{ false }}">
-<div style="display: flex; flex-direction: column; gap: 0">
-<div style="display: flex; flex-direction: column; gap: 8px; padding-bottom: 12px">
-<button onClick="{{ dd.ot.tg }}" aria-expanded="{{ dd.ot.open }}" style="align-self: flex-start; height: 38px; padding: 0 12px; display: flex; align-items: center; gap: 8px; border: 1px solid #383836; border-radius: 8px; background: transparent; color: #D2CFC8; font-size: 13px; font-weight: 500"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16l-6 7.5V19l-4 1.5v-8z"></path></svg><span>種類：<b style="color: #F3F1EC; font-weight: 700">{{ dd.ot.cur }}</b></span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="transform: rotate({{ dd.ot.rot }}); transition: transform 0.15s"><path d="M6 9l6 6 6-6"></path></svg></button>
-<sc-if value="{{ dd.ot.open }}" hint-placeholder-val="{{ false }}">
-<div style="align-self: flex-start; min-width: 200px; padding: 4px 0; background: #191918; border: 1px solid #383836; border-radius: 8px">
-<sc-for list="{{ dd.ot.items }}" as="o" hint-placeholder-count="3">
-<button onClick="{{ o.pick }}" style="width: 100%; height: 42px; padding: 0 14px; display: flex; align-items: center; justify-content: space-between; gap: 16px; background: transparent; border: 0; color: #F3F1EC; font-size: 14px; text-align: left">{{ o.name }}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F2A93B" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="opacity: {{ o.chk }}"><path d="M5 12l5 5 9-10"></path></svg></button>
-</sc-for>
-</div>
-</sc-if>
-</div>
-<div style="display: flex; align-items: center; gap: 8px">
-<input id="otText" type="text" aria-label="投稿を書く" placeholder="読んだ本でも、雑談でも" style="flex: 1; min-width: 0; height: 46px; padding: 0 16px; background: #131313; border: 1px solid #383836; border-radius: 6px; color: #F3F1EC; font-size: 15px">
-<button onClick="{{ postOther }}" aria-label="投稿" style="flex: none; width: 46px; height: 46px; padding: 0; border: 0; border-radius: 50%; background: #F3F1EC; color: #070707; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5"></path><path d="M5 12l7-7 7 7"></path></svg></button>
-</div>
-<div style="display: flex; flex-direction: column">
+<div class="fr">
+<div class="frnew"><textarea id="otText" rows="1" aria-label="投稿を書く" placeholder="#タグを付けると絞り込めます" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea><button onClick="{{ postOther }}" aria-label="投稿"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
+<sc-if value="{{ otHasTags }}"><div class="frtags"><sc-for list="{{ otTags }}" as="t"><button onClick="{{ t.pick }}" aria-pressed="{{ t.on }}">{{ t.name }}</button></sc-for></div></sc-if>
+<div class="frlist">
 <sc-for list="{{ otPosts }}" as="p" hint-placeholder-count="4">
-<div style="display: flex; gap: 12px; padding: 14px 0; border-bottom: {{ p.sep }}">
-<span class="en" style="flex: none; width: 36px; height: 36px; border-radius: 50%; background: #2C2C2A; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">{{ p.ini }}</span>
-<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px">
-<span style="font-size: 13px; color: #A3A19B">{{ p.who }} · {{ p.time }} · {{ p.tag }}</span>
-<sc-if value="{{ p.hasBook }}" hint-placeholder-val="{{ false }}">
-<span style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; background: #131313; border: 1px solid #252524">
-<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#BDBAB3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M4 19V5a2 2 0 0 1 2-2h14v14H6a2 2 0 0 0-2 2 2 2 0 0 0 2 2h14"></path></svg>
-<span style="display: flex; flex-direction: column; min-width: 0"><span style="font-weight: 700; font-size: 15px">{{ p.book }}</span><span style="font-size: 13px; color: #A3A19B">{{ p.author }}</span></span>
-</span>
+<article class="frp">
+<span class="frav en">{{ p.ini }}</span>
+<div class="frm">
+<span class="frmeta">{{ p.who }} · {{ p.time }}</span>
+<sc-if value="{{ p.hasBook }}" hint-placeholder-val="{{ false }}"><span class="frbook"><b>{{ p.book }}</b><small>{{ p.author }}</small></span></sc-if>
+<p class="frtext">{{ p.text }}</p>
+<div class="fract">
+<button onClick="{{ p.toggle }}" aria-label="いいね" style="color: {{ p.likeFg }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="{{ p.likeFill }}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-4.5-9.5-9A5.5 5.5 0 0 1 12 6a5.5 5.5 0 0 1 9.5 6C19 16.5 12 21 12 21z"/></svg>{{ p.likeN }}</button>
+<button onClick="{{ p.thread }}" aria-label="返信" aria-expanded="{{ p.open }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.4A8 8 0 1 1 21 12z"/></svg>{{ p.rep }}</button>
+</div>
+<sc-if value="{{ p.isOpen }}">
+<div class="frth">
+<sc-for list="{{ p.replies }}" as="r"><div class="frr"><span class="frmeta">{{ r.who }} · {{ r.time }}</span><p class="frtext">{{ r.text }}</p></div></sc-for>
+<div class="frnew sm"><textarea id="otReply" rows="1" aria-label="返信を書く" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea><button onClick="{{ p.reply }}" aria-label="返信を送る"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
+</div>
 </sc-if>
-<span style="font-size: 15px; line-height: 1.65; color: #E9E6DF">{{ p.text }}</span>
-<div style="display: flex; align-items: center; gap: 14px">
-<button onClick="{{ p.toggle }}" aria-label="いいね" style="height: 40px; padding: 0 4px 0 0; border: 0; background: transparent; color: {{ p.likeFg }}; display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700"><svg width="16" height="16" viewBox="0 0 24 24" fill="{{ p.likeFill }}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"></path></svg><span class="en">{{ p.likeN }}</span></button>
-<button style="height: 40px; padding: 0 4px; border: 0; background: transparent; color: #A3A19B; display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"></path></svg><span class="en">{{ p.rep }}</span></button>
 </div>
-</div>
-</div>
+</article>
 </sc-for>
+<sc-if value="{{ otEmpty }}"><p class="frnone">まだ投稿はありません</p></sc-if>
 </div>
 </div>
 </sc-if>
@@ -2311,12 +2328,22 @@ class Component extends DCLogic {
     });
     const exFilters = [{ k: 'all', n: 'すべて' }, { k: 'ビジコン', n: 'ビジコン' }, { k: 'インターン', n: 'インターン' }, { k: '説明会', n: '説明会' }].map((f) => Object.assign({ name: f.n, pick: () => this.setState({ exf: f.k }) }, pick(s.exf === f.k)));
 
-    // ---- 掲示板：その他 ----
-    const otf = s.otf || 'すべて';
-    const otRaw = D.items('other').map((x) => { const d = x.data || {}; return { id: x.id, tag: d.tag || '雑談', who: D.who(x.author), ini: D.ini(x.author), time: D.ago(x.created_at), book: d.book || '', author: d.bookAuthor || '', text: d.text || '', like: D.count(x.id, 'like'), rep: cmCount(x.id) }; });
-    const otSel = otRaw.filter((p) => otf === 'すべて' || p.tag === otf);
-    const otPosts = otSel.map((p, i) => { const on = D.mine(p.id, 'like'); return Object.assign({}, p, { hasBook: !!p.book, likeN: p.like, likeFg: on ? RT : '#A3A19B', likeFill: on ? RT : 'none', sep: sep(i, otSel.length), toggle: () => D.toggle(p.id, 'like') }); });
-    const otFilters = ['すべて', '本', '雑談'].map((n) => Object.assign({ name: n, pick: () => this.setState({ otf: n }) }, pick(otf === n)));
+    // ---- 掲示板：フリー（#タグで絞り込み。返信はその場で開く） ----
+    const tagsOf = (t) => (String(t || '').match(/[#＃][^\s#＃、。,.!！?？「」()（）]+/g) || []).map((x) => '#' + x.slice(1));
+    const otAll = D.items('other').map((x) => { const d = x.data || {}; const tags = tagsOf(d.text); if (!tags.length && d.tag && d.tag !== '雑談') tags.push('#' + d.tag);
+      return { id: x.id, tags: tags, who: D.who(x.author), ini: D.ini(x.author), time: D.ago(x.created_at), book: d.book || '', author: d.bookAuthor || '', text: d.text || '', like: D.count(x.id, 'like'), rep: cmCount(x.id) }; });
+    const frN = {}; otAll.forEach((p) => p.tags.forEach((t) => { frN[t] = (frN[t] || 0) + 1; }));
+    const popTags = Object.keys(frN).filter((t) => frN[t] >= 2).sort((a, b) => frN[b] - frN[a]).slice(0, 12);
+    const otf = popTags.indexOf(s.otf) >= 0 ? s.otf : '';
+    const otSel = otAll.filter((p) => !otf || p.tags.indexOf(otf) >= 0);
+    const otPosts = otSel.map((p) => { const on = D.mine(p.id, 'like'), open = s.otOpen === p.id;
+      const replies = open ? D.items('comment').filter((c) => c.parent_id === p.id).slice().reverse().map((c) => ({ who: D.who(c.author), time: D.ago(c.created_at), text: (c.data || {}).text || '' })) : [];
+      return Object.assign({}, p, { hasBook: !!p.book, likeN: p.like, likeFg: on ? RT : '#A3A19B', likeFill: on ? RT : 'none', toggle: () => D.toggle(p.id, 'like'),
+        open: String(open), isOpen: open, replies: replies, thread: () => this.setState({ otOpen: open ? null : p.id }),
+        reply: () => { const el = document.getElementById('otReply'), v = el ? el.value.trim() : ''; if (!v) return; el.value = ''; el.style.height = ''; D.add('comment', { text: v }, p.id).then((r) => { const e2 = document.getElementById('otReply'); if (!r && e2) e2.value = v; else if (e2) e2.value = ''; }); } }); });
+    const otTags = [{ name: 'すべて', on: String(!otf), pick: () => this.setState({ otf: '' }) }].concat(popTags.map((t) => ({ name: t, on: String(otf === t), pick: () => this.setState({ otf: otf === t ? '' : t }) })));
+    const otHasTags = popTags.length > 0, otEmpty = otSel.length === 0;
+    const otFilters = [];
 
     // ---- 教材ライブラリ（全トラックの教材リンク） ----
     const srcColor = { '部内': A, 'FCE': '#A6A6A6', '外部': '#D2CFC8' };
@@ -2464,7 +2491,7 @@ class Component extends DCLogic {
       segRecruit: () => this.setState({ fo: null, seg: 'recruit' }),
       segPain: () => this.setState({ fo: null, seg: 'pain' }),
       segEvent: () => this.setState({ fo: null, seg: 'event' }), segOther: () => this.setState({ fo: null, seg: 'other' }),
-      otPosts: otPosts, otFilters: otFilters,
+      otPosts: otPosts, otFilters: otFilters, otTags: otTags, otHasTags: otHasTags, otEmpty: otEmpty,
       exItems: exItems, exFilters: exFilters,
       findTeam: () => this.setState({ seg: 'recruit', bfilter: 'recruit' }),
       toggleAnon: () => this.setState({ anon: !this.state.anon }),

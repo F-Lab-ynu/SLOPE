@@ -224,12 +224,22 @@
     });
     const exFilters = [{ k: 'all', n: 'すべて' }, { k: 'ビジコン', n: 'ビジコン' }, { k: 'インターン', n: 'インターン' }, { k: '説明会', n: '説明会' }].map((f) => Object.assign({ name: f.n, pick: () => this.setState({ exf: f.k }) }, pick(s.exf === f.k)));
 
-    // ---- 掲示板：その他 ----
-    const otf = s.otf || 'すべて';
-    const otRaw = D.items('other').map((x) => { const d = x.data || {}; return { id: x.id, tag: d.tag || '雑談', who: D.who(x.author), ini: D.ini(x.author), time: D.ago(x.created_at), book: d.book || '', author: d.bookAuthor || '', text: d.text || '', like: D.count(x.id, 'like'), rep: cmCount(x.id) }; });
-    const otSel = otRaw.filter((p) => otf === 'すべて' || p.tag === otf);
-    const otPosts = otSel.map((p, i) => { const on = D.mine(p.id, 'like'); return Object.assign({}, p, { hasBook: !!p.book, likeN: p.like, likeFg: on ? RT : '#A3A19B', likeFill: on ? RT : 'none', sep: sep(i, otSel.length), toggle: () => D.toggle(p.id, 'like') }); });
-    const otFilters = ['すべて', '本', '雑談'].map((n) => Object.assign({ name: n, pick: () => this.setState({ otf: n }) }, pick(otf === n)));
+    // ---- 掲示板：フリー（#タグで絞り込み。返信はその場で開く） ----
+    const tagsOf = (t) => (String(t || '').match(/[#＃][^\s#＃、。,.!！?？「」()（）]+/g) || []).map((x) => '#' + x.slice(1));
+    const otAll = D.items('other').map((x) => { const d = x.data || {}; const tags = tagsOf(d.text); if (!tags.length && d.tag && d.tag !== '雑談') tags.push('#' + d.tag);
+      return { id: x.id, tags: tags, who: D.who(x.author), ini: D.ini(x.author), time: D.ago(x.created_at), book: d.book || '', author: d.bookAuthor || '', text: d.text || '', like: D.count(x.id, 'like'), rep: cmCount(x.id) }; });
+    const frN = {}; otAll.forEach((p) => p.tags.forEach((t) => { frN[t] = (frN[t] || 0) + 1; }));
+    const popTags = Object.keys(frN).filter((t) => frN[t] >= 2).sort((a, b) => frN[b] - frN[a]).slice(0, 12);
+    const otf = popTags.indexOf(s.otf) >= 0 ? s.otf : '';
+    const otSel = otAll.filter((p) => !otf || p.tags.indexOf(otf) >= 0);
+    const otPosts = otSel.map((p) => { const on = D.mine(p.id, 'like'), open = s.otOpen === p.id;
+      const replies = open ? D.items('comment').filter((c) => c.parent_id === p.id).slice().reverse().map((c) => ({ who: D.who(c.author), time: D.ago(c.created_at), text: (c.data || {}).text || '' })) : [];
+      return Object.assign({}, p, { hasBook: !!p.book, likeN: p.like, likeFg: on ? RT : '#A3A19B', likeFill: on ? RT : 'none', toggle: () => D.toggle(p.id, 'like'),
+        open: String(open), isOpen: open, replies: replies, thread: () => this.setState({ otOpen: open ? null : p.id }),
+        reply: () => { const el = document.getElementById('otReply'), v = el ? el.value.trim() : ''; if (!v) return; el.value = ''; el.style.height = ''; D.add('comment', { text: v }, p.id).then((r) => { const e2 = document.getElementById('otReply'); if (!r && e2) e2.value = v; else if (e2) e2.value = ''; }); } }); });
+    const otTags = [{ name: 'すべて', on: String(!otf), pick: () => this.setState({ otf: '' }) }].concat(popTags.map((t) => ({ name: t, on: String(otf === t), pick: () => this.setState({ otf: otf === t ? '' : t }) })));
+    const otHasTags = popTags.length > 0, otEmpty = otSel.length === 0;
+    const otFilters = [];
 
     // ---- 教材ライブラリ（全トラックの教材リンク） ----
     const srcColor = { '部内': A, 'FCE': '#A6A6A6', '外部': '#D2CFC8' };

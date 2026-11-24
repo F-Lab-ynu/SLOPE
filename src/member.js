@@ -376,8 +376,9 @@ function memberExtras(v) {
         .then(function (r) { if (r) { self.setState({ sub: null, tab: 'board', seg: 'event', npRoles: {} }); D.flash('共有しました。渉外局が確認すると公式になります'); } });
     },
     postOther: function () {
-      var t = val('otText'); if (!t) return; var tag = (s.otf === '本' || s.otf === '雑談') ? s.otf : '雑談';
-      D.add('other', { text: t, tag: tag }).then(function (r) { if (r) { var e = document.getElementById('otText'); if (e) e.value = ''; } });
+      var e0 = document.getElementById('otText'), t = e0 ? e0.value.trim() : ''; if (!t) return;
+      if (s.otf && t.indexOf(s.otf) < 0) t += ' ' + s.otf; // タグで絞り込んでいるときは、そのタグを付けて投稿
+      D.add('other', { text: t }).then(function (r) { if (r) { var e = document.getElementById('otText'); if (e) { e.value = ''; e.style.height = ''; } } });
     },
     painOpts: D.items('pain').map(function (x) { return { text: (x.data || {}).text || '' }; }),
     setLq: function (e) { self.setState({ lq: e.target.value }); }, setUq: function (e) { self.setState({ uq: e.target.value }); }

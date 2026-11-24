@@ -280,7 +280,7 @@ sb.auth.onAuthStateChange(function (ev) { if (ev === 'SIGNED_OUT') location.repl
 
 // ---------- 教材・外部告知・掲示板（items 表） ----------
 var BOARD_KINDS = ['recruit', 'idea', 'pain', 'other', 'comment'];
-var KIND_LABEL = { recruit: '募集', idea: '意見', pain: 'ペイン', other: 'その他', comment: 'コメント' };
+var KIND_LABEL = { recruit: '募集', idea: '意見', pain: 'ペイン', other: 'フリー', comment: 'コメント' };
 function whoLabel(uid) { var m = member(uid); return m ? m.name + (m.grade ? ' · ' + m.grade : '') : '（退部した部員）'; }
 function itemsIn(items, reports) {
   var byId = {}; items.forEach(function (x) { byId[x.id] = x; });
