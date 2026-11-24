@@ -34,6 +34,15 @@
     },
     host: function (u) { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return ''; } },
     myRoles: function () { return (DB.self && DB.self.roles) || []; },
+    CAL: 'https://addvjcwwlklwmkwhhsjv.supabase.co/functions/v1/cal', calTok: null,
+    ensureCal: function () { // カレンダー購読用の合い言葉（なければ作る）
+      if (DB._ctAsk || !DB.me) return; DB._ctAsk = true;
+      sb.from('cal_tokens').select('token').eq('user_id', DB.me).then(function (r) {
+        var row = r.data && r.data[0]; if (row) { DB.calTok = row.token; bump(); return; }
+        var tk = (window.crypto && crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now()).replace(/-/g, '');
+        sb.from('cal_tokens').insert({ user_id: DB.me, token: tk }).then(function (r2) { if (!r2.error) { DB.calTok = tk; bump(); } else DB._ctAsk = false; });
+      });
+    },
     prog: function () { var pg = ITEMS.filter(function (x) { return x.kind === 'program' && x.state === 'ok'; })[0]; return (pg && pg.data && pg.data.v2) || []; },
     level: function (uid) { // 印（レベル）を付けたイベントの並び順で、出席したいちばん後ろのもの
       var L = 0, i = 0, cal = {}; ITEMS.forEach(function (x) { if (x.kind === 'cal') cal[x.id] = x.data || {}; });
@@ -284,6 +293,12 @@ function memberExtras(v) {
     baseNote: bN ? bD + ' / ' + bN + ' 修了' : 'まだ単元がありません', basePct: (bN ? Math.round(bD / bN * 100) : 0) + '%',
     roleNote: myRole ? '受講中：' + myRole : 'ロール未設定', rolePct: (rN ? Math.round(rD / rN * 100) : 0) + '%', pracBadge: String(v.pStats ? v.pStats[0].n : 0), hasPracBadge: !!(v.pStats && v.pStats[0].n),
     unit: unit, uNoQuiz: !uqz.length, openUnit: function () {},
+    calSub: (function () {
+      if (s.tab === 'me') D.ensureCal();
+      var https = D.calTok ? D.CAL + '?t=' + D.calTok : '', web = https.replace(/^https:/, 'webcal:');
+      return { ios: web || '#', google: web ? 'https://calendar.google.com/calendar/r?cid=' + encodeURIComponent(web) : '#', note: s.calCopied ? 'コピーしました' : '',
+        copy: function () { if (!https) return; (navigator.clipboard ? navigator.clipboard.writeText(https) : Promise.reject()).then(function () { self.setState({ calCopied: true }); setTimeout(function () { self.setState({ calCopied: false }); }, 1800); }, function () { prompt('URL', https); }); } };
+    })(),
     calTitle: cy + '.' + String(cm).padStart(2, '0'), calPrev: mv(-1), calNext: mv(1), dayTitle: cm + '.' + sel + ' ' + WDJ[new Date(cy, cm - 1, sel).getDay()],
     me: { name: self0.name, grade: self0.grade || '学部・学年未設定', lv: 'Lv' + D.level(D.me), ms: D.milestones(), track: myRole ? myRole + ' 受講中' : 'ロール未設定', post: self0.post && self0.post !== '—' ? self0.post : 'プレイヤー', roles: roleChips,
       editName: function () { var n = prompt('名前', self0.name || ''); if (n == null) return; var g = prompt('学部・学年（例：経営 1年）', self0.grade || ''); if (g == null) return; D.saveProfile({ name: n.trim() || self0.name, grade: g.trim() }); } },

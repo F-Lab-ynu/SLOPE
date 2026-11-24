@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = 'df94153b0d', FILE = 'index.ver';
+  var VER = '43481b8a3c', FILE = 'index.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -318,6 +318,15 @@ a.pgn{color:inherit}
     },
     host: function (u) { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return ''; } },
     myRoles: function () { return (DB.self && DB.self.roles) || []; },
+    CAL: 'https://addvjcwwlklwmkwhhsjv.supabase.co/functions/v1/cal', calTok: null,
+    ensureCal: function () { // カレンダー購読用の合い言葉（なければ作る）
+      if (DB._ctAsk || !DB.me) return; DB._ctAsk = true;
+      sb.from('cal_tokens').select('token').eq('user_id', DB.me).then(function (r) {
+        var row = r.data && r.data[0]; if (row) { DB.calTok = row.token; bump(); return; }
+        var tk = (window.crypto && crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now()).replace(/-/g, '');
+        sb.from('cal_tokens').insert({ user_id: DB.me, token: tk }).then(function (r2) { if (!r2.error) { DB.calTok = tk; bump(); } else DB._ctAsk = false; });
+      });
+    },
     prog: function () { var pg = ITEMS.filter(function (x) { return x.kind === 'program' && x.state === 'ok'; })[0]; return (pg && pg.data && pg.data.v2) || []; },
     level: function (uid) { // 印（レベル）を付けたイベントの並び順で、出席したいちばん後ろのもの
       var L = 0, i = 0, cal = {}; ITEMS.forEach(function (x) { if (x.kind === 'cal') cal[x.id] = x.data || {}; });
@@ -568,6 +577,12 @@ function memberExtras(v) {
     baseNote: bN ? bD + ' / ' + bN + ' 修了' : 'まだ単元がありません', basePct: (bN ? Math.round(bD / bN * 100) : 0) + '%',
     roleNote: myRole ? '受講中：' + myRole : 'ロール未設定', rolePct: (rN ? Math.round(rD / rN * 100) : 0) + '%', pracBadge: String(v.pStats ? v.pStats[0].n : 0), hasPracBadge: !!(v.pStats && v.pStats[0].n),
     unit: unit, uNoQuiz: !uqz.length, openUnit: function () {},
+    calSub: (function () {
+      if (s.tab === 'me') D.ensureCal();
+      var https = D.calTok ? D.CAL + '?t=' + D.calTok : '', web = https.replace(/^https:/, 'webcal:');
+      return { ios: web || '#', google: web ? 'https://calendar.google.com/calendar/r?cid=' + encodeURIComponent(web) : '#', note: s.calCopied ? 'コピーしました' : '',
+        copy: function () { if (!https) return; (navigator.clipboard ? navigator.clipboard.writeText(https) : Promise.reject()).then(function () { self.setState({ calCopied: true }); setTimeout(function () { self.setState({ calCopied: false }); }, 1800); }, function () { prompt('URL', https); }); } };
+    })(),
     calTitle: cy + '.' + String(cm).padStart(2, '0'), calPrev: mv(-1), calNext: mv(1), dayTitle: cm + '.' + sel + ' ' + WDJ[new Date(cy, cm - 1, sel).getDay()],
     me: { name: self0.name, grade: self0.grade || '学部・学年未設定', lv: 'Lv' + D.level(D.me), ms: D.milestones(), track: myRole ? myRole + ' 受講中' : 'ロール未設定', post: self0.post && self0.post !== '—' ? self0.post : 'プレイヤー', roles: roleChips,
       editName: function () { var n = prompt('名前', self0.name || ''); if (n == null) return; var g = prompt('学部・学年（例：経営 1年）', self0.grade || ''); if (g == null) return; D.saveProfile({ name: n.trim() || self0.name, grade: g.trim() }); } },
@@ -1619,7 +1634,10 @@ setInterval(window.__chrome, 400);
 <div style="font-weight: 700; font-size: 17px">{{ e.title }}</div>
 <div style="display: flex; justify-content: space-between; align-items: center">
 <span style="font-size: 13px; color: #BDBAB3">{{ e.meta }}</span>
+<span style="display: flex; gap: 8px; align-items: center">
+<button onClick="{{ e.icsGo }}" aria-label="カレンダーに追加" title="カレンダーに追加" style="display: {{ e.icsD }}; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 6px; border: 1px solid #383836; background: transparent; color: #D2CFC8"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M12 13v5M9.5 15.5h5"/></svg></button>
 <button onClick="{{ e.toggle }}" style="display: {{ e.jd }}; align-items: center; height: 40px; padding: 0 14px; border-radius: 6px; border: 1px solid {{ e.joinBd }}; background: {{ e.joinBg }}; color: {{ e.joinFg }}; font-weight: 700; font-size: 13px">{{ e.joinLabel }}</button>
+</span>
 </div>
 </div>
 </sc-for>
@@ -1683,6 +1701,15 @@ setInterval(window.__chrome, 400);
 <div style="display: flex; flex-direction: column; gap: 10px">
 <h2 class="h2">外部出場の記録</h2>
 <div class="card" style="padding: 16px; border-radius: 8px; border-style: dashed; font-size: 14px; color: #A3A19B; line-height: 1.6">まだありません</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<h2 class="h2">カレンダー</h2>
+<div class="card" style="border-radius: 8px; overflow: hidden">
+<a href="{{ calSub.ios }}" style="display: flex; align-items: center; gap: 12px; padding: 16px; border-bottom: 1px solid #252524; color: #F3F1EC; text-decoration: none"><span style="flex: 1; font-weight: 500">iPhone・Mac</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></a>
+<a href="{{ calSub.google }}" style="display: flex; align-items: center; gap: 12px; padding: 16px; border-bottom: 1px solid #252524; color: #F3F1EC; text-decoration: none"><span style="flex: 1; font-weight: 500">Google</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></a>
+<button onClick="{{ calSub.copy }}" style="display: flex; align-items: center; gap: 12px; width: 100%; padding: 16px; border: 0; background: transparent; color: #F3F1EC; font: inherit; text-align: left"><span style="flex: 1; font-weight: 500">URLをコピー</span><span style="font-size: 13px; color: #A3A19B">{{ calSub.note }}</span></button>
+</div>
 </div>
 
 <sc-if value="{{ isOps }}"><div style="display: flex; flex-direction: column; gap: 10px">
@@ -2059,7 +2086,7 @@ class Component extends DCLogic {
     const clubEvents = []; // 本番では member.js が上書き
     const dayEvents = evIn(cy, cm, selDay).map((e) => {
       const on = e.joinId ? D.mine(e.joinId, e.joinKind) : false;
-      return Object.assign({}, e, { color: typeColor[e.type], meta: [e.time, e.place].filter(Boolean).join(' · '), jd: e.joinId ? 'inline-flex' : 'none', joinLabel: e.joinId ? (on ? (e.joinKind === 'join' ? '登録済み' : '予定に追加済み') : (e.joinKind === 'join' ? '参加登録' : '予定に追加')) : '—',
+      return Object.assign({}, e, { color: typeColor[e.type], meta: [e.time, e.place].filter(Boolean).join(' · '), jd: e.joinId ? 'inline-flex' : 'none', icsD: e.joinKind === 'join' && e.joinId && e.date ? 'inline-flex' : 'none', icsGo: () => window.__openLink(D.CAL + '?e=' + encodeURIComponent(e.joinId), e.title), joinLabel: e.joinId ? (on ? (e.joinKind === 'join' ? '登録済み' : '予定に追加済み') : (e.joinKind === 'join' ? '参加登録' : '予定に追加')) : '—',
         joinBg: on ? 'transparent' : A, joinFg: on ? A : INK, joinBd: A, toggle: () => { if (e.joinId) D.toggle(e.joinId, e.joinKind); } });
     });
 
@@ -2305,7 +2332,7 @@ class Component extends DCLogic {
     window.__UQ = uq.length ? { key: s.unitT + ':' + s.unitC, qs: uq, done: !!qd[s.unitT + ':' + s.unitC], pass: () => { const q = Object.assign({}, this.state.qz || {}); q[s.unitT + ':' + s.unitC] = true; this.setState({ qz: q }); } } : null;
 
     return {
-      meLv: meLv, meMs: meMs, uNoQuiz: !uq.length,
+      meLv: meLv, meMs: meMs, uNoQuiz: !uq.length, calSub: { ios: 'webcal://example.com/slope.ics', google: 'https://calendar.google.com/calendar/r', copy: () => {}, note: '' },
       dd: dd,
       accent: A,
       show: {
