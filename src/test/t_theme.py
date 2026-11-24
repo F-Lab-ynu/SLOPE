@@ -15,6 +15,7 @@ async def main():
         print('light:', await pg.evaluate("document.documentElement.classList.contains('light')"), await pg.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--bg')"))
         await pg.reload(); await pg.wait_for_timeout(1200)
         print('kept:', await pg.evaluate("localStorage.getItem('slope-theme')"), await pg.evaluate("document.documentElement.classList.contains('light')"))
-        await pg.screenshot(path='/tmp/th3.png')
+        await pg.click('#stage [data-theme-open]') if await pg.locator('#stage [data-theme-open]').count() else None
+        await pg.wait_for_timeout(300); await pg.screenshot(path='/tmp/th3.png')
         print('errors:', errs); await b.close()
 asyncio.run(main())

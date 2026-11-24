@@ -1419,7 +1419,7 @@ body.wide .iqsheet{bottom:auto;top:50%;transform:translate(-50%,-50%);border-bot
 <section class="mpsec">
 <h2 class="h2">設定</h2>
 <div class="mplist">
-<button class="mprow" data-theme-open="1"><span class="mpl">テーマ</span><span class="thdot" aria-hidden="true"><i></i></span><svg class="mpch" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+<button class="mprow" data-theme-open="1"><span class="mpl">テーマ</span><span class="thdot" aria-hidden="true"><i style="background:var(--bg)"></i><i style="background:var(--fg)"></i><i style="background:var(--ac)"></i></span><svg class="mpch" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
 <button class="mprow" onClick="{{ push.toggle }}" role="switch" aria-checked="{{ push.on }}"><span class="mpl">通知を受け取る<small>{{ push.note }}</small></span><span class="mpsw" style="background: {{ push.bg }}"><i style="left: {{ push.x }}; background: {{ push.knob }}"></i></span></button>
 <a class="mprow" href="{{ calSub.ios }}"><span class="mpl">iPhone・Mac のカレンダーに追加</span><svg class="mpch" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
 <a class="mprow" href="{{ calSub.google }}"><span class="mpl">Google カレンダーに追加</span><svg class="mpch" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
@@ -2648,7 +2648,7 @@ html.invon,html.invon body{overflow:hidden}
     var c = window.__theme().join(), h = '<div class="npbg" data-th-x></div><div class="iqsheet thsheet" role="dialog" aria-label="テーマ"><div class="iqtop"><b>テーマ</b><button data-th-x aria-label="閉じる"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="iqbody">';
     window.__THEMES.forEach(function (g) {
       h += '<span class="lbl">' + g[0] + '</span><div class="thgrid">' + g[1].map(function (t) { var on = t.join() === c;
-        return '<button class="thc' + (on ? ' on' : '') + '" data-th="' + t.join() + '" aria-pressed="' + on + '" style="background:' + t[0] + ';color:' + t[1] + ';box-shadow:inset 0 0 0 1px ' + t[1] + '1f"><b>Aa</b><i style="background:' + t[2] + '"></i></button>'; }).join('') + '</div>';
+        return '<button class="thc' + (on ? ' on' : '') + '" data-th="' + t.join() + '" aria-pressed="' + on + '"' + (on ? ' style="border-color:' + t[2] + '"' : '') + '>' + t.map(function (x) { return '<i style="background:' + x + '"></i>'; }).join('') + '</button>'; }).join('') + '</div>';
     });
     var w = document.createElement('div'); w.id = 'thpop'; w.innerHTML = h + '</div></div>'; document.body.appendChild(w);
   }
@@ -2665,13 +2665,11 @@ html.invon,html.invon body{overflow:hidden}
 </script>
 <style>
 html.light{color-scheme:light}
-.thdot{flex:none;width:22px;height:22px;border-radius:7px;background:var(--bg);box-shadow:inset 0 0 0 1px var(--n21);display:flex;align-items:center;justify-content:center}
-.thdot i{width:10px;height:10px;border-radius:50%;background:var(--ac)}
+.thdot{flex:none;display:flex;gap:4px}
+.thdot i{width:12px;height:12px;border-radius:3px;display:block;box-shadow:inset 0 0 0 1px var(--n28)}
 .thgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px}
-.thc{position:relative;height:60px;border:0;border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;font:inherit;outline:2px solid transparent;outline-offset:2px}
-.thc b{font-size:17px;font-weight:700;letter-spacing:.02em}
-.thc i{position:absolute;right:8px;bottom:8px;width:8px;height:8px;border-radius:50%}
-.thc.on{outline-color:var(--ac)}
+.thc{height:56px;border:2px solid transparent;border-radius:12px;background:var(--n8);display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer}
+.thc i{width:14px;height:14px;border-radius:4px;display:block;box-shadow:inset 0 0 0 1px var(--n28)}
 .thsheet .lbl{display:block;margin:0}
 </style>
 </body>
