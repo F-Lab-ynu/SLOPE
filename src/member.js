@@ -151,6 +151,9 @@
     readAll: function () { if (!NOTIFS.some(function (n) { return !n.read; })) return; NOTIFS.forEach(function (n) { n.read = true; }); bump(); sb.from('notifications').update({ read: true }).eq('to_id', DB.me).eq('read', false).then(function () {}); },
     readNotif: function (id) { NOTIFS.forEach(function (n) { if (n.id === id) n.read = true; }); bump(); sb.from('notifications').update({ read: true }).eq('id', id).then(function () {}); },
     saveProfile: function (patch) { Object.assign(DB.self, patch); bump(); return sb.from('profiles').update(patch).eq('id', DB.me).then(function (r) { if (r.error) DB.flash('保存できませんでした'); else DB.flash('保存しました'); reload(); }); },
+    inqs: null,
+    loadInq: function () { sb.from('inquiries').select('*').eq('user_id', DB.me).order('created_at', { ascending: false }).then(function (r) { DB.inqs = r.data || []; bump(); }); },
+    sendInq: function (kind, body) { return sb.from('inquiries').insert({ user_id: DB.me, kind: kind, body: body }).then(function (r) { if (r.error) { DB.flash('送れませんでした'); return false; } DB.flash('送りました'); DB.loadInq(); return true; }); },
     logout: function () { sb.auth.signOut().then(function () { location.replace(location.pathname); }); }
   };
 
@@ -317,6 +320,15 @@ function memberExtras(v) {
     baseNote: bN ? bD + ' / ' + bN + ' 修了' : 'まだ単元がありません', basePct: (bN ? Math.round(bD / bN * 100) : 0) + '%',
     roleNote: myRole ? '受講中：' + myRole : 'ロール未設定', rolePct: (rN ? Math.round(rD / rN * 100) : 0) + '%', pracBadge: String(v.pStats ? v.pStats[0].n : 0), hasPracBadge: !!(v.pStats && v.pStats[0].n),
     unit: unit, uNoQuiz: !uqz.length, openUnit: function () {},
+    iq: (function () {
+      var K = ['要望', '不具合', '質問', 'その他'], cur = s.iqKind || '要望';
+      if (s.iqPop && D.inqs === null) { D.inqs = []; D.loadInq(); }
+      var mine = (D.inqs || []).map(function (q) { var d = new Date(q.created_at); return { kind: q.kind, body: q.body, at: (d.getMonth() + 1) + '.' + d.getDate(), status: q.status === 'done' ? '対応済み' : '受付中', reply: q.reply || '', hasReply: !!q.reply }; });
+      return { pop: !!s.iqPop, open: function () { self.setState({ iqPop: true }); }, close: function () { self.setState({ iqPop: false }); },
+        kinds: K.map(function (k) { return { name: k, on: String(k === cur), bg: k === cur ? '#F3F1EC' : 'transparent', fg: k === cur ? '#070707' : '#D2CFC8', pick: function () { self.setState({ iqKind: k }); } }; }),
+        send: function () { var el = document.getElementById('iqText'), v = el ? el.value.trim() : ''; if (!v) { if (el) el.focus(); return; } D.sendInq(cur, v).then(function (ok) { if (ok && el) el.value = ''; }); },
+        mine: mine, hasMine: mine.length > 0 };
+    })(),
     push: (function () {
       var st = D.pushState(), on = st === 'on';
       var note = { on: '', off: '', denied: 'ブラウザの設定で通知が止められています', ios: 'ホーム画面に追加すると受け取れます', no: 'この端末では受け取れません' }[st];

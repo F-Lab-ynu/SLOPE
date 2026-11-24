@@ -1845,6 +1845,18 @@ button.mr{cursor:pointer}button.mr:hover{background:var(--hover)}
 .qzsp{flex:none;width:26px}
 .qzadd.sm{height:24px;font-size:12px;margin-left:24px;align-self:flex-start}
 .mlv{margin-left:8px;font-size:11px;font-weight:600;color:var(--sub);border:1px solid var(--line2);border-radius:4px;padding:0 5px;vertical-align:1px}
+.iql{display:flex;flex-direction:column;gap:12px;max-width:760px}
+.iq{border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;background:#fff}
+.iq.done{background:var(--bg2,#FAFAFA)}
+.iqh{display:flex;align-items:center;gap:10px;font-size:13px}
+.iqw{display:inline-flex;align-items:center;gap:6px;font-weight:500}
+.iqw .av{width:22px;height:22px;font-size:10px}
+.iqh .sp{flex:1}
+.iqb{font-size:14px;line-height:1.7;white-space:pre-wrap}
+.iqr{font-size:13px;line-height:1.6;display:flex;gap:10px;padding-top:10px;border-top:1px solid var(--line)}
+.iqr .muted{flex:none}
+.iqf{display:flex;flex-direction:column;gap:8px}
+.iqa{display:flex;justify-content:flex-end;gap:8px}
 </style>
 <style id="bootcss">
 #boot{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;background:var(--bootbg);color:var(--bootfg);transition:opacity .28s ease}
@@ -1881,7 +1893,7 @@ var TABS = [
   { id: 'projects', name: '業務' },
   { id: 'tracks', name: '教材' },
   { id: 'notices', name: '告知' },
-  { id: 'board', name: '掲示板' }
+  { id: 'board', name: '部員の声' }
 ];
 
 // ---------------- sample data (fictional) ----------------
@@ -2484,7 +2496,7 @@ var UI = { acct: false, pmenu: false };
 function counts() {
   return {
     notices: S.offers.filter(function (o) { return o.state === 'wait'; }).length,
-    board: S.posts.filter(function (p) { return p.reports > 0 && p.state === 'ok'; }).length,
+    board: S.posts.filter(function (p) { return p.reports > 0 && p.state === 'ok'; }).length + (S.inqs || []).filter(function (q) { return q.status !== 'done'; }).length,
     projects: S.projects.reduce(function (n, p) { return n + leavesOf(p).filter(function (k) { return late(k) && (isAdmin() || chainHas(k, S.me)); }).length; }, 0),
     dash: myTasks(S.me).filter(function (o) { return !isDone(o.k); }).length
   };
@@ -2494,7 +2506,7 @@ var BADGE = { dash: '自分の未完了の作業', notices: '部員からの情�
 function renderChrome() {
   var m = me(), c = counts();
   document.getElementById('nav').innerHTML = navItems().map(function (v) {
-    var SH = { dash: 'ホーム', tracks: '教材', notices: '告知', board: '掲示板', projects: '業務', perms: 'メンバー' };
+    var SH = { dash: 'ホーム', tracks: '教材', notices: '告知', board: '部員の声', projects: '業務', perms: 'メンバー' };
     return '<button data-act="go" data-view="' + v.id + '"' + (S.view === v.id ? ' aria-current="page"' : '') + '>' + ic(v.id) + '<span class="full">' + v.name + '</span><span class="short">' + (SH[v.id] || v.name) + '</span>' + (c[v.id] ? '<span class="n" title="' + (BADGE[v.id] || '') + ' ' + c[v.id] + '件">' + c[v.id] + '</span>' : '') + '</button>';
   }).join('');
   document.getElementById('acct').innerHTML = '<div class="mode"><span>運営</span><button class="msw on" data-to="./" role="switch" aria-checked="true" aria-label="部員画面に切り替える"><i></i></button></div>' + '<button data-act="acct" aria-haspopup="true" aria-expanded="' + UI.acct + '">' + av(m.id, 'lg') + '<span class="who"><b>' + esc(m.name) + '</b><span>' + esc(m.unit === '—' ? '部員' : m.unit) + '</span></span>' + ic('chev') + '</button>' +
@@ -2604,7 +2616,7 @@ function viewBoard() {
       '<td class="rp">' + (p.reports > 0 && !gone ? '<span class="bad num">' + p.reports + '</span> <span class="muted">' + esc(p.reason) + '</span>' : '<span class="dim">—</span>') + '</td>' +
       '<td class="a"><div class="acts">' + acts + '</div></td></tr>';
   }).join('');
-  return top('掲示板') + utabs('boardTab', [['rep', '通報', reported.length], ['all', 'すべて', S.posts.length]]) +
+  return top('部員の声') + utabs('boardTab', [['inq', 'お問い合わせ', inqOpen()], ['rep', '通報', reported.length], ['all', '投稿', S.posts.length]]) +
     '<div class="body"><div class="tw"><table><thead><tr><th>内容</th><th>場所</th><th>通報</th><th></th></tr></thead><tbody>' +
     (rows || '<tr><td colspan="4" class="empty">なし</td></tr>') + '</tbody></table></div></div>';
 }
@@ -2979,7 +2991,7 @@ function viewBoard() {
       '<td class="rp">' + (p.reports > 0 && !gone ? '<span class="bad num">' + p.reports + '</span> <span class="muted">' + esc(p.reason) + '</span>' : '<span class="dim">—</span>') + '</td>' +
       '<td class="a"><div class="acts">' + acts + '</div></td></tr>';
   }).join('');
-  return top('掲示板') + utabs('boardTab', [['rep', '通報', reported.length], ['all', 'すべて', S.posts.length]]) +
+  return top('部員の声') + utabs('boardTab', [['inq', 'お問い合わせ', inqOpen()], ['rep', '通報', reported.length], ['all', '投稿', S.posts.length]]) +
     '<div class="body"><div class="tw"><table><thead><tr><th>内容</th><th>場所</th><th>通報</th><th></th></tr></thead><tbody>' +
     (rows || '<tr><td colspan="4" class="empty">' + (S.boardTab === 'rep' ? '対応が必要な通報はありません' : '投稿はありません') + '</td></tr>') + '</tbody></table></div></div>';
 }
@@ -4810,7 +4822,7 @@ document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && M 
 })();
 
 // ---------- ux30 アクセス統計（代表だけ） ----------
-var TABN = { member: { home: 'ホーム', learn: '学ぶ', news: 'ニュース', board: '掲示板', cal: '予定', me: 'マイページ', open: '起動' }, admin: { dash: 'ダッシュボード', projects: '業務', tracks: '教材', notices: '外部告知', board: '掲示板', perms: 'メンバー', open: '起動' } };
+var TABN = { member: { home: 'ホーム', learn: '学ぶ', news: 'ニュース', board: '掲示板', cal: '予定', me: 'マイページ', open: '起動' }, admin: { dash: 'ダッシュボード', projects: '業務', tracks: '教材', notices: '外部告知', board: '部員の声', perms: 'メンバー', open: '起動' } };
 function sampleAccess() {
   var days = [], seed = 7;
   for (var i = 13; i >= 0; i--) { seed = (seed * 37 + 11) % 97; var u = 18 + seed % 40 + (i < 3 ? 15 : 0); days.push({ day: isoOf(TODAY - i * DAY), users: u, views: u * 4 + seed % 20 }); }
@@ -6641,6 +6653,41 @@ p2Editor = function () {
   if (f && f.n.k === 'u') { var t = p2Track(f.n.t), u = p2Unit(f.n); if (t && u) setTimeout(function () { (unitData(t, u.code).materials || []).forEach(function (m) { autoTitle(t, m); }); }, 0); }
   return h;
 };
+// ---------- ux60 部員の声：お問い合わせ・要望（本人と運営だけが見られる）。返すと本人に通知 ----------
+if (!S.inqs) S.inqs = [
+  { id: 'q1', user: 'm6', kind: '要望', body: '教材の動画を倍速で見られるようにしてほしいです', status: 'open', reply: '', at: '11.23 21:14' },
+  { id: 'q2', user: 'm7', kind: '不具合', body: 'カレンダーの予定が1日ずれて表示されます', status: 'done', reply: '直しました。ご連絡ありがとうございます', at: '11.20 10:02' }
+];
+function inqOpen() { return (S.inqs || []).filter(function (q) { return q.status !== 'done'; }).length || null; }
+function inqSave(q, patch) { Object.assign(q, patch); if (window.__inqUpdate) window.__inqUpdate(q.id, patch); else save(); }
+var _viewBoard60 = viewBoard;
+viewBoard = function () {
+  if (!S.boardTab || S.boardTab === 'all' && !S._bt60) { S.boardTab = 'inq'; S._bt60 = 1; }
+  var h = _viewBoard60(); if (S.boardTab !== 'inq') return h;
+  var head = h.slice(0, h.indexOf('<div class="body">'));
+  var list = (S.inqs || []).slice().sort(function (a, b) { return (a.status === 'done') - (b.status === 'done'); });
+  var rows = list.map(function (q) {
+    var m = member(q.user), done = q.status === 'done';
+    return '<div class="iq' + (done ? ' done' : '') + '"><div class="iqh"><span class="tag">' + esc(q.kind) + '</span><span class="iqw">' + (m ? av(q.user) + esc(m.name) : '退部した部員') + '</span><span class="muted num">' + esc(q.at) + '</span><span class="sp"></span>' +
+      (done ? '<button class="btn sm ghost" data-iq="reopen" data-id="' + q.id + '">未対応に戻す</button>' : '') + '<button class="ib" data-iq="del" data-id="' + q.id + '" aria-label="削除" title="削除">' + ic('x') + '</button></div>' +
+      '<div class="iqb">' + esc(q.body) + '</div>' +
+      (done ? (q.reply ? '<div class="iqr"><span class="muted">返信</span>' + esc(q.reply) + '</div>' : '<div class="iqr muted">対応済み</div>')
+        : '<div class="iqf"><textarea class="input" rows="2" data-iqr="' + q.id + '" aria-label="返信"></textarea><div class="iqa"><button class="btn sm" data-iq="done" data-id="' + q.id + '">返信せずに完了</button><button class="btn sm primary" data-iq="reply" data-id="' + q.id + '">返信して完了</button></div></div>') + '</div>';
+  }).join('');
+  return head + '<div class="body"><div class="iql">' + (rows || '<div class="empty">お問い合わせはまだありません</div>') + '</div></div>';
+};
+window.addEventListener('click', function (e) {
+  var b = e.target.closest && e.target.closest('[data-iq]'); if (!b) return; e.preventDefault(); e.stopImmediatePropagation();
+  var q = (S.inqs || []).filter(function (x) { return String(x.id) === b.dataset.id; })[0]; if (!q) return;
+  var a = b.dataset.iq;
+  if (a === 'del') { if (!confirm('このお問い合わせを削除しますか？')) return; S.inqs = S.inqs.filter(function (x) { return x !== q; }); if (window.__inqDelete) window.__inqDelete(q.id); else save(); render(); return; }
+  if (a === 'reopen') { inqSave(q, { status: 'open' }); render(); return; }
+  var ta = document.querySelector('[data-iqr="' + q.id + '"]'), txt = ta ? ta.value.trim() : '';
+  if (a === 'reply' && !txt) { if (ta) ta.focus(); toast('返信を書いてください'); return; }
+  inqSave(q, { status: 'done', reply: a === 'reply' ? txt : '' });
+  if (a === 'reply') { window.notify(q.user, 'お問い合わせに返信：' + txt.slice(0, 80), q.kind); toast('返信を送りました'); }
+  render();
+}, true);
 // ---------- ux57 ダッシュボードはタブで切り替える（自分／進行中／統計） ----------
 var _viewDash57 = viewDash;
 viewDash = function () {

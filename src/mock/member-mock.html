@@ -284,6 +284,24 @@ body.wide .nppanel{top:64px}
 .mpnone{margin:0;padding:2px 2px 0;font-size:14px;color:#7D7B76;line-height:1.6}
 .mpout{height:50px;border:1px solid #2C2C2A;border-radius:12px;background:transparent;color:#BDBAB3;font:inherit;font-size:15px}
 .mpfoot{display:flex;flex-direction:column;align-items:center;gap:8px;padding-top:4px;opacity:.5;font-size:12px;color:#A3A19B}
+.iqsheet{position:fixed;z-index:81;left:50%;bottom:0;transform:translateX(-50%);width:min(520px,100vw);max-height:88vh;display:flex;flex-direction:column;background:#131313;border:1px solid #2C2C2A;border-bottom:0;border-radius:16px 16px 0 0;box-shadow:0 -12px 40px rgba(0,0,0,.5);animation:iqin .2s ease-out}
+@keyframes iqin{from{transform:translate(-50%,24px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
+body.wide .iqsheet{bottom:auto;top:50%;transform:translate(-50%,-50%);border-bottom:1px solid #2C2C2A;border-radius:16px;animation:none}
+.iqtop{flex:none;display:flex;align-items:center;justify-content:space-between;padding:16px 12px 8px 20px;color:#F3F1EC;font-size:16px}
+.iqtop button{width:40px;height:40px;border:0;background:transparent;color:#BDBAB3;display:flex;align-items:center;justify-content:center}
+.iqbody{overflow:auto;padding:4px 20px calc(env(safe-area-inset-bottom) + 20px);display:flex;flex-direction:column;gap:12px}
+.iqkinds{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.iqkinds button{height:38px;border:1px solid #383836;border-radius:8px;font:inherit;font-size:14px}
+.iqkinds button[aria-pressed="true"]{border-color:#F3F1EC}
+#iqText{width:100%;box-sizing:border-box;resize:vertical;min-height:120px;padding:12px 14px;background:#0B0B0A;border:1px solid #383836;border-radius:10px;color:#F3F1EC;font:inherit;font-size:16px;line-height:1.6}
+#iqText:focus{outline:none;border-color:#7D7B76}
+.iqsend{height:48px;border:0;border-radius:10px;background:#F3F1EC;color:#070707;font:inherit;font-size:16px;font-weight:700}
+.iqhint{margin:0;font-size:12px;color:#7D7B76;text-align:center}
+.iqmine{display:flex;flex-direction:column;gap:8px;padding-top:8px}
+.iqm{border:1px solid #232322;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.iqmh{display:flex;justify-content:space-between;font-size:12px;color:#A3A19B}
+.iqm p{margin:0;font-size:14px;line-height:1.6;color:#F3F1EC;white-space:pre-wrap}
+.iqm p.iqrep{padding-top:8px;border-top:1px solid #232322;color:#D2CFC8}
 </style>
 </head>
 <body>
@@ -334,6 +352,19 @@ body.wide .nppanel{top:64px}
 </div>
 </sc-for>
 <sc-if value="{{ noNotifs }}"><div class="npempty">お知らせはありません</div></sc-if>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ iq.pop }}" hint-placeholder-val="{{ false }}">
+<div onClick="{{ iq.close }}" class="npbg"></div>
+<div class="iqsheet" role="dialog" aria-label="お問い合わせ・要望">
+<div class="iqtop"><b>お問い合わせ・要望</b><button onClick="{{ iq.close }}" aria-label="閉じる"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+<div class="iqbody">
+<div class="iqkinds"><sc-for list="{{ iq.kinds }}" as="k"><button onClick="{{ k.pick }}" aria-pressed="{{ k.on }}" style="background: {{ k.bg }}; color: {{ k.fg }}">{{ k.name }}</button></sc-for></div>
+<textarea id="iqText" rows="5" aria-label="内容"></textarea>
+<button class="iqsend" onClick="{{ iq.send }}">送信</button>
+<p class="iqhint">運営だけが読みます。返信は通知で届きます</p>
+<sc-if value="{{ iq.hasMine }}"><div class="iqmine"><span class="lbl">送ったもの</span><sc-for list="{{ iq.mine }}" as="q"><div class="iqm"><div class="iqmh"><span>{{ q.kind }} · {{ q.at }}</span><span>{{ q.status }}</span></div><p>{{ q.body }}</p><sc-if value="{{ q.hasReply }}"><p class="iqrep">{{ q.reply }}</p></sc-if></div></sc-for></div></sc-if>
 </div>
 </div>
 </sc-if>
@@ -1328,6 +1359,11 @@ body.wide .nppanel{top:64px}
 </div>
 </section>
 
+<section class="mpsec">
+<h2 class="h2">サポート</h2>
+<div class="mplist"><button class="mprow" onClick="{{ iq.open }}"><span class="mpl">お問い合わせ・要望</span><svg class="mpch" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button></div>
+</section>
+
 <sc-if value="{{ isOps }}">
 <section class="mpsec">
 <h2 class="h2">運営</h2>
@@ -2198,7 +2234,7 @@ class Component extends DCLogic {
       me: { name: '山田 太郎', grade: '経営学部 1年', post: 'プレイヤー', editName: () => {}, lv: meLv, msTotal: meMs.length ? meMs.reduce((a, x) => a + (+x.label.split(' ').pop().split('/')[0]), 0) + '/' + meMs.reduce((a, x) => a + (+x.label.split('/').pop()), 0) : '—',
         roles: ['Strategist', 'Negotiator', 'Advertiser', 'Engineer', 'Innovator'].map((r) => ({ name: r, on: String(r === 'Strategist'), op: r === 'Strategist' ? 1 : 0, pick: () => {} })) },
       noProjects: false, hasProjects: true, myProjects: [{ label: '実プロジェクト枠 · Strategist', title: '空きコマ×単発バイトのマッチング', open: () => {} }], isOps: true, logout: () => {}, meIni: 'YT',
-      meLv: meLv, meMs: meMs, uNoQuiz: !uq.length, calSub: { ios: 'webcal://example.com/slope.ics', google: 'https://calendar.google.com/calendar/r', copy: () => {}, note: '' }, push: { toggle: () => {}, on: 'false', note: '', bg: '#383836', x: '3px', knob: '#7D7B76' },
+      meLv: meLv, meMs: meMs, uNoQuiz: !uq.length, iq: { pop: false, open: () => {}, close: () => {}, kinds: [], send: () => {}, mine: [], hasMine: false }, calSub: { ios: 'webcal://example.com/slope.ics', google: 'https://calendar.google.com/calendar/r', copy: () => {}, note: '' }, push: { toggle: () => {}, on: 'false', note: '', bg: '#383836', x: '3px', knob: '#7D7B76' },
       dd: dd,
       accent: A,
       show: {

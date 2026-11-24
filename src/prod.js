@@ -69,8 +69,10 @@ async function loadAll() {
     sb.from('notifications').select('*').eq('to_id', S.me).order('created_at', { ascending: false }).limit(50),
     sb.from('items').select('*').order('created_at', { ascending: false }),
     sb.from('reports').select('*'),
-    sb.from('reactions').select('item_id,kind,user_id').eq('kind', 'join')
+    sb.from('reactions').select('item_id,kind,user_id').eq('kind', 'join'),
+    sb.from('inquiries').select('*').order('created_at', { ascending: false })
   ]);
+  if (res[6] && res[6].error) res[6] = { data: [] }; // お問い合わせは見られない人もいる
   for (var i = 0; i < res.length; i++) if (res[i].error) throw res[i].error;
   if (loadAll.guard != null && loadAll.guard !== SYNC.ver) return false; // 読み込み中に手元で変わった → 捨てて手元を優先
   var ps = res[0].data || [];
@@ -80,7 +82,8 @@ async function loadAll() {
   SYNC.profiles = {}; S.members.forEach(function (m) { SYNC.profiles[m.id] = profKey(m); });
   S.projects = buildTree(res[1].data || []);
   var joins = {}, jids = {}; (res[5].data || []).forEach(function (r) { joins[r.item_id] = (joins[r.item_id] || 0) + 1; (jids[r.item_id] = jids[r.item_id] || []).push(r.user_id); });
-  S.joinIds = jids; // 出席を付けるとき、参加登録した人を上に
+  S.joinIds = jids;
+  S.inqs = (res[6].data || []).map(function (q) { return { id: q.id, user: q.user_id, kind: q.kind, body: q.body, status: q.status, reply: q.reply, at: fmtAt(q.created_at) }; }); // 出席を付けるとき、参加登録した人を上に
   S.joins = joins; // 参加登録の数（業務のイベントは node の id、学ぶのイベントは 'pe:' + id）
   (function walk(a) { a.forEach(function (n) { if (n.kind === 'event') n.reg = joins[n.id] || 0; walk(n.tasks || []); }); })(S.projects);
   itemsIn(res[3].data || [], res[4].data || []);
@@ -117,6 +120,8 @@ async function syncNow() {
 }
 
 // ---------- 通知 ----------
+window.__inqUpdate = function (id, patch) { sb.from('inquiries').update(patch).eq('id', id).then(function (r) { if (r.error) toast('保存できませんでした'); }); };
+window.__inqDelete = function (id) { sb.from('inquiries').delete().eq('id', id).then(function (r) { if (r.error) toast('削除できませんでした'); }); };
 window.notify = function (to, text, sub) {
   if (!to) return;
   if (to === S.me) S.notifs.unshift({ to: to, text: text, sub: sub, at: nowLabel() });
@@ -152,6 +157,7 @@ function subscribe() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, onRemote)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'items' }, onRemote)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, onRemote)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'inquiries' }, onRemote)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'reactions' }, onRemote)
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: 'to_id=eq.' + S.me }, onRemote)
     .subscribe();
