@@ -239,7 +239,7 @@
         reply: () => { const el = document.getElementById('otReply'), v = el ? el.value.trim() : ''; if (!v) return; el.value = ''; el.style.height = ''; D.add('comment', { text: v }, p.id).then((r) => { const e2 = document.getElementById('otReply'); if (!r && e2) e2.value = v; else if (e2) e2.value = ''; }); } }); });
     const otTags = [{ name: 'すべて', on: String(!otf), pick: () => this.setState({ otf: '' }) }].concat(popTags.map((t) => ({ name: t, on: String(otf === t), pick: () => this.setState({ otf: otf === t ? '' : t }) })));
     const otHasTags = popTags.length > 0, otEmpty = otSel.length === 0;
-    const otFilters = [];
+    const otFilters = [Object.assign({ name: 'すべて', pick: () => this.setState({ otf: '' }) }, pick(!otf))].concat(popTags.map((t) => Object.assign({ name: t, pick: () => this.setState({ otf: t }) }, pick(otf === t))));
 
     // ---- 教材ライブラリ（全トラックの教材リンク） ----
     const srcColor = { '部内': A, 'FCE': '#A6A6A6', '外部': '#D2CFC8' };

@@ -378,7 +378,7 @@ function memberExtras(v) {
     postOther: function () {
       var e0 = document.getElementById('otText'), t = e0 ? e0.value.trim() : ''; if (!t) return;
       if (s.otf && t.indexOf(s.otf) < 0) t += ' ' + s.otf; // タグで絞り込んでいるときは、そのタグを付けて投稿
-      D.add('other', { text: t }).then(function (r) { if (r) { var e = document.getElementById('otText'); if (e) { e.value = ''; e.style.height = ''; } } });
+      D.add('other', { text: t }).then(function (r) { if (r) self.setState({ sub: null, tab: 'board', seg: 'other' }); });
     },
     painOpts: D.items('pain').map(function (x) { return { text: (x.data || {}).text || '' }; }),
     setLq: function (e) { self.setState({ lq: e.target.value }); }, setUq: function (e) { self.setState({ uq: e.target.value }); }
