@@ -1,0 +1,13 @@
+# Supabase の無料プランは1週間使われないと止まるので、毎日1回だけ軽く読みにいく（公開用のキーのみ使用）
+name: keepalive
+on:
+  schedule:
+    - cron: '17 21 * * *'   # 日本時間 毎朝6時17分
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          curl -fsS "https://addvjcwwlklwmkwhhsjv.supabase.co/rest/v1/items?select=id&limit=1" \
+            -H "apikey: sb_publishable_L8VP_h67F3FupHwqC_3pTw_YRbBVghw" -o /dev/null -w "%{http_code}\n"
