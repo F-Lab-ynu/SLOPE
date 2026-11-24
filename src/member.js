@@ -285,7 +285,7 @@ function memberExtras(v) {
 
   // マイページ
   var ROLES = ['Strategist', 'Negotiator', 'Advertiser', 'Engineer', 'Innovator'];
-  var roleChips = ROLES.map(function (r) { var on = (self0.roles || []).indexOf(r) >= 0; return { name: r, bg: on ? A : 'transparent', fg: on ? INK : '#D2CFC8', bd: on ? A : '#383836',
+  var roleChips = ROLES.map(function (r) { var on = (self0.roles || []).indexOf(r) >= 0; return { name: r, on: String(on), op: on ? 1 : 0, bg: on ? A : 'transparent', fg: on ? INK : '#D2CFC8', bd: on ? A : '#383836',
     pick: function () { var rs = (self0.roles || []).slice(), i = rs.indexOf(r); if (i >= 0) rs.splice(i, 1); else rs.push(r); D.saveProfile({ roles: rs }); } }; });
   var myProjects = D.items('recruit').filter(function (x) { return x.author === D.me || ((x.data || {}).roles || []).some(function (r) { return D.mine(x.id, 'slot:' + r); }); })
     .map(function (x) { var d = x.data || {}; var mine = ((d.roles || []).filter(function (r) { return D.mine(x.id, 'slot:' + r); })[0]) || (x.author === D.me ? '発起人' : ''); return { label: (d.frame || '') + ' · ' + mine, title: d.title, open: function () { self.setState({ sub: 'post', post: x.id }); } }; });
@@ -329,9 +329,9 @@ function memberExtras(v) {
         copy: function () { if (!https) return; (navigator.clipboard ? navigator.clipboard.writeText(https) : Promise.reject()).then(function () { self.setState({ calCopied: true }); setTimeout(function () { self.setState({ calCopied: false }); }, 1800); }, function () { prompt('URL', https); }); } };
     })(),
     calTitle: cy + '.' + String(cm).padStart(2, '0'), calPrev: mv(-1), calNext: mv(1), dayTitle: cm + '.' + sel + ' ' + WDJ[new Date(cy, cm - 1, sel).getDay()],
-    me: { name: self0.name, grade: self0.grade || '学部・学年未設定', lv: 'Lv' + D.level(D.me), ms: D.milestones(), track: myRole ? myRole + ' 受講中' : 'ロール未設定', post: self0.post && self0.post !== '—' ? self0.post : 'プレイヤー', roles: roleChips,
+    me: { name: self0.name, grade: self0.grade || '学部・学年未設定', lv: 'Lv' + D.level(D.me), ms: D.milestones(), msTotal: (function () { var d = 0, n = 0; D.milestones().forEach(function (x) { var p = x.label.split(' ').pop().split('/'); d += +p[0]; n += +p[1]; }); return n ? d + '/' + n : '—'; })(), track: myRole ? myRole + ' 受講中' : 'ロール未設定', post: self0.post && self0.post !== '—' ? self0.post : 'プレイヤー', roles: roleChips,
       editName: function () { var n = prompt('名前', self0.name || ''); if (n == null) return; var g = prompt('学部・学年（例：経営 1年）', self0.grade || ''); if (g == null) return; D.saveProfile({ name: n.trim() || self0.name, grade: g.trim() }); } },
-    myProjects: myProjects, noProjects: myProjects.length === 0,
+    myProjects: myProjects, noProjects: myProjects.length === 0, hasProjects: myProjects.length > 0,
     curMine: !!cur.mine, curOther: !!cur.notMine,
     curDelete: function () { if (confirm('この投稿を削除しますか？')) { D.remove(cur.id); self.setState({ sub: null }); } },
     curReport: function () { var r = prompt('通報の理由（番号）\n1 攻撃的な表現\n2 勧誘・宣伝\n3 関係のない投稿\n4 その他', '1'); if (r == null) return; D.report(cur.id, reasons[(+r || 4) - 1] || 'その他'); },

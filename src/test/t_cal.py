@@ -15,7 +15,7 @@ async def main():
         toks = await db(pg, 'cal_tokens'); print('token rows:', len(toks))
         hrefs = await pg.evaluate("Array.from(document.querySelectorAll('#stage a')).map(a=>a.getAttribute('href')).filter(h=>/webcal|google/.test(h))")
         print('links:', [h[:70] for h in hrefs])
-        el = pg.locator('#stage h2:has-text("通知")').last; await el.scroll_into_view_if_needed(); await pg.screenshot(path='/tmp/calsub.png'); print('push row:', await pg.evaluate("(document.querySelector('#stage button[role=switch]')||{}).innerText"))
+        el = pg.locator('#stage h2:has-text("設定")').last; await el.scroll_into_view_if_needed(); await pg.screenshot(path='/tmp/calsub.png'); print('push row:', await pg.evaluate("(document.querySelector('#stage button[role=switch]')||{}).innerText"))
         await pg.evaluate("document.querySelectorAll('#stage nav button, .tabbar button, button').forEach(b=>{if(b.textContent.trim()==='予定')b.click()})"); await pg.wait_for_timeout(500)
         print('ics buttons:', await pg.locator('#stage button[aria-label="カレンダーに追加"]:visible').count())
         await pg.screenshot(path='/tmp/calday.png')

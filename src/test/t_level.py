@@ -20,7 +20,7 @@ async def main():
         pg = await page_as(b, B, {'width': 390, 'height': 844}, errs)
         await pg.evaluate("document.querySelector('#stage button[aria-label=\"マイページ\"]').click()"); await pg.wait_for_timeout(400)
         t = await pg.locator('#stage').inner_text()
-        print('lv chip:', 'Lv1' in t, '| ms chip:', 'Strategist 0/1' in t)
+        print('lv chip:', 'Lv1' in t, '| ms:', '0/1' in t)
         await pg.evaluate("location.search='?tab=learn'"); await pg.wait_for_timeout(1200)
         await pg.click('[data-pgu="ST1"]'); await pg.wait_for_timeout(500); await pg.screenshot(path='/tmp/mat.png')
         print('quiz shown:', await pg.locator('#uquiz .uqq').count(), '| done button hidden:', await pg.locator('#stage button:has-text("修了にする")').count() == 0)
