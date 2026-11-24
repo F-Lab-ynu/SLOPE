@@ -1,6 +1,27 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+<script>
+// テーマ（色）：端末ごとに保存。描く前に当てる
+(function () {
+  /*NOTHEME*/var T = window.__THEMES = {
+    'ダーク': [['#070707','#F3F1EC','#F2A93B'],['#070707','#F3F1EC','#6FA8DC'],['#070707','#F3F1EC','#5FB38C'],['#070707','#F3F1EC','#D98BB8'],
+              ['#070707','#F3F1EC','#E8C454'],['#070707','#F3F1EC','#EE5D52'],['#070707','#F3F1EC','#9C82E8'],['#070707','#F3F1EC','#4FC7C0']],
+    '夜': [['#0B1220','#DCE3EC','#7FB2E5'],['#0B1220','#DCE3EC','#F2A93B'],['#14110C','#EFE6D3','#E3B25A'],['#14110C','#EFE6D3','#C9DB6A'],
+           ['#0F1412','#E2ECE6','#6ECB9E'],['#120E16','#ECE4F2','#B79CF0'],['#16100F','#F0E6E2','#EE7A5F'],['#101010','#E6E6E6','#E6E6E6']],
+    'ライト': [['#F3F1EC','#141414','#D9861A'],['#F3F1EC','#141414','#2F6FB0'],['#F3F1EC','#141414','#2E8B62'],['#F3F1EC','#141414','#C9374B'],
+              ['#FFFFFF','#111111','#111111'],['#FFFFFF','#111111','#6B4FC9'],['#F6F4EF','#2B2A27','#B0705A'],['#EEF2F5','#1B2430','#3E7CB1']]
+  };/*/NOTHEME*/
+  function lightOf(bg) { var c = parseInt(bg.slice(1), 16); return ((c >> 16) + ((c >> 8) & 255) + (c & 255)) / 3 > 128; }
+  window.__applyTheme = function (t) {
+    var r = document.documentElement; r.style.setProperty('--bg', t[0]); r.style.setProperty('--fg', t[1]); r.style.setProperty('--ac', t[2]);
+    r.classList.toggle('light', lightOf(t[0])); var m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', t[0]);
+  };
+  window.__tvTheme = function () { return document.documentElement.classList.contains('light') ? 'light' : 'dark'; };
+  try { var t = JSON.parse(localStorage.getItem('slope-theme') || 'null'); if (t && t.length === 3) window.__applyTheme(t); } catch (e) {}
+})();
+</script>
+
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#070707">
@@ -1389,6 +1410,7 @@ body.wide .iqsheet{bottom:auto;top:50%;transform:translate(-50%,-50%);border-bot
 <section class="mpsec">
 <h2 class="h2">設定</h2>
 <div class="mplist">
+<button class="mprow" data-theme-open="1"><span class="mpl">テーマ</span><span class="thsw" aria-hidden="true"><i style="background: var(--bg)"></i><i style="background: var(--fg)"></i><i style="background: var(--ac)"></i></span><svg class="mpch" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
 <button class="mprow" onClick="{{ push.toggle }}" role="switch" aria-checked="{{ push.on }}"><span class="mpl">通知を受け取る<small>{{ push.note }}</small></span><span class="mpsw" style="background: {{ push.bg }}"><i style="left: {{ push.x }}; background: {{ push.knob }}"></i></span></button>
 <a class="mprow" href="{{ calSub.ios }}"><span class="mpl">iPhone・Mac のカレンダーに追加</span><svg class="mpch" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
 <a class="mprow" href="{{ calSub.google }}"><span class="mpl">Google カレンダーに追加</span><svg class="mpch" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
@@ -2210,13 +2232,13 @@ class Component extends DCLogic {
     const mk = {
       homeHits: mkList.slice(0, 3).map((x) => ({ name: x.d, open: () => this.setState({ sub: 'mk', mkSym: x.s }) })),
       tiles: mkList.map((x) => ({ name: x.d, open: () => this.setState({ sub: 'mk', mkSym: x.s }), ref: (el) => window.__tvEmbed(el, 'mini-symbol-overview', {
-        symbol: x.s, width: '100%', height: 150, locale: 'ja', dateRange: '1M', colorTheme: 'dark', theme: 'dark',
+        symbol: x.s, width: '100%', height: 150, locale: 'ja', dateRange: '1M', colorTheme: window.__tvTheme(), theme: window.__tvTheme(),
         isTransparent: true, autosize: false, noTimeScale: true, chartOnly: false }) })),
       homeRef: (el) => window.__tvEmbed(el, 'tickers', {
         symbols: mkList.slice(0, 3).map((x) => ({ proName: x.s, title: x.d })),
-        colorTheme: 'dark', theme: 'dark', isTransparent: true, showSymbolLogo: false, locale: 'ja' }),
+        colorTheme: window.__tvTheme(), theme: window.__tvTheme(), isTransparent: true, showSymbolLogo: false, locale: 'ja' }),
       bigRef: (el) => { if (s.mkSym) window.__tvEmbed(el, 'advanced-chart', {
-        symbol: s.mkSym, interval: 'D', timezone: 'Asia/Tokyo', theme: 'dark', colorTheme: 'dark', style: '1', locale: 'ja',
+        symbol: s.mkSym, interval: 'D', timezone: 'Asia/Tokyo', theme: window.__tvTheme(), colorTheme: window.__tvTheme(), style: '1', locale: 'ja',
         autosize: true, hide_side_toolbar: true, allow_symbol_change: false, save_image: false, calendar: false,
         backgroundColor: 'rgba(19,19,19,1)', gridColor: 'rgba(37,37,36,1)' }); },
       code: s.mkSym || '',
@@ -2608,6 +2630,35 @@ document.addEventListener('click',function(e){
 .invt small{font-size:12px;color:#7D7B76}
 #inv iframe{flex:1;width:100%;border:0;background:#0E0E0D}
 html.invon,html.invon body{overflow:hidden}
+</style>
+<script>
+// テーマを選ぶ画面
+(function () {
+  function cur() { try { return JSON.parse(localStorage.getItem('slope-theme') || 'null') || window.__THEMES['ダーク'][0]; } catch (e) { return window.__THEMES['ダーク'][0]; } }
+  function open() {
+    var c = cur().join(), h = '<div class="npbg" data-th-x></div><div class="iqsheet thsheet" role="dialog" aria-label="テーマ"><div class="iqtop"><b>テーマ</b><button data-th-x aria-label="閉じる"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="iqbody">';
+    Object.keys(window.__THEMES).forEach(function (g) {
+      h += '<span class="lbl">' + g + '</span><div class="thgrid">' + window.__THEMES[g].map(function (t) { return '<button class="thc' + (t.join() === c ? ' on' : '') + '" data-th="' + t.join() + '" style="background:' + t[0] + ';border-color:' + (t.join() === c ? t[2] : 'transparent') + '"><i style="background:' + t[0] + ';box-shadow:inset 0 0 0 1px ' + t[1] + '33"></i><i style="background:' + t[1] + '"></i><i style="background:' + t[2] + '"></i></button>'; }).join('') + '</div>';
+    });
+    var w = document.createElement('div'); w.id = 'thpop'; w.innerHTML = h + '</div></div>'; document.body.appendChild(w);
+  }
+  function close() { var w = document.getElementById('thpop'); if (w) w.remove(); }
+  document.addEventListener('click', function (e) {
+    var o = e.target.closest && e.target.closest('[data-theme-open]'); if (o) { e.preventDefault(); open(); return; }
+    if (e.target.closest && e.target.closest('[data-th-x]')) { close(); return; }
+    var b = e.target.closest && e.target.closest('[data-th]'); if (!b) return;
+    var t = b.dataset.th.split(','); window.__applyTheme(t); try { localStorage.setItem('slope-theme', JSON.stringify(t)); } catch (er) {}
+    close(); open();
+  });
+})();
+</script>
+<style>
+.thsw{flex:none;display:flex;gap:4px}
+.thsw i,.thc i{width:14px;height:14px;border-radius:4px;display:block}
+.thsw i:first-child{box-shadow:inset 0 0 0 1px #383836}
+.thgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}
+.thc{height:56px;border:2px solid transparent;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:5px;cursor:pointer}
+.thsheet .lbl{margin-top:4px}
 </style>
 </body>
 </html>
