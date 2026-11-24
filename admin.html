@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = 'c7f2fe2b8b', FILE = 'admin.ver';
+  var VER = 'efd631613e', FILE = 'admin.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -1609,6 +1609,8 @@ body:has(#modal > *) .efabw{display:none}
   .mr.soon .mwho > span:not(:first-child):not(.dim){display:none}
   .mr.soon .mwho .dim{font-size:11px}
 }
+/* 表の中の選択欄：矢印の場所は常に空けておく（カーソルを合わせても幅が変わらない） */
+select.cell{padding-right:26px;background-repeat:no-repeat;background-position:right 8px center;background-size:12px 12px}
 
 /* ===== 本番 ===== */
 [data-act="reset"]{display:none !important}

@@ -1582,3 +1582,5 @@ body:has(#modal > *) .efabw{display:none}
   .mr.soon .mwho > span:not(:first-child):not(.dim){display:none}
   .mr.soon .mwho .dim{font-size:11px}
 }
+/* 表の中の選択欄：矢印の場所は常に空けておく（カーソルを合わせても幅が変わらない） */
+select.cell{padding-right:26px;background-repeat:no-repeat;background-position:right 8px center;background-size:12px 12px}
