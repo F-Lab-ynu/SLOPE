@@ -1775,8 +1775,9 @@ body.mvin .mvline{display:none !important}
 .p2golink{margin-left:auto;align-self:center;border:0;background:transparent;color:var(--accent);font:inherit;font-size:12px;cursor:pointer;padding:2px 4px}
 .p2golink:hover{text-decoration:underline}
 
-.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
-.p2grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.p2grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.three .input,.p2grid3 .input{min-width:0;width:100%;box-sizing:border-box}
 .p2grid3 label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted)}
 .evtag{font-style:normal;font-size:10px;font-weight:700;margin-left:8px;padding:1px 6px;border-radius:4px;background:#FFF4E5;color:#B45309;vertical-align:1px}
 .p2same{margin-left:auto;font-size:11px;color:var(--muted)}
@@ -5624,7 +5625,7 @@ function calDlg() {
   var c = M.id ? calsInit().filter(function (x) { return x.id === M.id; })[0] : null, d = c || { title: '', date: M.d || isoOf(TODAY), to: '', time: '', place: '', memo: '', link: '', state: 'draft' }, inPg = !!(c && evInProg(c.id));
   var ro = !can('notices');
   var body = '<div class="fld"><label for="cT">イベント名</label><input id="cT" class="input" value="' + esc(d.title) + '" autocomplete="off"' + (ro ? ' disabled' : '') + '></div>' +
-    '<div class="three"><div class="fld"><label for="cD">開始日</label><input id="cD" type="date" class="input" value="' + esc(d.date) + '"' + (ro ? ' disabled' : '') + '></div><div class="fld"><label for="cE">終了日（1日なら空）</label><input id="cE" type="date" class="input" value="' + esc(d.to || '') + '"' + (ro ? ' disabled' : '') + '></div><div class="fld"><label for="cH">時間</label><input id="cH" type="time" class="input" value="' + esc(d.time || '') + '"' + (ro ? ' disabled' : '') + '></div></div>' +
+    '<div class="three"><div class="fld"><label for="cD">開始日</label><input id="cD" type="date" class="input" value="' + esc(d.date) + '"' + (ro ? ' disabled' : '') + '></div><div class="fld"><label for="cE">終了日</label><input id="cE" type="date" class="input" value="' + esc(d.to || '') + '"' + (ro ? ' disabled' : '') + '></div><div class="fld"><label for="cH">時間</label><input id="cH" type="time" class="input" value="' + esc(d.time || '') + '"' + (ro ? ' disabled' : '') + '></div></div>' +
     '<div class="fld"><label for="cP">場所</label><input id="cP" class="input" value="' + esc(d.place || '') + '" autocomplete="off"' + (ro ? ' disabled' : '') + '></div>' +
     '<div class="fld"><label for="cM">部員がやること・説明</label><textarea id="cM" class="input" rows="3"' + (ro ? ' disabled' : '') + '>' + esc(d.memo || '') + '</textarea></div>' +
     '<div class="fld"><label for="cL">リンク</label><input id="cL" class="input" value="' + esc(d.link || '') + '" placeholder="https://" autocomplete="off"' + (ro ? ' disabled' : '') + '></div>' +
@@ -6357,7 +6358,7 @@ p2Editor = function () {
     '<input class="p2title" data-ce="title" value="' + esc(c.title) + '" placeholder="イベント名" aria-label="イベント名" autocomplete="off"' + (ro ? ' disabled' : '') + '>' +
     '<div class="p2row"><label class="p2sw"><input type="checkbox" data-p2f="lock"' + (n.lock ? ' checked' : '') + '><span>鍵</span><small>上の項目が済むまで開かない</small></label>' +
     '<label class="p2sw"><input type="checkbox" data-ce="state"' + (c.state === 'pub' ? ' checked' : '') + (ro ? ' disabled' : '') + '><span>部員に公開</span><small>予定タブの部内イベントに出て、参加登録できる</small></label></div>' +
-    '<div class="p2grid3">' + inp('date', '開始日', 'date') + inp('to', '終了日（1日なら空）', 'date') + inp('time', '時間', 'time') + '</div>' +
+    '<div class="p2grid3">' + inp('date', '開始日', 'date') + inp('to', '終了日', 'date') + inp('time', '時間', 'time') + '</div>' +
     '<div class="p2grid">' + inp('place', '場所') + inp('link', 'リンク', '', 'https://') + '</div>' +
     '<label class="p2fld">部員がやること・説明<textarea class="input" data-ce="memo" rows="3"' + (ro ? ' disabled' : '') + '>' + esc(c.memo || '') + '</textarea></label>' +
     '<div class="p2reg">' + (c.state === 'pub' ? '<span class="p2pub on">公開中</span><span>参加登録</span><b class="num">' + ((S.joins || {})[c.id] || 0) + '</b><span>人</span>' : '<span class="p2pub">未公開</span>') + '<span class="p2same">告知のイベントと同じものです</span></div>';
