@@ -2656,6 +2656,8 @@ html.invon,html.invon body{overflow:hidden}
 </script>
 <style>
 .thdot{flex:none;width:18px;height:18px;border-radius:50%;background:var(--ac)}
+/* ライトのときは時刻の帯を背景より少しだけ濃くして、白い時刻がぎりぎり読めるように */
+html.light body::before{content:'';position:fixed;left:0;right:0;top:0;height:env(safe-area-inset-top);background:color-mix(in srgb,var(--fg) 22%,var(--bg));z-index:2147483001;pointer-events:none}
 .thmode{background:var(--n21)}
 .thmode i{left:3px;background:var(--n66)}
 [data-mode-toggle][aria-checked="true"] .thmode{background:var(--fg)}
