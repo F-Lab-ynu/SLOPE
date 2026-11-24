@@ -35,6 +35,25 @@
     host: function (u) { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return ''; } },
     myRoles: function () { return (DB.self && DB.self.roles) || []; },
     CAL: 'https://addvjcwwlklwmkwhhsjv.supabase.co/functions/v1/cal', calTok: null,
+    VAPID: 'BNYuEXq2mMrHbNn06huazGpyd0PqDbp-CVXr2TJ7Ev-8Oy2OCjJzbW-DVeopb2BcvZHMoS5g98I5VUw4i8jXlgU', pushOn: null,
+    pushState: function () { // on / off / denied / ios（ホーム画面に追加が要る）/ no
+      var ios = /iP(hone|ad|od)/.test(navigator.userAgent), app = window.matchMedia && matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+      if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return ios && !app ? 'ios' : 'no';
+      if (Notification.permission === 'denied') return 'denied';
+      if (DB.pushOn === null) { DB.pushOn = false; navigator.serviceWorker.ready.then(function (r) { return r.pushManager.getSubscription(); }).then(function (x) { if (x) { DB.pushOn = true; bump(); } }).catch(function () {}); }
+      return DB.pushOn ? 'on' : 'off';
+    },
+    pushToggle: function () {
+      var st = DB.pushState(); if (st !== 'on' && st !== 'off') return;
+      if (st === 'on') { navigator.serviceWorker.ready.then(function (r) { return r.pushManager.getSubscription(); }).then(function (x) { if (!x) return; sb.from('push_subs').delete().eq('endpoint', x.endpoint).then(function () {}); return x.unsubscribe(); }).then(function () { DB.pushOn = false; bump(); }); return; }
+      var key = (function (b) { b = b.replace(/-/g, '+').replace(/_/g, '/'); b += '===='.slice(b.length % 4 || 4); var r = atob(b), a = new Uint8Array(r.length); for (var i = 0; i < r.length; i++) a[i] = r.charCodeAt(i); return a; })(DB.VAPID);
+      Notification.requestPermission().then(function (p) {
+        if (p !== 'granted') { bump(); return; }
+        return navigator.serviceWorker.ready.then(function (r) { return r.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key }); }).then(function (x) {
+          var j = x.toJSON(); return sb.from('push_subs').upsert({ user_id: DB.me, endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth }, { onConflict: 'endpoint' });
+        }).then(function (r) { if (r && r.error) { DB.flash('うまく登録できませんでした'); return; } DB.pushOn = true; bump(); });
+      }).catch(function () { DB.flash('うまく登録できませんでした'); });
+    },
     ensureCal: function () { // カレンダー購読用の合い言葉（なければ作る）
       if (DB._ctAsk || !DB.me) return; DB._ctAsk = true;
       sb.from('cal_tokens').select('token').eq('user_id', DB.me).then(function (r) {
@@ -297,6 +316,11 @@ function memberExtras(v) {
     baseNote: bN ? bD + ' / ' + bN + ' 修了' : 'まだ単元がありません', basePct: (bN ? Math.round(bD / bN * 100) : 0) + '%',
     roleNote: myRole ? '受講中：' + myRole : 'ロール未設定', rolePct: (rN ? Math.round(rD / rN * 100) : 0) + '%', pracBadge: String(v.pStats ? v.pStats[0].n : 0), hasPracBadge: !!(v.pStats && v.pStats[0].n),
     unit: unit, uNoQuiz: !uqz.length, openUnit: function () {},
+    push: (function () {
+      var st = D.pushState(), on = st === 'on';
+      var note = { on: '', off: '', denied: 'ブラウザの設定で通知が止められています', ios: 'ホーム画面に追加すると受け取れます', no: 'この端末では受け取れません' }[st];
+      return { on: String(on), note: note, bg: on ? '#F3F1EC' : '#383836', x: on ? '21px' : '3px', knob: on ? '#070707' : (st === 'off' ? '#D2CFC8' : '#7D7B76'), toggle: function () { D.pushToggle(); } };
+    })(),
     calSub: (function () {
       if (s.tab === 'me') D.ensureCal();
       var https = D.calTok ? D.CAL + '?t=' + D.calTok : '', web = https.replace(/^https:/, 'webcal:');
