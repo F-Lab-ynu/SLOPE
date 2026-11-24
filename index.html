@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = 'dcb2d21ab7', FILE = 'index.ver';
+  var VER = '589f9d6d4f', FILE = 'index.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -2857,7 +2857,7 @@ html.invon,html.invon body{overflow:hidden}
 (function () {
   function open() {
     var L = window.__look(), h = '<div class="npbg" data-th-x></div><div class="iqsheet thsheet" role="dialog" aria-label="テーマカラー"><div class="iqtop"><b>テーマカラー</b><button data-th-x aria-label="閉じる"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="iqbody"><div class="thgrid">' +
-      window.__ACCENTS.map(function (a, i) { var c = L.mode === 'light' ? a[2] : a[1]; return '<button class="thc' + (i === L.acc ? ' on' : '') + '" data-th="' + i + '" aria-label="' + a[0] + '" aria-pressed="' + (i === L.acc) + '"><i style="background:' + c + '"></i><span>' + a[0] + '</span></button>'; }).join('') + '</div></div></div>';
+      window.__ACCENTS.map(function (a, i) { var c = L.mode === 'light' ? a[2] : a[1]; return '<button class="thc' + (i === L.acc ? ' on' : '') + '" data-th="' + i + '" aria-label="' + a[0] + '" aria-pressed="' + (i === L.acc) + '"><i style="background:' + c + '"></i></button>'; }).join('') + '</div></div></div>';
     var w = document.createElement('div'); w.id = 'thpop'; w.innerHTML = h; document.body.appendChild(w);
   }
   function close() { var w = document.getElementById('thpop'); if (w) w.remove(); }
@@ -2882,8 +2882,8 @@ html.light body::before{content:'';position:fixed;left:0;right:0;top:0;height:en
 [data-mode-toggle][aria-checked="true"] .thmode{background:var(--fg)}
 [data-mode-toggle][aria-checked="true"] .thmode i{left:21px;background:var(--bg)}
 .thgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.thc{height:76px;border:2px solid transparent;border-radius:12px;background:var(--n8);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;color:var(--n66);font:inherit;font-size:11px}
-.thc i{width:26px;height:26px;border-radius:50%;display:block}
+.thc{height:60px;border:2px solid transparent;border-radius:12px;background:var(--n8);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;color:var(--n66);font:inherit;font-size:11px}
+.thc i{width:28px;height:28px;border-radius:50%;display:block}
 .thc.on{border-color:var(--ac);color:var(--fg)}
 </style>
 </body>
