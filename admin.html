@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = 'c32d50be4d', FILE = 'admin.ver';
+  var VER = '48f541f3ca', FILE = 'admin.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -2049,7 +2049,10 @@ function sample() {
 
 var S;
 S = { view: 'dash', me: null, projects: [], members: [], pending: [], notifs: [], tracks: [], notices: [], posts: [], offers: [], inqs: [], manualOrder: true };
-function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+  if (S.view === 'tracks' && P2F && P2F.style.display !== 'none') { clearTimeout(P2RT); P2RT = setTimeout(p2FrameReload, window.sb ? 2500 : 600); } // 右の部員画面を読み直す
+}
 function toast(msg) { var t = document.getElementById('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(function () { t.hidden = true; }, 2000); }
 function member(id) { return S.members.filter(function (m) { return m.id === id; })[0]; }
 function me() { return member(S.me) || S.members[0]; }
@@ -2760,8 +2763,10 @@ function notice(id) { return S.notices.filter(function (n) { return n.id === id;
 
 // ---------- 掲示板：押し間違えても戻せる ----------
 function viewBoard() {
-  if (!S.boardTab) S.boardTab = 'rep';
+  if (!S.boardTab || S.boardTab === 'all' && !S._bt60) { S.boardTab = 'inq'; S._bt60 = 1; }
   var reported = S.posts.filter(function (p) { return p.reports > 0 && p.state === 'ok'; });
+  var head = top('サポート') + utabs('boardTab', [['inq', 'お問い合わせ', inqOpen()], ['rep', '通報', reported.length], ['all', '投稿', S.posts.length]]);
+  if (S.boardTab === 'inq') return head + '<div class="body">' + inqList() + '</div>';
   var list = S.boardTab === 'rep' ? reported : S.posts;
   var rows = list.map(function (p) {
     var gone = p.state !== 'ok';
@@ -2775,9 +2780,22 @@ function viewBoard() {
       '<td class="rp">' + (p.reports > 0 && !gone ? '<span class="bad num">' + p.reports + '</span> <span class="muted">' + esc(p.reason) + '</span>' : '<span class="dim">—</span>') + '</td>' +
       '<td class="a"><div class="acts">' + acts + '</div></td></tr>';
   }).join('');
-  return top('サポート') + utabs('boardTab', [['inq', 'お問い合わせ', inqOpen()], ['rep', '通報', reported.length], ['all', '投稿', S.posts.length]]) +
+  return head +
     '<div class="body"><div class="tw"><table><thead><tr><th>内容</th><th>場所</th><th>通報</th><th></th></tr></thead><tbody>' +
     (rows || '<tr><td colspan="4" class="empty">' + (S.boardTab === 'rep' ? '対応が必要な通報はありません' : '投稿はありません') + '</td></tr>') + '</tbody></table></div></div>';
+}
+// お問い合わせ・要望（本人と運営だけが見られる）。未対応が上
+function inqList() {
+  var list = (S.inqs || []).slice().sort(function (a, b) { return (a.status === 'done') - (b.status === 'done'); });
+  var rows = list.map(function (q) {
+    var m = member(q.user), done = q.status === 'done';
+    return '<div class="iq' + (done ? ' done' : '') + '"><div class="iqh"><span class="tag">' + esc(q.kind) + '</span><span class="iqw">' + (m ? av(q.user) + esc(m.name) : '退部した部員') + '</span><span class="muted num">' + esc(q.at) + '</span><span class="sp"></span>' +
+      (done ? '<button class="btn sm ghost" data-iq="reopen" data-id="' + q.id + '">未対応に戻す</button>' : '') + '<button class="ib" data-iq="del" data-id="' + q.id + '" aria-label="削除" title="削除">' + ic('x') + '</button></div>' +
+      '<div class="iqb">' + esc(q.body) + '</div>' +
+      (done ? (q.reply ? '<div class="iqr"><span class="muted">返信</span>' + esc(q.reply) + '</div>' : '<div class="iqr muted">対応済み</div>')
+        : '<div class="iqf"><textarea class="input" rows="2" data-iqr="' + q.id + '" aria-label="返信"></textarea><div class="iqa"><button class="btn sm" data-iq="done" data-id="' + q.id + '">返信せずに完了</button><button class="btn sm primary" data-iq="reply" data-id="' + q.id + '">返信して完了</button></div></div>') + '</div>';
+  }).join('');
+  return '<div class="iql">' + (rows || '<div class="empty">お問い合わせはまだありません</div>') + '</div>';
 }
 
 // ---------- メンバー：役職をその場で変える ----------
@@ -2996,7 +3014,8 @@ window.addEventListener('resize', function () { autosizeAll(); clearTimeout(UI._
 
 
 // ---------------- 複数人の担当（リーダー＋メンバー） ----------------
-function whoOpts(n) { // 個人の業務：上の段のメンバーを先に
+function whoOpts(n) { // 担当の選択肢：選べる人が決まっていればその人だけ、なければ上の段のメンバーを先に
+  var pk = pickable(n); if (pk) return '<option value="">未定</option>' + S.members.filter(function (m) { return pk.indexOf(m.id) >= 0 || n.who === m.id; }).map(function (m) { return '<option value="' + m.id + '"' + (n.who === m.id ? ' selected' : '') + '>' + esc(m.name) + '</option>'; }).join('');
   var p = parentOf(n), pt = p ? teamOf(p) : [], o = function (m) { return '<option value="' + m.id + '"' + (n.who === m.id ? ' selected' : '') + '>' + esc(m.name) + '</option>'; };
   var inT = S.members.filter(function (m) { return pt.indexOf(m.id) >= 0; }), out = S.members.filter(function (m) { return pt.indexOf(m.id) < 0; });
   return '<option value="">未定</option>' + (inT.length ? '<optgroup label="' + esc(ttl(p)) + 'のメンバー">' + inT.map(o).join('') + '</optgroup><optgroup label="その他">' + out.map(o).join('') + '</optgroup>' : out.map(o).join(''));
@@ -3021,14 +3040,27 @@ function openTeam(id, keep) {
   tp.style.left = left + 'px'; var below = window.innerHeight - r.bottom > 360;
   tp.style.top = below ? (r.bottom + 4) + 'px' : ''; tp.style.bottom = below ? '' : (window.innerHeight - r.top + 4) + 'px';
   if (!keep) { var qi = tp.querySelector('.tpq'); if (window.innerWidth > 760) qi.focus(); }
+  var pk = pickable(n), pf = pickFrom(n);
+  if (pk) { // フォルダのメンバー以外は出さない（今いる人は外すだけできる）
+    var has = isFolder(n) ? teamOf(n) : fileWho(n); Array.prototype.forEach.call(tp.querySelectorAll('.tpi'), function (r) { var c = r.querySelector('[data-tm]'); if (c && pk.indexOf(c.dataset.tm) < 0 && has.indexOf(c.dataset.tm) < 0) r.remove(); });
+    Array.prototype.forEach.call(tp.querySelectorAll('.tph'), function (h) { if (/その他/.test(h.textContent)) { var nx = h.nextElementSibling; if (!nx || !nx.classList.contains('tpi')) h.remove(); else h.innerHTML = '<span>フォルダのメンバー外（外すだけできます）</span>'; } });
+    tp.querySelector('.tpl').insertAdjacentHTML('beforeend', '<div class="tpnote">' + (pf ? '「' + esc(ttl(pf)) + '」のメンバーから選べます' : 'いちばん上の業務のメンバーは、代表が決めます') + '</div>');
+  }
+  if (!isFolder(n)) { // ファイル：リーダーはなし。今の担当にチェック
+    var cur = fileWho(n);
+    Array.prototype.forEach.call(tp.querySelectorAll('.lead'), function (b) { b.remove(); });
+    Array.prototype.forEach.call(tp.querySelectorAll('[data-tm]'), function (c) { c.checked = cur.indexOf(c.dataset.tm) >= 0; c.dataset.fileWho = '1'; });
+  }
 }
 function closeTeam() { var tp = document.getElementById('tp'); if (tp) tp.remove(); UI.tp = null; UI.tpq = ''; }
 function teamChanged(n, added) {
+  if (UI.gedit) UI.gfocus = false; // ガントの行内編集中は名前欄にフォーカスを戻さない
   save(); var id = n.id;
   added.forEach(function (m) { window.notify(m, '「' + ttl(n) + '」のメンバーになりました', ttl(rootOf(n))); });
   var fq = document.activeElement && document.activeElement.classList.contains('tpq');
   if (M) { var ob = document.querySelector('.dlg .tbtn[data-id="' + id + '"]'); if (ob) ob.outerHTML = teamBtn(n, ''); } else render();
   openTeam(id, true); if (fq) { var qi = document.querySelector('#tp .tpq'); if (qi) { qi.focus(); qi.setSelectionRange(qi.value.length, qi.value.length); } }
+  UI.gfocus = true;
 }
 document.addEventListener('change', function (e) {
   var el = e.target; if (!el.dataset || !el.dataset.tm) return; e.stopImmediatePropagation();
@@ -3082,6 +3114,7 @@ function openVPanel() {
   if (window.innerWidth < 760) { p.classList.add('sheet'); p.style.left = p.style.top = ''; }
   else { p.classList.remove('sheet'); var r = b.getBoundingClientRect(); p.style.left = Math.max(8, Math.min(window.innerWidth - 348, r.left)) + 'px'; p.style.top = (r.bottom + 6) + 'px'; }
   b.setAttribute('aria-expanded', 'true');
+  if (!p.classList.contains('sheet')) p.style.maxHeight = Math.max(240, window.innerHeight - p.getBoundingClientRect().top - 16) + 'px';
 }
 function closeVPanel() { var p = document.getElementById('vp'); if (p) p.remove(); UI.vp = false; var b = document.querySelector('.vbtn'); if (b) b.setAttribute('aria-expanded', 'false'); }
 
@@ -3186,12 +3219,20 @@ function inTeam(x, id) { return isLead(x, id) || (x.team || []).indexOf(id) >= 0
 function teamOf(n) { var t = (n.team || []).slice(); leadsOf(n).slice().reverse().forEach(function (l) { if (t.indexOf(l) < 0) t.unshift(l); }); return t; }
 function chainHas(n, id) { reindex(); var x = n; while (x) { if (isLead(x, id)) return true; x = IX[x.id] && IX[x.id].par; } return false; }
 function teamBtn(n, dis, compact) {
+  if (!isFolder(n)) return fileWhoBtn(n, dis, compact);
   var tm = teamOf(n), ls = leadsOf(n), rest = tm.filter(function (id) { return ls.indexOf(id) < 0; });
   var nm = function (id) { var m = member(id); return m ? m.name : ''; };
   var inner = !tm.length ? '<span class="none">未定</span>'
     : compact ? '<span class="avs">' + ls.concat(rest).slice(0, 3).map(function (id) { return '<span class="av' + (ls.indexOf(id) >= 0 ? ' lead' : '') + '">' + esc(initials(nm(id))) + '</span>'; }).join('') + '</span>' + (tm.length > 3 ? '<span class="more num">+' + (tm.length - 3) + '</span>' : '')
     : (ls.length ? CROWN + '<span class="ld"><b>' + esc(ls.map(nm).join('・')) + '</b></span>' : '<span class="ld none">' + CROWN + '?</span>') + (rest.length ? '<span class="more num">+' + rest.length + '</span>' : '');
   return '<button class="tbtn" data-act="teamPick" data-id="' + n.id + '"' + (dis || '') + ' aria-label="メンバー ' + tm.length + '名" title="' + esc(tm.map(function (id) { return nm(id) + (ls.indexOf(id) >= 0 ? '（リーダー）' : ''); }).join('\n')) + '">' + inner + '</button>';
+}
+// ファイルの担当（複数可・リーダーなし）
+function fileWhoBtn(n, dis, compact) {
+  var tm = fileWho(n), nm = function (id) { var m = member(id); return m ? m.name : ''; };
+  var inner = !tm.length ? '<span class="none">担当を選ぶ</span>' : compact ? '<span class="avs">' + tm.slice(0, 3).map(function (id) { return '<span class="av">' + esc(initials(nm(id))) + '</span>'; }).join('') + '</span>' + (tm.length > 3 ? '<span class="more num">+' + (tm.length - 3) + '</span>' : '')
+    : '<span class="avs">' + tm.slice(0, 2).map(function (id) { return av(id); }).join('') + '</span><span class="ld"><b>' + esc(tm.slice(0, 2).map(nm).join('・')) + '</b></span>' + (tm.length > 2 ? '<span class="more num">+' + (tm.length - 2) + '</span>' : '');
+  return '<button class="tbtn fw" data-act="teamPick" data-id="' + n.id + '"' + (dis || '') + ' aria-label="担当 ' + tm.length + '名" title="' + esc(tm.map(nm).join('\n') || '担当なし') + '">' + inner + '</button>';
 }
 
 // ---------- ux4: ダッシュボード：自分 → 全体 ----------
@@ -3378,7 +3419,12 @@ document.addEventListener('change', function (e) {
   if (e.target.id !== 'cpS') return; var p = task(e.target.value); if (!p) return;
   document.getElementById('cpN').value = nextName(p.name); document.getElementById('cpD').value = isoOf(dayOf(p.start) + 364 * DAY);
 }, true);
-function placeFab() { var f = document.querySelector('.efabw'); if (f) f.remove(); var h = fabHTML(); if (h) document.body.insertAdjacentHTML('beforeend', h); }
+function placeFab() {
+  var f = document.querySelector('.efabw'); if (f) f.remove(); var h = fabHTML(); if (h) document.body.insertAdjacentHTML('beforeend', h);
+  f = document.querySelector('.efabw'); var nav = document.querySelector('.nav'); // スマホ：下のタブバーの上に置く
+  if (!f || !nav || innerWidth > 760) return;
+  var r = nav.getBoundingClientRect(); if (r.height) f.style.setProperty('bottom', (innerHeight - r.top + 16) + 'px', 'important');
+}
 document.addEventListener('click', function (e) {
   var b = e.target.closest && e.target.closest('[data-act="fabMenu"],[data-act="copyEvent"],[data-act="cpGo"]');
   if (!b) { if (UI.fm && !(e.target.closest && e.target.closest('.efabw'))) { UI.fm = false; placeFab(); } return; }
@@ -3484,7 +3530,6 @@ function migrateFolders(st) {
   st.fv = 1; st.fcur = 'fy' + (function () { var d = new Date(TODAY); return d.getUTCMonth() < 3 ? d.getUTCFullYear() - 1 : d.getUTCFullYear(); })();
   st.manualOrder = true; return st;
 }
-var _sample7 = sample; sample = function () { return migrateFolders(_sample7()); };
 if (S) { migrateFolders(S); }
 
 function curFolder() { var f = S.fcur && S.fcur !== 'mine' ? task(S.fcur) : null; if (S.fcur && S.fcur !== 'mine' && !f) S.fcur = ''; return f; }
@@ -3492,7 +3537,7 @@ function ancestors(n) { reindex(); var a = [], x = IX[n.id] && IX[n.id].par; whi
 function visibleRoots() {
   if (S.fcur === 'mine') return allNodes().filter(function (n) { return inTeam(n, S.me) && !ancestors(n).some(function (a) { return inTeam(a, S.me); }); });
   var f = curFolder();
-  return (f ? kids(f) : S.projects).filter(visNode);
+  return sortList(f, (f ? kids(f) : S.projects).filter(visNode));
 }
 function addFolder(par, name) {
   if (!par) { var y = new Date(TODAY).getUTCFullYear(); var r = { id: uid('pj'), name: name, kind: 'folder', who: '', leads: [], start: isoOf(TODAY), end: isoOf(TODAY + 90 * DAY), tasks: [] }; S.projects.push(r); return r; }
@@ -3518,7 +3563,8 @@ function ftree() {
       '<button class="ftn' + (mine[n.id] ? ' mine' : '') + '" data-act="fgo" data-id="' + n.id + '"' + (cur === n.id ? ' aria-current="true"' : '') + (mine[n.id] ? ' title="自分の担当"' : '') + '>' + (isFolder(n) ? FOLD : FILE) + '<span>' + esc(ttl(n)) + '</span>' + (isEvent(n) ? '<i class="evd" title="イベント"></i>' : '') + '</button></div>' +
       (open ? ch.map(function (c) { return row(c, d + 1); }).join('') : '');
   };
-  return '<button class="ftop' + (cur === 'mine' ? ' on' : '') + '" data-act="fgo" data-id="mine">' + ic('users') + '<span>自分の担当</span></button>' +
+  return '<div class="ftbar"><span>フォルダー</span><button class="ib" data-act="ftreeTog" title="畳む" aria-label="フォルダー一覧を畳む"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button></div>' +
+    '<button class="ftop' + (cur === 'mine' ? ' on' : '') + '" data-act="fgo" data-id="mine">' + ic('users') + '<span>自分の担当</span></button>' +
     '<button class="ftop' + (!cur ? ' on' : '') + '" data-act="fgo" data-id="">' + FOLD + '<span>すべて</span></button>' +
     '<div class="ftl">' + S.projects.map(function (n) { return row(n, 0); }).join('') + '</div>';
 }
@@ -3614,8 +3660,6 @@ function sortList(f, list) {
   else if (k === 'open') a.sort(function (x, y) { return (isDone(x) ? 1 : 0) - (isDone(y) ? 1 : 0); });
   return a;
 }
-var visibleRoots8 = visibleRoots;
-visibleRoots = function () { var r = visibleRoots8(); return S.fcur === 'mine' ? r : sortList(curFolder(), r); };
 function fcard(n) {
   var ed = editSelf(n), nm = '<b class="fcn' + (ed ? ' ied' : '') + '"' + (ed ? ' data-act="ied" data-f="t" data-id="' + n.id + '" title="タップで名前を編集"' : '') + '>' + esc(ttl(n)) + '</b>';
   if (isFolder(n)) {
@@ -3631,11 +3675,11 @@ function fcard(n) {
       (ed ? '<button class="fcx" data-act="edit" data-id="' + n.id + '" aria-label="編集" title="編集">' + ic('more') + '</button>' : '') +
     '</div>';
   }
-  var can = ed || n.who === S.me, lt = late(n) && !n.done, canM = ed || n.who === S.me;
+  var can = ed || n.who === S.me, lt = late(n) && !n.done;
   return '<div class="fcard istc' + (n.done ? ' dn' : '') + (lt ? ' lt' : '') + '" data-act="fgo" data-id="' + n.id + '" tabindex="0" role="button" aria-label="' + esc(ttl(n)) + 'を開く">' +
-    '<div class="fct">' + FILE + '<button class="tck" data-act="tdone" data-id="' + n.id + '" aria-pressed="' + !!n.done + '"' + (can ? '' : ' disabled') + ' aria-label="完了"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12l4 4 8-8"/></svg></button><span class="sp"></span><span class="fcm num' + (lt ? ' bad' : '') + '">' + shortDate(n.end) + '</span></div>' +
+    '<div class="fct">' + FILE + '<button class="tck" data-act="tdone" data-id="' + n.id + '" aria-pressed="' + !!n.done + '"' + (can ? '' : ' disabled') + ' aria-label="完了"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12l4 4 8-8"/></svg></button><span class="sp"></span><span class="fcm num' + (n.nodate ? ' nodt' : '') + (lt ? ' bad' : '') + '">' + (n.nodate ? '期間未定' : shortDate(n.end)) + '</span></div>' +
     nm +
-    (n.memo || canM ? '<div class="fmemo' + (n.memo ? '' : ' empty') + (canM ? ' ied' : '') + '"' + (canM ? ' data-act="ied" data-f="memo" data-id="' + n.id + '"' : '') + ' data-ph="メモ（どこで・どうやって・結果など）">' + esc(n.memo || '') + '</div>' : '') +
+    (n.memo ? '<div class="fmemo">' + esc(memoText(n.memo).slice(0, 160)) + '</div>' : '') +
     '<div class="fcf">' + (canAssign(n)
       ? '<span class="fwho">' + (n.who ? av(n.who) : '<span class="av nob"></span>') + '<span class="fwn' + (n.who ? '' : ' none') + '">' + (member(n.who) ? esc(member(n.who).name) : '担当を選ぶ') + '</span><svg class="i fwc" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 10l4 4 4-4"/></svg><select class="fsel" data-act="noop" data-fw="' + n.id + '" aria-label="担当">' + whoOpts(n) + '</select></span>'
       : (member(n.who) ? '<span class="fwho">' + av(n.who) + '<span class="fcw">' + esc(member(n.who).name) + '</span></span>' : '<span class="dim">担当未定</span>')) + '</div>' +
@@ -3765,8 +3809,6 @@ function backBtn() {
   return (S.ftreeC ? '<button class="ib fhb" data-act="ftreeTog" title="フォルダー一覧を開く" aria-label="フォルダー一覧を開く"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg></button>' : '') +
     (h ? '<button class="ib fhb fback" data-act="fback" title="戻る" aria-label="戻る">' + ic('back') + '</button>' : '');
 }
-var ftree12 = ftree;
-ftree = function () { return '<div class="ftbar"><span>フォルダー</span><button class="ib" data-act="ftreeTog" title="畳む" aria-label="フォルダー一覧を畳む"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button></div>' + ftree12(); };
 function applyChrome12() {
   document.body.classList.toggle('sidec', !!S.sideC);
   document.body.classList.toggle('ftreec', !!S.ftreeC);
@@ -3899,6 +3941,7 @@ function geditRow(row, n) {
 function gStart(n) { UI.gedit = n.id; UI.gfocus = true; UI.gdraft = { name: ttl(n), who: n.who || '', team: (n.team || []).slice(), leads: leadsOf(n).slice(), ow: n.who || '' }; render(); }
 function gEnd(saveIt) {
   var n = task(UI.gedit), d = UI.gdraft; UI.gedit = null; if (!n || !d) { render(); return; }
+  if (!isFolder(n)) d.who = n.who || ''; // ファイルの担当は選んだ時点で保存済み
   if (saveIt) {
     var v = (d.name || '').replace(/\s+/g, ' ').trim(); if (v && v !== ttl(n)) setTitle(n, v);
     if (!isFolder(n) && d.who !== (n.who || '') && canAssign(n)) { n.who = d.who; if (d.who) { window.notify(d.who, '「' + ttl(n) + '」の担当になりました', ttl(rootOf(n))); toast(member(d.who).name + 'に通知しました'); } }
@@ -3919,8 +3962,6 @@ document.addEventListener('keydown', function (e) {
   }
 }, true);
 // チーム選択の再描画でも入力中の名前を保つ
-var teamChanged14 = teamChanged;
-teamChanged = function (n, added) { if (UI.gedit) UI.gfocus = false; teamChanged14(n, added); UI.gfocus = true; };
 
 // 日付スライダー
 function dsRange(n) {
@@ -4072,8 +4113,6 @@ document.addEventListener('click', function (e) {
 
 function vApply() { S.fold = {}; UI.sp = null; save(); render(); if (UI.vp) openVPanel(); }
 // ---------- ux18: 表示パネルの高さ・強調は点に統一・教材の削除/右クリック/START・GOALを表に/コードから追加 ----------
-var openVPanel18 = openVPanel;
-openVPanel = function () { openVPanel18(); var p = document.getElementById('vp'); if (p && !p.classList.contains('sheet')) p.style.maxHeight = Math.max(240, window.innerHeight - p.getBoundingClientRect().top - 16) + 'px'; };
 var HLN = { late: '期限切れ', soon: '期限が近い', over: '中身が期限超過', nobody: '担当未定', active: '進行中', mine: '自分の担当' };
 // 教材：START / GOAL を表の中に、コードから追加
 function addByCode(el) {
@@ -4165,9 +4204,11 @@ function noticeDlg() {
     : '<button class="btn" data-act="close">キャンセル</button><button class="btn" data-act="nSave24" data-s="draft">下書き保存</button><button class="btn primary" data-act="nSave24" data-s="pub">公開</button>';
   return '<div class="ndlg">' + dlg(n ? '告知を編集' : '新しい告知', body, foot, true) + '</div>';
 }
-function fabHTML () {
-  if (S.view === 'notices' && (S.ntab || 'list') === 'list' && can('notices'))
-    return '<div class="efabw"><button class="efab" data-act="nNew" title="告知を追加" aria-label="告知を追加"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>';
+function fabHTML() { // 右下の＋（告知のイベント・カレンダー・外部）
+  if (S.view !== 'notices' || !can('notices')) return '';
+  var plus = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
+  if (S.ntab === 'cal' || S.ntab === 'ev') return '<div class="efabw"><button class="efab" data-act="calNew" title="予定を追加" aria-label="予定を追加">' + plus + '</button></div>';
+  if (S.ntab === 'list') return '<div class="efabw"><button class="efab" data-act="nNew" title="告知を追加" aria-label="告知を追加">' + plus + '</button></div>';
   return '';
 }
 document.addEventListener('click', function (e) {
@@ -4190,13 +4231,6 @@ document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && M 
 
 
 // ux25 スマホ：＋ボタンを下のタブバーの上に置く
-var _placeFab25 = placeFab;
-placeFab = function () {
-  _placeFab25.apply(this, arguments);
-  var f = document.querySelector('.efabw'), nav = document.querySelector('.nav');
-  if (!f || !nav || innerWidth > 760) return;
-  var r = nav.getBoundingClientRect(); if (r.height) f.style.setProperty('bottom', (innerHeight - r.top + 16) + 'px', 'important');
-};
 addEventListener('resize', function () { placeFab(); });
 
 // ---------- ux27 ダッシュボード：今後の更新とパッチノート ----------
@@ -4759,19 +4793,9 @@ document.addEventListener('keydown', function (e) {
 
 
 // ---------- ux39 期間未定のファイル・バーを1クリックで選んで編集 ----------
-var _newNode39 = newNode;
-newNode = function (par, title) { var n = _newNode39(par, title); n.start = n.end = isoOf(TODAY); delete n.nodate; return n; }; // 新しいファイルは、期間を決めるまでは作った日だけ
+ // 新しいファイルは、期間を決めるまでは作った日だけ
 (function () { var t = isoOf(TODAY), ch = false; allNodes().forEach(function (n) { if (n.nodate) { n.start = n.end = t; delete n.nodate; ch = true; } }); if (ch) save(); })(); // 期間未定だったものは今日だけに
-var _addFolder39 = addFolder;
-addFolder = function (par, name) { var n = _addFolder39(par, name); delete n.nodate; return n; };
 // カード：期間未定の表示、メモは書式を外した文字で（編集はファイルを開いて）
-var _fcard39 = fcard;
-fcard = function (n) {
-  var h = _fcard39(n); if (isFolder(n)) return h;
-  if (n.nodate) h = h.replace('>' + shortDate(n.end) + '<', '>期間未定<').replace('class="fcm num', 'class="fcm num nodt');
-  h = h.replace(/<div class="fmemo[^"]*"[^>]*>[\s\S]*?<\/div>/, n.memo ? '<div class="fmemo">' + esc(memoText(n.memo).slice(0, 160)) + '</div>' : '');
-  return h;
-};
 // 編集ダイアログで日付を触ったら期間未定を外す
 document.addEventListener('click', function (e) {
   var b = e.target.closest && e.target.closest('[data-act="wSave"]'); if (!b || !M || M.m !== 'edit') return;
@@ -4930,12 +4954,6 @@ function viewCal() {
     '<div class="calg">' + ['日', '月', '火', '水', '木', '金', '土'].map(function (w) { return '<div class="cw">' + w + '</div>'; }).join('') + cells + '</div>' +
     '<div class="calleg"><span><i style="background:#EEF2FF"></i>部内の予定</span><span><i style="background:#FFF7ED"></i>イベント（業務）</span><span><i style="background:#F3F4F6"></i>外部の締切</span><span><i style="background:#fff;box-shadow:inset 0 0 0 1px var(--line2)"></i>枠だけ＝まだ部員に非公開</span></div>';
 }
-var _fabHTML42 = fabHTML;
-fabHTML = function () {
-  if (S.view === 'notices' && (S.ntab === 'cal' || S.ntab === 'ev') && can('notices')) return '<div class="efabw"><button class="efab" data-act="calNew" title="予定を追加" aria-label="予定を追加"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>';
-  if (S.view === 'notices' && S.ntab !== 'list') return '';
-  return _fabHTML42();
-};
 function calDlg() {
   var c = M.id ? calsInit().filter(function (x) { return x.id === M.id; })[0] : null, d = c || { title: '', date: M.d || isoOf(TODAY), to: '', time: '', place: '', memo: '', link: '', state: 'draft' }, inPg = !!(c && evInProg(c.id));
   var ro = !can('notices');
@@ -5026,8 +5044,6 @@ function treeDerive(t) { // 並び方から前提を作る（ほかのトラッ�
   tl(t).forEach(function (u) { var ext = (u.deps || []).filter(function (d) { return !mine[d]; }); u.deps = (deps[u.code] || []).concat(ext); });
 }
 function treeFind(items, pred, parent) { for (var i = 0; i < items.length; i++) { var n = items[i]; if (pred(n)) return { arr: items, i: i, n: n, parent: parent || null }; if (n.items) { var r = treeFind(n.items, pred, n); if (r) return r; } } return null; }
-var _changedTrack43 = changedTrack;
-changedTrack = function (t) { treeOf(t); treeDerive(t); return _changedTrack43.apply(this, arguments); };
 var CHEV = function (open) { return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + (open ? 'M7 10l5 5 5-5' : 'M10 7l5 5-5 5') + '"/></svg>'; };
 function treeRowsHTML(t, items, d, errs, doneOf) {
   var h = '';
@@ -5223,10 +5239,9 @@ document.addEventListener('keydown', function (e) {
   e.preventDefault(); e.stopImmediatePropagation(); if (ok) { pSave(); var n = document.querySelector('.pgl .pr[data-pid="' + id + '"]'); if (n) n.focus(); }
 }, true);
 // トラックの種類の選択はやめる（プログラムでの位置で決まる）
-viewTracks = (function (f) { return function () { return f().replace(/<label class="tkf kind">[\s\S]*?<\/label>/, '').replace('<div class="ftbar"><span>トラック</span>', '<div class="ftbar"><span>プログラム</span>'); }; })(viewTracks);
 
 // ---------- ux46 教材＝業務と同じツリー。並びがそのまま部員のプログラム。鍵＝上が済むまで開かない ----------
-changedTrack = _changedTrack43; // 単元の前提はもう使わない（鍵で決める）
+ // 単元の前提はもう使わない（鍵で決める）
 var PI2 = {
   f: '<svg class="fi" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2h8.5A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>',
   u: '<svg class="fi" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z M14 3v4h4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>',
@@ -5252,6 +5267,7 @@ function p2() {
     if (!f) { f = { id: GID(), k: 'f', name: t.name, t: t.id, items: [] }; out.items.push(f); have['T:' + t.id] = 1; }
     miss.forEach(function (u) { f.items.push({ id: GID(), k: 'u', t: t.id, c: u.code }); });
   });
+  if (!UI._evs) { UI._evs = 1; evSync(); UI._evs = 0; if (UI._evNew) { UI._evNew = 0; setTimeout(save, 0); } }
   return T;
 }
 function p2Walk(a, fn, par) { a.forEach(function (n) { fn(n, a, par); if (n.items) p2Walk(n.items, fn, n); }); }
@@ -5358,8 +5374,9 @@ function p2EventEditor(n) {
 }
 function viewTracks () {
   p2(); if (UI.psel && !p2Get(UI.psel)) UI.psel = null;
-  return top('教材') + '<div class="wk p2wk' + (UI.psel ? ' has' : '') + '"><aside class="p2tree" role="tree" aria-label="プログラム"><div class="p2bar"><span>プログラム</span><span class="p2tb"><button class="ib" data-p2a="nf" title="フォルダを追加" aria-label="フォルダを追加">' + PI2.f + '</button><button class="ib" data-p2a="nu" title="単元を追加" aria-label="単元を追加">' + PI2.u + '</button><button class="ib" data-p2a="ne" title="イベントを追加" aria-label="イベントを追加">' + PI2.e + '</button></span></div>' +
-    '<div class="p2list">' + p2Rows(p2(), 0) + '</div></aside><main class="p2main"><button class="p2back" data-p2go="">' + ic('back') + 'ツリー</button><div class="p2ed">' + p2Editor() + '</div></main></div>';
+  var slot = P2UI.noPv ? '<button class="p2pvopen" data-p2ui="pv" title="部員の画面を開く">' + CLL + '<span>部員の画面</span></button>' : '<aside class="p2pv slot" id="p2pvslot" aria-label="部員の画面"></aside>'; // iframe は描画のたびに作り直さず、上に重ねる
+  return top('教材') + '<div class="wk p2wk' + (P2UI.noTree ? ' notree' : '') + (UI.psel ? ' has' : '') + '"><aside class="p2tree" role="tree" aria-label="プログラム"><div class="p2bar"><span>プログラム</span><span class="p2tb"><button class="ib p2fold" data-p2ui="tree" title="ツリーを畳む" aria-label="ツリーを畳む">' + CLL + '</button><button class="ib" data-p2a="nf" title="フォルダを追加" aria-label="フォルダを追加">' + PI2.f + '</button><button class="ib" data-p2a="nu" title="単元を追加" aria-label="単元を追加">' + PI2.u + '</button><button class="ib" data-p2a="ne" title="イベントを追加" aria-label="イベントを追加">' + PI2.e + '</button></span></div>' +
+    '<div class="p2list">' + p2Rows(p2(), 0) + '</div></aside><main class="p2main">' + (P2UI.noTree ? '<button class="p2treeopen" data-p2ui="tree">' + CLR + 'プログラム</button>' : '') + '<button class="p2back" data-p2go="">' + ic('back') + 'ツリー</button><div class="p2cols' + (P2UI.noPv ? ' nopv' : '') + '"><div class="p2ed">' + p2Editor() + '</div>' + slot + '</div></main></div>';
 }
 // ---- 作る・消す・動かす ----
 function p2Target() { // 新しく作る場所：選んでいるのがフォルダならその中、ファイルならその後ろ
@@ -5384,6 +5401,7 @@ function p2New(k, where) {
 }
 function p2Del(id) {
   var f = p2Get(id); if (!f || f.n.out) return; snap();
+  if (f.n.k === 'e') { f.arr.splice(f.i, 1); if (UI.psel === id) UI.psel = null; p2Save(); toastUndo('「' + (f.n.name || 'イベント') + '」をプログラムから外しました（告知のイベントには残っています）'); return; }
   p2Walk([f.n], function (x) { if (x.k === 'u') { var t = p2Track(x.t), i = t ? unitIdx(t, x.c) : -1; if (i >= 0) { tl(t).splice(i, 1); delete t.units[x.c]; serialize(t); } } if (x.k === 'f' && x.t) { var stillUsed = false; S.tracks = S.tracks.filter(function (t) { return t.id !== x.t || tl(t).length; }); } });
   f.arr.splice(f.i, 1); if (UI.psel === id) UI.psel = (f.arr[f.i] || f.arr[f.i - 1] || f.parent || {}).id || null;
   p2Save(); toastUndo('「' + (p2Name(f.n) || '項目') + '」を削除しました');
@@ -5412,6 +5430,7 @@ function p2Menu(id, x, y) {
     var outF = p2().filter(function (z) { return z.out; })[0];
     if (f.parent !== outF) it.push(['プログラム外へ', function () { snap(); p2Move(id, outF.items, outF.items.length); p2Save(); }]);
     else it.push(['プログラムに戻す', function () { snap(); p2Move(id, p2(), p2().length - 1); p2Save(); }]);
+    var c = n.k === 'e' && evCal(n.ref); if (c) it.push('sep', [evInNotice(c) ? '告知から外す' : '告知にも追加', function () { if (evInNotice(c)) evOutNotice(c.id); else evToNotice(c.id); }]);
     it.push('sep', ['削除（Delete）', function () { p2Del(id); }, true]);
   } else it.push(['中をすべて開く', function () { n.open = true; p2Walk(n.items, function (z) { if (z.k === 'f') z.open = true; }); save(); render(); }]);
   render(); openMenu(p2Name(n) || '項目', it, x, y);
@@ -5455,7 +5474,7 @@ function p2Reveal(id) {
 }
 // ---- 入力 ----
 function p2Commit(el) { var f = p2Get(el.dataset.p2ren); UI.pren = null; if (!f) return render(); var v = el.value.trim(); if (v) { snap(); p2SetName(f.n, v); } p2Save(); p2Focus(f.n.id); }
-function p2SetName(n, v) { if (n.k === 'u') { var t = p2Track(n.t), u = p2Unit(n); if (u) { u.title = v; serialize(t); touch(t); } } else { n.name = v; if (n.k === 'f' && n.t) { var t2 = p2Track(n.t); if (t2) t2.name = v; } } }
+function p2SetName(n, v) { if (n.k === 'e') { var c = evCal(n.ref); if (c) c.title = v; n.name = v; return; } if (n.k === 'u') { var t = p2Track(n.t), u = p2Unit(n); if (u) { u.title = v; serialize(t); touch(t); } } else { n.name = v; if (n.k === 'f' && n.t) { var t2 = p2Track(n.t); if (t2) t2.name = v; } } }
 document.addEventListener('input', function (e) {
   var el = e.target; if (!el.dataset || S.view !== 'tracks') return; var f = p2Get(UI.psel); if (!f) return; var n = f.n;
   if (el.dataset.p2f) { var k = el.dataset.p2f;
@@ -5552,23 +5571,11 @@ document.addEventListener('contextmenu', function (e) {
 });
 
 // ---------- ux49 教材の右：部員の「プログラム」での見え方（選んでいる項目を強調、クリックで選ぶ） ----------
-var _viewTracks49 = viewTracks;
 
 // ---------- ux50 右の部員画面＝本物の部員アプリ（学ぶタブ）を読み込む。ツリーと部員画面は畳める ----------
 var P2UI = (function () { try { return JSON.parse(localStorage.getItem('slope-p2ui') || '{}'); } catch (e) { return {}; } })();
 function p2UiSave() { try { localStorage.setItem('slope-p2ui', JSON.stringify(P2UI)); } catch (e) {} }
 var CLL = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>', CLR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
-viewTracks = function () {
-  var h = _viewTracks49();
-  // 右：本物の部員画面を置く場所（iframe は描画のたびに作り直さず、上に重ねる）
-  var slot = P2UI.noPv ? '<button class="p2pvopen" data-p2ui="pv" title="部員の画面を開く">' + CLL + '<span>部員の画面</span></button>'
-    : '<aside class="p2pv slot" id="p2pvslot" aria-label="部員の画面"></aside>';
-  h = h.replace('<div class="p2ed">', '<div class="p2cols' + (P2UI.noPv ? ' nopv' : '') + '"><div class="p2ed">').replace(/<\/main><\/div>$/, slot + '</div></main></div>');
-  h = h.replace('<div class="wk p2wk', '<div class="wk p2wk' + (P2UI.noTree ? ' notree' : ''));
-  h = h.replace('<div class="p2bar"><span>プログラム</span><span class="p2tb">', '<div class="p2bar"><span>プログラム</span><span class="p2tb"><button class="ib p2fold" data-p2ui="tree" title="ツリーを畳む" aria-label="ツリーを畳む">' + CLL + '</button>');
-  h = h.replace('<main class="p2main">', '<main class="p2main">' + (P2UI.noTree ? '<button class="p2treeopen" data-p2ui="tree">' + CLR + 'プログラム</button>' : ''));
-  return h;
-};
 document.addEventListener('click', function (e) {
   var b = e.target.closest && e.target.closest('[data-p2ui]'); if (!b) return; e.preventDefault(); e.stopImmediatePropagation();
   if (b.dataset.p2ui === 'tree') P2UI.noTree = !P2UI.noTree; else P2UI.noPv = !P2UI.noPv; p2UiSave(); render(); p2Frame();
@@ -5590,8 +5597,7 @@ window.addEventListener('resize', p2Frame);
 document.addEventListener('scroll', function () { if (P2F && P2F.style.display !== 'none') p2Frame(); }, true);
 document.addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('[data-p2pv]'); if (!b) return; e.preventDefault(); p2FrameReload(); }, true);
 // 教材を変えたら、少し待って部員の画面を読み込み直す（本番はデータベースへの保存を待つ）
-var P2RT = null, _save50 = save;
-save = function () { var r = _save50.apply(this, arguments); if (S.view === 'tracks' && P2F && P2F.style.display !== 'none') { clearTimeout(P2RT); P2RT = setTimeout(p2FrameReload, window.sb ? 2500 : 600); } return r; };
+var P2RT = null;
 
 // ---------- ux51 告知のイベント＝学ぶのイベント＋部内の予定。公開したものだけ部員に出て参加登録できる ----------
 function pmd(x) { return x ? x.slice(5).replace('-', '.') : ''; }
@@ -5618,10 +5624,7 @@ function evSync() { // プログラムの中のイベントに、本体（予定
   });
   (function rm(a) { for (var i = a.length - 1; i >= 0; i--) { if (a[i]._dead) a.splice(i, 1); else if (a[i].items) rm(a[i].items); } })(S.program.v2);
 }
-var _p2_52 = p2; p2 = function () { var T = _p2_52(); if (!UI._evs) { UI._evs = 1; evSync(); UI._evs = 0; if (UI._evNew) { UI._evNew = 0; setTimeout(save, 0); } } return T; };
 // 教材でイベントを作る＝予定（下書き）を作って、プログラムに置く
-var _p2SetName52 = p2SetName;
-p2SetName = function (n, v) { if (n.k === 'e') { var c = evCal(n.ref); if (c) c.title = v; n.name = v; return; } return _p2SetName52(n, v); };
 // 教材の中央：告知と同じ項目をそのまま編集
 document.addEventListener('input', function (e) {
   var el = e.target; if (!el.dataset || !el.dataset.ce || S.view !== 'tracks') return; var f = p2Get(UI.psel); if (!f || f.n.k !== 'e') return; var c = evCal(f.n.ref); if (!c) return;
@@ -5634,15 +5637,10 @@ document.addEventListener('change', function (e) {
   else if (el.dataset.ce === 'date' || el.dataset.ce === 'to') { if (c.to && c.to <= c.date) c.to = ''; evSync(); save(); render(); }
 }, true);
 // 学ぶのツリーでイベントを消す＝プログラムから外すだけ（告知のイベントは残る）
-var _p2Del52 = p2Del;
-p2Del = function (id) {
-  var f = p2Get(id); if (!f || f.n.k !== 'e') return _p2Del52(id);
-  snap(); f.arr.splice(f.i, 1); if (UI.psel === id) UI.psel = null; p2Save(); toastUndo('「' + (f.n.name || 'イベント') + '」をプログラムから外しました（告知のイベントには残っています）');
-};
 // 告知のイベント一覧：予定がすべて。学ぶに入っているものには印
 function viewEvents () {
   calsInit(); p2();
-  var cs = S.cals.slice().sort(function (a, b) { return (a.date || '') < (b.date || '') ? -1 : 1; });
+  var cs = S.cals.filter(evInNotice).sort(function (a, b) { return (a.date || '') < (b.date || '') ? -1 : 1; });
   if (!cs.length) return '<div class="empty big">イベントはまだありません。右下の＋で追加できます</div>';
   var okc = can('notices'), today = isoOf(TODAY);
   return '<div class="evl"><div class="evr evh"><span>イベント</span><span>期間</span><span>場所</span><span>参加登録</span><span>公開</span><span></span></div>' + cs.map(function (c) {
@@ -5687,12 +5685,6 @@ document.addEventListener('click', function (e) {
 }, true);
 // 学ぶで作るイベントは、まだ告知に入っていない
 // 告知の一覧：告知に入っているものだけ
-var _viewEvents53 = viewEvents;
-viewEvents = function () {
-  calsInit(); p2(); var all = S.cals; S.cals = all.filter(evInNotice);
-  try { var h = _viewEvents53(); } finally { S.cals = all; }
-  return h;
-};
 // 告知の行の右クリック
 window.addEventListener('contextmenu', function (e) {
   if (S.view !== 'notices' || !e.target.closest) return; var r = e.target.closest('.evr[data-calid]'); if (!r) return;
@@ -5703,13 +5695,6 @@ window.addEventListener('contextmenu', function (e) {
     'sep', ['削除', function () { snap(); evOutProg(c.id); S.cals = S.cals.filter(function (x) { return x !== c; }); save(); render(); toastUndo('「' + c.title + '」を削除しました'); }, true, ok ? '' : '告知の権限が必要']], e.clientX, e.clientY);
 }, true);
 // 学ぶのツリーのイベントの右クリックに「告知に追加／外す」
-var _p2Menu53 = p2Menu;
-p2Menu = function (id, x, y) {
-  _p2Menu53(id, x, y); var f = p2Get(id); if (!f || f.n.k !== 'e') return; var c = evCal(f.n.ref), m = document.getElementById('cm'); if (!c || !m) return;
-  var lab = evInNotice(c) ? '告知から外す' : '告知にも追加', fn = evInNotice(c) ? function () { evOutNotice(c.id); } : function () { evToNotice(c.id); };
-  UI.cmFns.push(fn); var del = m.querySelector('.cmdel'); var html = '<button role="menuitem" data-gcm="' + (UI.cmFns.length - 1) + '">' + lab + '</button><i class="cmsep"></i>';
-  if (del) del.insertAdjacentHTML('beforebegin', html); else m.insertAdjacentHTML('beforeend', html);
-};
 // 教材のイベントの詳細：告知に入っていなければ公開はできず、「告知にも追加」を出す
 
 // ---------- ux54 ファイルも担当を複数に。下の段の担当は、上のフォルダのメンバーからだけ選べる ----------
@@ -5718,32 +5703,6 @@ function pickable(n) { if (isAdmin()) return null; var a = pickFrom(n); return a
 function fwNames(n) { return fileWho(n).map(function (id) { var m = member(id); return m ? m.name : ''; }).join('・'); }
 function fileWho(n) { var t = (n.team || []).slice(); if (n.who && t.indexOf(n.who) < 0) t.unshift(n.who); return t; }
 function setFileWho(n, list) { n.team = list.slice(); n.who = list[0] || ''; delete n.leads; }
-var _whoOpts54 = whoOpts;
-whoOpts = function (n) { var pk = pickable(n); if (!pk) return _whoOpts54(n); return '<option value="">未定</option>' + S.members.filter(function (m) { return pk.indexOf(m.id) >= 0 || n.who === m.id; }).map(function (m) { return '<option value="' + m.id + '"' + (n.who === m.id ? ' selected' : '') + '>' + esc(m.name) + '</option>'; }).join(''); };
-var _teamBtn54 = teamBtn;
-teamBtn = function (n, dis, compact) {
-  if (isFolder(n)) return _teamBtn54(n, dis, compact);
-  var tm = fileWho(n), nm = function (id) { var m = member(id); return m ? m.name : ''; };
-  var inner = !tm.length ? '<span class="none">担当を選ぶ</span>' : compact ? '<span class="avs">' + tm.slice(0, 3).map(function (id) { return '<span class="av">' + esc(initials(nm(id))) + '</span>'; }).join('') + '</span>' + (tm.length > 3 ? '<span class="more num">+' + (tm.length - 3) + '</span>' : '')
-    : '<span class="avs">' + tm.slice(0, 2).map(function (id) { return av(id); }).join('') + '</span><span class="ld"><b>' + esc(tm.slice(0, 2).map(nm).join('・')) + '</b></span>' + (tm.length > 2 ? '<span class="more num">+' + (tm.length - 2) + '</span>' : '');
-  return '<button class="tbtn fw" data-act="teamPick" data-id="' + n.id + '"' + (dis || '') + ' aria-label="担当 ' + tm.length + '名" title="' + esc(tm.map(nm).join('\n') || '担当なし') + '">' + inner + '</button>';
-};
-var _openTeam54 = openTeam;
-openTeam = function (id, keep) {
-  _openTeam54(id, keep);
-  var n = task(id), tp = document.getElementById('tp'); if (!n || !tp) return;
-  var pk = pickable(n), p = pickFrom(n);
-  if (pk) { // フォルダのメンバー以外は出さない
-    var keep = isFolder(n) ? teamOf(n) : fileWho(n); Array.prototype.forEach.call(tp.querySelectorAll('.tpi'), function (r) { var c = r.querySelector('[data-tm]'); if (c && pk.indexOf(c.dataset.tm) < 0 && keep.indexOf(c.dataset.tm) < 0) r.remove(); });
-    Array.prototype.forEach.call(tp.querySelectorAll('.tph'), function (h) { if (/その他/.test(h.textContent)) { var nx = h.nextElementSibling; if (!nx || !nx.classList.contains('tpi')) h.remove(); else h.innerHTML = '<span>フォルダのメンバー外（外すだけできます）</span>'; } });
-    tp.querySelector('.tpl').insertAdjacentHTML('beforeend', '<div class="tpnote">' + (p ? '「' + esc(ttl(p)) + '」のメンバーから選べます' : 'いちばん上の業務のメンバーは、代表が決めます') + '</div>');
-  }
-  if (!isFolder(n)) { // ファイル：リーダーはなし。今の担当にチェック
-    var cur = fileWho(n);
-    Array.prototype.forEach.call(tp.querySelectorAll('.lead'), function (b) { b.remove(); });
-    Array.prototype.forEach.call(tp.querySelectorAll('[data-tm]'), function (c) { c.checked = cur.indexOf(c.dataset.tm) >= 0; c.dataset.fileWho = '1'; });
-  }
-};
 window.addEventListener('change', function (e) {
   var el = e.target; if (!el.dataset || !el.dataset.tm || !el.dataset.fileWho) return; e.stopImmediatePropagation();
   var n = task(el.dataset.id), m = el.dataset.tm; if (!n) return; if (!canAssign(n)) { el.checked = !el.checked; toast('担当を変えられるのは、このフォルダのリーダーです'); return; }
@@ -5762,8 +5721,6 @@ function fwSwap() {
   });
 }
 // ガントの編集を確定しても、担当は上で直接変わっているので上書きしない
-var _gEnd54 = gEnd; gEnd = function (saveIt) { var n = task(UI.gedit), d = UI.gdraft; if (n && d && !isFolder(n)) d.who = n.who || ''; return _gEnd54(saveIt); };
-
 // ---------- ux55 ダッシュボード：自分の担当を見やすく、通知は消せる、数字は横一列 ----------
 var _notify55 = window.notify;
 window.notify = function (to, text, sub) { var r = _notify55.apply(this, arguments); if (S.notifs && S.notifs[0] && !S.notifs[0].id) S.notifs[0].id = uid('nt'); return r; };
@@ -5861,22 +5818,6 @@ if (!S.inqs) S.inqs = [
 ];
 function inqOpen() { return (S.inqs || []).filter(function (q) { return q.status !== 'done'; }).length || null; }
 function inqSave(q, patch) { Object.assign(q, patch); if (window.__inqUpdate) window.__inqUpdate(q.id, patch); else save(); }
-var _viewBoard60 = viewBoard;
-viewBoard = function () {
-  if (!S.boardTab || S.boardTab === 'all' && !S._bt60) { S.boardTab = 'inq'; S._bt60 = 1; }
-  var h = _viewBoard60(); if (S.boardTab !== 'inq') return h;
-  var head = h.slice(0, h.indexOf('<div class="body">'));
-  var list = (S.inqs || []).slice().sort(function (a, b) { return (a.status === 'done') - (b.status === 'done'); });
-  var rows = list.map(function (q) {
-    var m = member(q.user), done = q.status === 'done';
-    return '<div class="iq' + (done ? ' done' : '') + '"><div class="iqh"><span class="tag">' + esc(q.kind) + '</span><span class="iqw">' + (m ? av(q.user) + esc(m.name) : '退部した部員') + '</span><span class="muted num">' + esc(q.at) + '</span><span class="sp"></span>' +
-      (done ? '<button class="btn sm ghost" data-iq="reopen" data-id="' + q.id + '">未対応に戻す</button>' : '') + '<button class="ib" data-iq="del" data-id="' + q.id + '" aria-label="削除" title="削除">' + ic('x') + '</button></div>' +
-      '<div class="iqb">' + esc(q.body) + '</div>' +
-      (done ? (q.reply ? '<div class="iqr"><span class="muted">返信</span>' + esc(q.reply) + '</div>' : '<div class="iqr muted">対応済み</div>')
-        : '<div class="iqf"><textarea class="input" rows="2" data-iqr="' + q.id + '" aria-label="返信"></textarea><div class="iqa"><button class="btn sm" data-iq="done" data-id="' + q.id + '">返信せずに完了</button><button class="btn sm primary" data-iq="reply" data-id="' + q.id + '">返信して完了</button></div></div>') + '</div>';
-  }).join('');
-  return head + '<div class="body"><div class="iql">' + (rows || '<div class="empty">お問い合わせはまだありません</div>') + '</div></div>';
-};
 window.addEventListener('click', function (e) {
   var b = e.target.closest && e.target.closest('[data-iq]'); if (!b) return; e.preventDefault(); e.stopImmediatePropagation();
   var q = (S.inqs || []).filter(function (x) { return String(x.id) === b.dataset.id; })[0]; if (!q) return;
@@ -6008,9 +5949,9 @@ document.addEventListener('click', function (e) {
       M = null; save(); render(); toast(changed ? changed + '件を割り当てました' + (Object.keys(people).length ? '（' + Object.keys(people).length + '人に通知）' : '') : '変更はありません'); break;
     case 'done': var kd = task(b.dataset.id); kd.done = true; S.justDone = kd.id; reportUp(kd); save(); render(); toast('完了を報告しました'); break;
     case 'undo': task(b.dataset.id).done = false; S.justDone = null; save(); render(); break;
-    case 'resetAsk': UI.acct = false; if (confirm('サンプルデータに戻しますか？\n編集した内容はすべて消えます。')) { var kp = S.me, vw = S.view; S = sample(); S.me = member(kp) ? kp : 'm1'; S.view = vw; M = null; save(); render(); toast('サンプルに戻しました'); } else renderChrome(); break;
+    case 'resetAsk': UI.acct = false; if (confirm('サンプルデータに戻しますか？\n編集した内容はすべて消えます。')) { var kp = S.me, vw = S.view; S = migrateFolders(sample()); S.me = member(kp) ? kp : 'm1'; S.view = vw; M = null; save(); render(); toast('サンプルに戻しました'); } else renderChrome(); break;
     case 'toMember': location.replace('./'); break;
-    case 'reset': var keep = S.me; S = sample(); S.me = member(keep) ? keep : 'm1'; S.view = 'perms'; M = null; save(); render(); toast('サンプルに戻しました'); break;
+    case 'reset': var keep = S.me; S = migrateFolders(sample()); S.me = member(keep) ? keep : 'm1'; S.view = 'perms'; M = null; save(); render(); toast('サンプルに戻しました'); break;
   }
 });
 document.addEventListener('keydown', function (e) {
@@ -6174,11 +6115,8 @@ function refocus() {
 function rerender(f) { FOCUS = f || null; save(); render(); refocus(); }
 function sibs(n) { var p = parentOf(n); return p ? kids(p) : S.projects; }
 function setTitle(n, v) { if (n.tasks) n.name = v; else n.title = v; }
-function newNode(par, title) {
-  var s0 = par ? (dayOf(par.start) > TODAY ? par.start : (dayOf(par.end) < TODAY ? par.start : isoOf(TODAY))) : isoOf(TODAY);
-  var e0 = par ? par.end : isoOf(TODAY + 30 * DAY);
-  return { id: uid('k'), title: title, who: '', start: s0, end: e0, done: false };
-}
+function newNode(par, title) { return { id: uid('k'), title: title, who: '', start: isoOf(TODAY), end: isoOf(TODAY), done: false }; } // 期間は作った日。あとで伸ばす
+
 function addUnder(par, title, after) {
   if (!par) { var ev = { id: uid('pj'), name: title, kind: 'event', announce: 'before', reg: 0, unit: '教育部', who: '', start: isoOf(TODAY), end: isoOf(TODAY + 30 * DAY), tasks: [] }; S.projects.push(ev); return ev; }
   if (!par.tasks) { if (!par.kids) par.kids = []; delete par.done; }
