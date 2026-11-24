@@ -25,7 +25,7 @@ document.addEventListener('contextmenu', function (e) {
   if (window.getSelection && String(window.getSelection())) return; // 文字を選んでいるときは標準のメニュー（コピー用）
   var x = e.clientX, y = e.clientY, it = null, title = '';
   if (S.view === 'notices' && (S.ntab || 'list') === 'list') {
-    var r = e.target.closest('.nr[data-nid]');
+    var r = e.target.closest('[data-nid]');
     if (r) { var n = notice(r.dataset.nid); if (!n) return; title = n.title;
       it = [['編集', function () { M = { m: 'notice', id: n.id }; renderModal(); }],
             [n.state === 'pub' ? '非公開にする' : '公開する', function () { n.state = n.state === 'pub' ? 'draft' : 'pub'; save(); render(); }],

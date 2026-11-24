@@ -328,7 +328,7 @@ function projStats() {
 function nodeModal(n) {
   var root = !parentOf(n), par = parentOf(n), leaf = !kids(n).length && !n.tasks;
   var memo = isFolder(n)
-    ? '<div class="fld"><label for="wM">メモ</label><textarea id="wM" class="input" rows="4" placeholder="どこで・どうやって・結果など"' + (editSelf(n) || n.who === S.me ? '' : ' disabled') + '>' + esc(n.memo || '') + '</textarea></div>'
+    ? '<div class="fld"><label for="wM">メモ</label><textarea id="wM" class="input" rows="4" ' + (editSelf(n) || n.who === S.me ? '' : ' disabled') + '>' + esc(n.memo || '') + '</textarea></div>'
     : '<div class="fld"><label>メモ</label><div class="muted" style="font-size:12px">ファイルを開くと書けます' + (n.memo ? '（' + esc(memoText(n.memo).slice(0, 40)) + '…）' : '') + '</div></div>'; // ファイルのメモはファイルのページで書く
   var body = (par ? '<div class="muted" style="font-size:12px">' + esc(ttl(rootOf(n))) + (par !== rootOf(n) ? ' ／ … ／ ' + esc(ttl(par)) : '') + '</div>' : '') +
     '<div class="fld"><label for="wT">名前</label><input id="wT" class="input" value="' + esc(ttl(n)) + '"' + (editSelf(n) ? '' : ' disabled') + '></div>' +

@@ -155,7 +155,7 @@ function p2Editor() {
   }).join('');
   return head + '<div class="p2tr"><input class="p2code num" data-p2f="code" value="' + esc(u.code) + '" aria-label="コード" autocomplete="off"><input class="p2title" data-p2f="title" value="' + esc(u.title) + '" placeholder="単元名" aria-label="単元名" autocomplete="off"></div>' +
     '<div class="p2row">' + lock + '<span class="p2tags">' + TAGS.map(function (g) { return '<button class="tgl" data-p2a="tag" data-tag="' + g + '" aria-pressed="' + (u.tags.indexOf(g) >= 0) + '">' + g + '</button>'; }).join('') + '</span></div>' +
-    '<label class="p2fld">目標<textarea class="input" data-p2u="goal" rows="2" placeholder="この単元で何ができるようになるか">' + esc(d.goal || '') + '</textarea></label>' +
+    '<label class="p2fld">目標<textarea class="input" data-p2u="goal" rows="2">' + esc(d.goal || '') + '</textarea></label>' +
     '<div class="p2fld"><span>教材</span><div class="p2mats">' + mats + '<input class="input" id="p2url" placeholder="URLを貼り付けて Enter" aria-label="教材のURL" autocomplete="off"></div></div>' +
     '<div class="p2fld"><span>確認問題</span><div class="qzl">' + qh + '<button class="qzadd" data-qzadd="1">＋ 問題</button></div></div>';
 }
@@ -164,19 +164,23 @@ function p2EventEditor(n) {
   var c = evCal(n.ref); if (!c) return '';
   var crumb = p2Crumb(n.id).map(function (x) { return '<button data-p2go="' + x.id + '">' + esc(x.name) + '</button>'; }).join('<span>/</span>'), ro = !can('notices'), inN = evInNotice(c);
   var inp = function (k, lab, type, ph) { return '<label>' + lab + '<input class="input" ' + (type ? 'type="' + type + '" ' : '') + 'data-ce="' + k + '" value="' + esc(c[k] || '') + '"' + (ph ? ' placeholder="' + ph + '"' : '') + (ro ? ' disabled' : '') + ' autocomplete="off"></label>'; };
-  var i = lvNodes().indexOf(n), att = (c.att || []).filter(function (id) { return member(id); });
-  var lv = '<label class="p2sw"><input type="checkbox" data-p2lv="1"' + (n.lv ? ' checked' : '') + '><span>レベル</span><small>' + (n.lv ? '出席で Lv' + (i + 1) : '') + '</small></label>';
-  var pub = inN ? '<label class="p2sw"><input type="checkbox" data-ce="state"' + (c.state === 'pub' ? ' checked' : '') + (ro ? ' disabled' : '') + '><span>部員に公開</span><small>予定タブの部内イベントに出て、参加登録できる</small></label>' + lv
-    : '<button class="btn sm" data-act="evToNotice" data-id="' + c.id + '">告知にも追加</button><small class="muted" style="font-size:12px">告知に入れると、そこで部員に公開できます</small>';
+  var i = lvNodes().indexOf(n), att = (c.att || []).filter(function (id) { return member(id); }), pubOn = c.state === 'pub';
+  var sw = function (attr, on, label, tip, dis) { return '<label class="p2sw" title="' + tip + '"><input type="checkbox" ' + attr + (on ? ' checked' : '') + (dis ? ' disabled' : '') + '><span>' + label + '</span></label>'; };
+  var toggles = sw('data-p2f="lock"', n.lock, '鍵', '上の項目が済むまで開かない') +
+    (inN ? sw('data-ce="state"', pubOn, '部員に公開', '予定タブの部内イベントに出て、参加登録できる', ro) : '') +
+    sw('data-p2lv="1"', n.lv, 'レベル' + (n.lv ? '<small class="num">Lv' + (i + 1) + '</small>' : ''), '出席した部員のレベルが上がる');
   var chips = att.map(function (id) { return '<span class="attc">' + av(id) + esc(member(id).name) + '</span>'; }).join('');
+  var stat = inN
+    ? '<div class="p2st"><span class="p2pub' + (pubOn ? ' on' : '') + '">' + (pubOn ? '公開中' : '未公開') + '</span>' + (pubOn ? '<span class="p2stn">参加登録 <b class="num">' + ((S.joins || {})[c.id] || 0) + '</b> 人</span>' : '') + '<button class="p2golink" data-act="evOutNotice" data-id="' + c.id + '">告知から外す</button></div>'
+    : '<div class="p2st"><span class="p2pub">告知に出していません</span><button class="p2golink" data-act="evToNotice" data-id="' + c.id + '">告知にも追加</button></div>';
+  var attend = '<div class="p2st"><span class="p2stn">出席 <b class="num">' + att.length + '</b> 人</span>' + (ro ? '' : '<button class="btn sm" data-attopen="' + c.id + '">' + (att.length ? '出席を変更' : '出席を付ける') + '</button>') + '</div>' + (chips ? '<div class="attl">' + chips + '</div>' : '');
   return '<div class="p2crumb">' + (crumb || '<span>プログラム</span>') + '</div>' +
     '<input class="p2title" data-ce="title" value="' + esc(c.title) + '" placeholder="イベント名" aria-label="イベント名" autocomplete="off"' + (ro ? ' disabled' : '') + '>' +
-    '<div class="p2row"><label class="p2sw"><input type="checkbox" data-p2f="lock"' + (n.lock ? ' checked' : '') + '><span>鍵</span><small>上の項目が済むまで開かない</small></label>' + pub + '</div>' +
+    '<div class="p2row">' + toggles + '</div>' +
     '<div class="p2grid3">' + inp('date', '開始日', 'date') + inp('to', '終了日', 'date') + inp('time', '時間', 'time') + '</div>' +
     '<div class="p2grid">' + inp('place', '場所') + inp('link', 'リンク', '', 'https://') + '</div>' +
     '<label class="p2fld">部員がやること・説明<textarea class="input" data-ce="memo" rows="3"' + (ro ? ' disabled' : '') + '>' + esc(c.memo || '') + '</textarea></label>' +
-    (inN ? '<div class="p2reg">' + (c.state === 'pub' ? '<span class="p2pub on">公開中</span><span>参加登録</span><b class="num">' + ((S.joins || {})[c.id] || 0) + '</b><span>人</span>' : '<span class="p2pub">未公開</span>') + '<button class="p2golink" data-act="evOutNotice" data-id="' + c.id + '">告知から外す</button></div>' : '') +
-    '<div class="p2fld p2att"><span>出席 <b class="num">' + att.length + '</b></span><div class="attl">' + chips + (ro ? '' : '<button class="attb" data-attopen="' + c.id + '">' + (att.length ? '変更' : '付ける') + '</button>') + '</div></div>';
+    '<div class="p2box">' + stat + attend + '</div>';
 }
 function viewTracks () {
   p2(); if (UI.psel && !p2Get(UI.psel)) UI.psel = null;

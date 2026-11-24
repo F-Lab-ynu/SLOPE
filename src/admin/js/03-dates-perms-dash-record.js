@@ -164,7 +164,7 @@ function recHTML(p) {
   return '<div class="rh"><div class="rt"><small>' + esc(seriesOf(p)) + '・' + fyOf(p) + '年度</small><b>' + esc('name' in p ? p.name : ttl(p)) + '</b></div><button class="ib" data-act="recClose" aria-label="閉じる">' + ic('x') + '</button></div>' +
     '<div class="rb">' +
     '<section><h3>概要</h3><label class="evt"><input type="checkbox" class="check" data-evt="1"' + (ev ? ' checked' : '') + (ok ? '' : ' disabled') + '>イベント（参加数を記録して統計に入れる）</label>' +
-      f('目的', '<textarea class="input" rows="2" data-rf="purpose"' + dis + ' placeholder="何のためのイベントか">' + esc(p.purpose || '') + '</textarea>') +
+      f('目的', '<textarea class="input" rows="2" data-rf="purpose"' + dis + '>' + esc(p.purpose || '') + '</textarea>') +
       '<div class="two">' + f('日程', '<div class="rv num">' + shortDate(p.start) + ' – ' + shortDate(p.end) + '</div>') + f('場所', '<input class="input" data-rf="place"' + dis + ' value="' + esc(p.place || '') + '">') + '</div>' +
       (ev ? '<div class="two">' + f('担当部', '<select class="input" data-rf="unit"' + dis + '>' + ['教育部', '催事部', '外務部', '会計', '代表'].map(function (u) { return '<option' + (p.unit === u ? ' selected' : '') + '>' + u + '</option>'; }).join('') + '</select>') +
         f('告知', '<select class="input" data-rf="announce"' + dis + '><option value="before"' + (p.announce !== 'done' ? ' selected' : '') + '>告知前</option><option value="done"' + (p.announce === 'done' ? ' selected' : '') + '>告知済み</option></select>') + '</div>' : '') +
@@ -173,7 +173,7 @@ function recHTML(p) {
       '<div class="rv muted">業務 ' + g.n + '件・完了 ' + g.d + (g.late ? '・<span class="bad">遅れ ' + g.late + '</span>' : '') + '</div></section>' +
     '<section><h3>結果</h3>' +
       (ev ? '<div class="two">' + f('参加数', '<input class="input num" type="number" min="0" data-rf="reg"' + dis + ' value="' + (p.reg || 0) + '">') + f('参加率', '<div class="rv num">' + pct(p) + '%<small class="muted">（部員 ' + (S.club || 150) + '）</small></div>') + '</div>' : '') +
-      f('振り返り', '<textarea class="input" rows="4" data-rf="review"' + dis + ' placeholder="良かったこと・次回への改善">' + esc(p.review || '') + '</textarea>') +
+      f('振り返り', '<textarea class="input" rows="4" data-rf="review"' + dis + '>' + esc(p.review || '') + '</textarea>') +
       f('資料', '<div class="rl">' + lk.map(function (u, i) { return '<div class="rli"><a href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(host(u) || u) + ' ↗</a>' + (ok ? '<button class="ib" data-act="recLinkDel" data-i="' + i + '" aria-label="削除">' + ic('x') + '</button>' : '') + '</div>'; }).join('') +
         (ok ? '<input class="input" data-rlink="1" placeholder="URL を貼って Enter" autocomplete="off">' : (lk.length ? '' : '<span class="dim">—</span>')) + '</div>') +
     '</section>' +

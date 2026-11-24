@@ -45,7 +45,7 @@ function viewEvents () {
   return '<div class="evl"><div class="evr evh"><span>イベント</span><span>期間</span><span>場所</span><span>参加登録</span><span>公開</span><span></span></div>' + cs.map(function (c) {
     var end = c.to || c.date, past = !!end && end < today, pub = c.state === 'pub', pg = evInProg(c.id);
     return '<div class="evr" data-calid="' + c.id + '"><span class="evn"><b>' + esc(c.title || 'イベント') + (pg ? '<i class="evtag">学ぶ</i>' : '') + '</b>' + (c.memo ? '<span>' + esc(memoText(c.memo).slice(0, 60)) + '</span>' : '') + '</span>' +
-      '<span class="evq num">' + (c.date ? pmd(c.date) + (c.to ? ' – ' + pmd(c.to) : '') + (c.time ? ' ' + esc(c.time) : '') : '<span class="dim">未定</span>') + '</span><span class="evp">' + esc(c.place || '—') + '</span>' +
+      '<span class="evq num">' + (c.date ? pmd(c.date) + (c.to ? ' – ' + pmd(c.to) : '') + (c.time ? ' ' + esc(c.time) : '') : '<span class="dim">未定</span>') + '</span>' + (c.place ? '<span class="evp">' + esc(c.place) + '</span>' : '<span class="evp dim">—</span>') +
       '<span class="evg num">' + (pub ? ((S.joins || {})[c.id] || 0) + ' 人' : '<span class="dim">—</span>') + '</span>' +
       (past ? '<span class="muted nsw" style="font-size:12px">終了</span>' : '<button class="sw nsw" role="switch" data-act="calPub" data-id="' + c.id + '" aria-checked="' + pub + '" aria-label="部員に公開"' + (okc ? '' : ' disabled') + '><i></i></button>') +
       '<button class="ib" data-act="calItem" data-k="cal" data-id="' + c.id + '" aria-label="編集" title="編集">' + PEN + '</button></div>';

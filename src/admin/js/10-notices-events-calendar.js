@@ -31,7 +31,7 @@ function viewCal() {
   }
   return '<div class="calh"><button class="ib" data-act="calMv" data-v="-1" aria-label="前の月">' + '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button><b class="num">' + y + '年' + (m + 1) + '月</b><button class="ib" data-act="calMv" data-v="1" aria-label="次の月"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button><button class="btn sm" data-act="calMv" data-v="0">今日</button></div>' +
     '<div class="calg">' + ['日', '月', '火', '水', '木', '金', '土'].map(function (w) { return '<div class="cw">' + w + '</div>'; }).join('') + cells + '</div>' +
-    '<div class="calleg"><span><i style="background:#EEF2FF"></i>部内の予定</span><span><i style="background:#FFF7ED"></i>イベント（業務）</span><span><i style="background:#F3F4F6"></i>外部の締切</span><span><i style="background:#fff;box-shadow:inset 0 0 0 1px var(--line2)"></i>枠だけ＝まだ部員に非公開</span></div>';
+    '<div class="calleg"><span><i style="background:#EEF2FF"></i>部内の予定</span><span><i style="background:#FFF7ED"></i>イベント（業務）</span><span><i style="background:#F3F4F6"></i>外部の締切</span><span><i style="background:#fff;box-shadow:inset 0 0 0 1px var(--line2)"></i>枠だけ＝非公開</span></div>';
 }
 function calDlg() {
   var c = M.id ? calsInit().filter(function (x) { return x.id === M.id; })[0] : null, d = c || { title: '', date: M.d || isoOf(TODAY), to: '', time: '', place: '', memo: '', link: '', state: 'draft' }, inPg = !!(c && evInProg(c.id));
@@ -41,9 +41,9 @@ function calDlg() {
     '<div class="fld"><label for="cP">場所</label><input id="cP" class="input" value="' + esc(d.place || '') + '" autocomplete="off"' + (ro ? ' disabled' : '') + '></div>' +
     '<div class="fld"><label for="cM">部員がやること・説明</label><textarea id="cM" class="input" rows="3"' + (ro ? ' disabled' : '') + '>' + esc(d.memo || '') + '</textarea></div>' +
     '<div class="fld"><label for="cL">リンク</label><input id="cL" class="input" value="' + esc(d.link || '') + '" placeholder="https://" autocomplete="off"' + (ro ? ' disabled' : '') + '></div>' +
-    '<label style="display:flex;align-items:center;gap:8px"><input id="cS" type="checkbox" class="check"' + (d.state === 'pub' ? ' checked' : '') + (ro ? ' disabled' : '') + '>部員に公開する（予定タブの部内イベントに出て、参加登録できる）</label>' +
-    (c && !ro && can('tracks') ? '<div style="margin-top:10px"><button class="btn sm" data-act="' + (inPg ? 'evOutProg' : 'evToProg') + '" data-id="' + c.id + '">' + (inPg ? '学ぶから外す' : '学ぶにも追加') + '</button></div>' : '');
-  var foot = ro ? '<button class="btn" data-act="close">閉じる</button>' : (c ? '<button class="btn ghost" data-act="calDel" data-id="' + c.id + '" style="margin-right:auto;color:var(--red,#DC2626)">削除</button>' : '') + '<button class="btn" data-act="close">キャンセル</button><button class="btn primary" data-act="calSave">保存</button>';
+    '<label style="display:flex;align-items:center;gap:8px" title="予定タブの部内イベントに出て、参加登録できる"><input id="cS" type="checkbox" class="check"' + (d.state === 'pub' ? ' checked' : '') + (ro ? ' disabled' : '') + '>部員に公開</label>';
+  var prog = c && can('tracks') ? '<button class="btn ghost" data-act="' + (inPg ? 'evOutProg' : 'evToProg') + '" data-id="' + c.id + '">' + (inPg ? '学ぶから外す' : '学ぶにも追加') + '</button>' : '';
+  var foot = ro ? '<button class="btn" data-act="close">閉じる</button>' : (c ? '<span class="dlgl"><button class="btn ghost" data-act="calDel" data-id="' + c.id + '" style="color:var(--red,#DC2626)">削除</button>' + prog + '</span>' : '') + '<button class="btn" data-act="close">キャンセル</button><button class="btn primary" data-act="calSave">保存</button>';
   return dlg(c ? 'イベントを編集' : 'イベントを追加', body, foot, true);
 }
 function evDlg() {
@@ -53,8 +53,8 @@ function evDlg() {
     '<div class="fld"><label>イベント</label><div style="font-weight:600;font-size:15px">' + esc(ttl(n)) + '</div></div>' +
     '<div class="two"><div class="fld"><label for="eS">開始</label><input id="eS" type="date" class="input" value="' + esc(n.start) + '"' + dis + '></div><div class="fld"><label for="eE">終了</label><input id="eE" type="date" class="input" value="' + esc(n.end) + '"' + dis + '></div></div>' +
     '<div class="fld"><label for="eP">場所</label><input id="eP" class="input" value="' + esc(n.place || '') + '" autocomplete="off"' + dis + '></div>' +
-    '<div class="fld"><label for="eD">告知文</label><textarea id="eD" class="input" rows="5" placeholder="内容・対象・持ち物・申し込み方法など"' + dis + '>' + esc(memoText(n.purpose || '')) + '</textarea></div>' +
-    '<label style="display:flex;align-items:center;gap:8px"><input id="eA" type="checkbox" class="check"' + (n.announce === 'done' ? ' checked' : '') + dis + '>部員に公開する（ホーム・カレンダーに出て、参加登録できる）</label>' +
+    '<div class="fld"><label for="eD">告知文</label><textarea id="eD" class="input" rows="5"' + dis + '>' + esc(memoText(n.purpose || '')) + '</textarea></div>' +
+    '<label style="display:flex;align-items:center;gap:8px"><input id="eA" type="checkbox" class="check"' + (n.announce === 'done' ? ' checked' : '') + dis + '>部員に公開</label>' +
     (ok ? '' : '<div class="muted" style="font-size:12px">編集できるのは、このイベントのリーダーか、ひとつ上のフォルダーのリーダーです</div>');
   var foot = ok ? '<button class="btn" data-act="close">キャンセル</button><button class="btn primary" data-act="evSave">保存</button>' : '<button class="btn" data-act="close">閉じる</button>';
   return dlg('イベントの告知', body, foot, true);

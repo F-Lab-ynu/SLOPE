@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = 'd93aa32fc9', FILE = 'admin.ver';
+  var VER = 'c7f2fe2b8b', FILE = 'admin.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -221,7 +221,7 @@ textarea.src{display:block;width:100%;height:100%;resize:none;border:0;outline:n
   .tw td[data-l]{display:inline-flex;align-items:center;gap:6px;text-align:left !important}
   .tw td[data-l]::before{content:attr(data-l);font-size:12px;color:var(--muted)}
   tr.click:hover td{background:transparent}
-  .body{padding:4px 16px 24px}
+  .body{padding:16px 16px 24px}
   .body.flush{padding:0}
   .ov{align-items:flex-end;padding:0}
   .dlg{max-width:none !important;border-radius:12px 12px 0 0;max-height:88vh}
@@ -512,7 +512,7 @@ body.moving,body.moving *{cursor:grabbing !important;user-select:none}
 /* ===== メンバー ===== */
 .mname{display:flex;align-items:center;gap:10px;border:0;background:transparent;padding:0;cursor:pointer;text-align:left;color:inherit;font:inherit}
 .mname:hover .cell2 > span:first-child{text-decoration:underline}
-.mpost{max-width:200px;font-size:13px}
+.mpost{max-width:200px;font-size:13px;margin-left:-9px}
 
 /* 段ごとの色分け（行の背景） */
 :root{--t0:#ECEDEF;--t1:#F3F4F5;--t2:#F8F9FA;--t3:#FFFFFF}
@@ -703,8 +703,8 @@ textarea.cell.ct{display:block;resize:none;overflow:hidden;height:auto;min-heigh
 .kpi.go:hover{border-color:var(--line2);background:#FAFAFB}
 .kpi small{display:none}
 .dg2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:stretch}
-.dg2 .card{display:flex;flex-direction:column;min-height:180px}
-.dg2 .card .cb{flex:1;max-height:320px;overflow:auto}
+.dg2 .card{display:flex;flex-direction:column}
+.dg2 .card .cb{flex:1}
 .dg2 .ghostc{border-style:dashed;background:transparent;visibility:hidden}
 .card .ch button{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;padding:0}
 .card .ch button:hover{background:var(--hover)}
@@ -935,7 +935,7 @@ svg.fi{width:15px;height:15px;flex:none;color:#9CA3AF}
 .gbh span{display:none;position:absolute;top:6px;font-size:10px;font-weight:600;color:#B45309;white-space:nowrap}
 .gbh span:first-child{left:2px}
 .gbh span:last-child{right:2px}
-.fhm{max-width:820px;margin-top:4px}
+.fhm{margin-top:4px}
 .fhmt{font-size:13px;line-height:1.7;color:var(--sub);white-space:pre-wrap;word-break:break-word;padding:6px 10px;margin-left:-10px;min-height:24px}
 .fhm.clamp .fhmt:not(.editing){display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;max-height:calc(1.7em * 3 + 6px);padding-bottom:0}
 .fhmt.empty:not(.editing)::before{content:attr(data-ph);color:var(--dim)}
@@ -1101,7 +1101,7 @@ svg.crown{fill:#374151}
 .gnote b{font-size:16px;color:var(--text)}
 .gnote span{font-size:13px;line-height:1.6}
 .fhm,.fhmt{text-align:left}
-.fhm{width:100%;max-width:820px}
+.fhm{width:100%}
 /* ---------- ux21 差し色はオレンジ1色 ---------- */
 .fct svg.fi,.fh2r h2 svg.fi,.ft.on svg.fi,.fadd.open svg.fi,.dash .li .t > svg.fi{color:#F59E0B !important}
 .avs .av.lead{border-color:#F59E0B !important;box-shadow:0 0 0 1px #F59E0B !important}
@@ -1180,21 +1180,23 @@ html,body{touch-action:manipulation}
 @media (max-width:760px){ .acct .mode{display:flex !important;padding:0 2px 0 0 !important;gap:8px;font-size:12px} .acct .mode span{display:inline !important} }
 
 /* ux30 アクセス統計 */
-.acc{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:12px;margin-top:12px}
+.acc{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px;margin-top:12px}
 .acc .card{min-width:0}
 .akp{display:flex;gap:22px;padding:12px 14px 4px}
 .akp div{display:flex;flex-direction:column}
 .akp b{font-size:22px;font-weight:600;line-height:1.2}
 .akp span{font-size:11px;color:var(--muted)}
-.abars{display:flex;align-items:flex-end;gap:4px;height:120px;padding:10px 14px 0}
-.abar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0}
-.abar i{display:block;width:100%;max-width:22px;background:var(--text);border-radius:3px 3px 0 0;min-height:2px}
-.abar.today i{background:var(--accent,#EA580C)}
-.abar em{font-style:normal;font-size:10px;color:var(--muted);margin-top:4px;white-space:nowrap}
-.abar u{text-decoration:none;font-size:10px;color:var(--sub,#4B5563);margin-bottom:2px}
+.abars{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px;height:150px;padding:14px 14px 0}
+.abar{display:grid;grid-template-rows:16px 1fr 22px;justify-items:center;height:100%;min-width:0}
+.abar u{align-self:end;text-decoration:none;font-size:10px;line-height:14px;color:var(--sub);font-variant-numeric:tabular-nums}
+.abar i{align-self:end;display:block;width:100%;max-width:26px;background:var(--text);border-radius:3px 3px 0 0;min-height:2px}
+.abar.today i{background:var(--accent)}
+.abar em{font-style:normal;font-size:10px;line-height:22px;color:var(--muted);white-space:nowrap;border-top:1px solid var(--line);width:100%;text-align:center;font-variant-numeric:tabular-nums}
+.abar.we em{color:var(--dim)}
+.abar.today em{color:var(--accent);font-weight:700}
 .anote{font-size:11px;color:var(--muted);padding:6px 14px 12px}
 .atab .hb .l{width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-@media (max-width:760px){ .acc{grid-template-columns:1fr} .abar em{font-size:9px} }
+@media (max-width:760px){ .acc{grid-template-columns:1fr} .abars{gap:3px} .abar em,.abar u{font-size:9px} }
 .gl .check.wck{margin:0 4px 0 2px}
 .gr:not(.isf) .gname{cursor:pointer}
 .gr:not(.isf) .gname:hover{background:transparent;color:var(--accent);text-decoration:underline;text-underline-offset:3px}
@@ -1316,8 +1318,8 @@ body.mvin .mvline{display:none !important}
 .calleg{display:flex;gap:14px;margin-top:8px;font-size:12px;color:var(--muted)}
 .calleg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
 @media (max-width:760px){
-  .evr{grid-template-columns:minmax(0,1fr) 56px 36px;grid-template-areas:"n s e" "d d d" "p p p"}
-  .evr.evh{display:none}.evr .evn{grid-area:n}.evr .evq{grid-area:d;font-size:12px;color:var(--muted)}.evr .evp{grid-area:p}.evr .evg{display:none}.evr .nsw{grid-area:s}.evr .ib{grid-area:e}
+  .evr{grid-template-columns:auto minmax(0,1fr) 56px 36px;grid-template-areas:"n n s e" "d p p p";gap:2px 12px;padding:10px 12px}
+  .evr.evh{display:none}.evr .evn{grid-area:n}.evr .evq{grid-area:d;font-size:12px;color:var(--muted)}.evr .evp{grid-area:p}.evr .evp.dim{visibility:hidden}.evr .evg{display:none}.evr .nsw{grid-area:s}.evr .ib{grid-area:e}
   .calg .cd{min-height:64px}.cchip{font-size:10px;padding:1px 4px}
 }
 
@@ -1400,7 +1402,7 @@ body.mvin .mvline{display:none !important}
   .p2wk.has .p2tree{display:none}
   .p2wk:not(.has) .p2main{display:none}
   .p2main{padding:12px 16px 96px}
-  .p2back{display:inline-flex;align-items:center;gap:4px;height:32px;padding:0 8px 0 4px;border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;margin-bottom:8px;cursor:pointer}
+  .p2back{display:inline-flex;align-items:center;gap:4px;height:32px;padding:0 8px 0 4px;margin-left:-10px;border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;margin-bottom:8px;cursor:pointer}
   .p2back svg.i{width:16px;height:16px}
   .p2r{height:40px}.p2n{line-height:40px}.p2l{opacity:1}
 }
@@ -1466,7 +1468,6 @@ body.mvin .mvline{display:none !important}
 @media (max-width:1380px){.p2cols{grid-template-columns:minmax(0,1fr) !important}}
 
 /* ux55 ダッシュボード */
-.kpis{grid-template-columns:repeat(auto-fill,minmax(200px,1fr)) !important}
 .dself .card{display:flex;flex-direction:column}
 .mlist{max-height:336px;overflow:auto}
 .mr,.nr2{display:grid;grid-template-columns:minmax(0,1fr) 120px 32px;align-items:center;gap:12px;width:100%;min-height:56px;padding:8px 14px;border:0;border-bottom:1px solid var(--line);background:#fff;font:inherit;color:inherit;text-align:left}
@@ -1531,6 +1532,83 @@ button.mr{cursor:pointer}button.mr:hover{background:var(--hover)}
 .iqr .muted{flex:none}
 .iqf{display:flex;flex-direction:column;gap:8px}
 .iqa{display:flex;justify-content:flex-end;gap:8px}
+
+/* 学ぶのイベント：公開の状態と出席を1つの枠に */
+.p2crumb > span{padding:2px 4px}
+.p2sw small{margin-left:2px;color:var(--accent);font-weight:600}
+.p2box{border:1px solid var(--line);border-radius:10px;padding:4px 16px}
+.p2st{display:flex;align-items:center;gap:10px;min-height:48px;font-size:13px;color:var(--sub)}
+.p2st + .p2st{border-top:1px solid var(--line)}
+.p2st .p2golink,.p2st .btn{margin-left:auto}
+.p2stn b{font-size:15px;color:var(--text);font-weight:700;margin:0 2px}
+.p2box .attl{padding:0 0 14px}
+/* 日付の入力：標準のカレンダーの代わりに小さなカレンダー（js/19-date-picker.js） */
+input[type=date]{cursor:pointer}
+input[type=date]::-webkit-calendar-picker-indicator{display:none}
+.dpk{position:fixed;z-index:3000;width:264px;padding:10px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 32px rgba(17,24,39,.14);font-size:13px;color:var(--text)}
+.dpkh{display:flex;align-items:center;justify-content:space-between;height:32px;margin-bottom:4px}
+.dpkh b{font-size:14px;font-weight:700}
+.dpkn{width:32px;height:32px;border:0;border-radius:8px;background:transparent;color:var(--sub);cursor:pointer;display:grid;place-items:center}
+.dpkn:hover{background:var(--hover)}
+.dpkn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.dpkw,.dpkg{display:grid;grid-template-columns:repeat(7,1fr)}
+.dpkw span{height:24px;display:grid;place-items:center;font-size:11px;color:var(--muted)}
+.dpkw .sun,.dpkd.sun{color:#DC2626}.dpkw .sat,.dpkd.sat{color:#2563EB}
+.dpkd{height:34px;border:0;border-radius:8px;background:transparent;font:inherit;font-variant-numeric:tabular-nums;color:var(--text);cursor:pointer}
+.dpkd:hover{background:var(--hover)}
+.dpkd.out{color:var(--dim)}
+.dpkd.now{box-shadow:inset 0 0 0 1px var(--line2);font-weight:700}
+.dpkd.on,.dpkd.on:hover{background:var(--text);color:#fff;font-weight:700;box-shadow:none}
+.dpkd:disabled{color:var(--line2);cursor:default;background:transparent}
+.dpkd:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.dpkf{display:flex;justify-content:space-between;margin-top:6px;padding-top:8px;border-top:1px solid var(--line)}
+.dpkf button{border:0;background:transparent;color:var(--accent);font:inherit;font-size:12px;padding:4px 6px;border-radius:6px;cursor:pointer}
+.dpkf button:hover{background:var(--accent-soft)}
+
+/* ダッシュボード：一覧の最後の行の下線は枠と重ねない。パッチノートの枠は中身の高さ */
+.card .cb > :last-child,.card .pnl > :last-child,.dself .card > :last-child > :last-child{border-bottom:0}
+.dg2.pgrid{align-items:start}
+.kpis.k3{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:760px){ .kpis.k3{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px} .kpis.k3 .kpi b{font-size:20px} }
+
+/* 告知（外部）：イベントと同じ一覧。編集はペンから */
+.nvl .evr .evlink{font-size:12px;color:var(--accent);text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nvl .evr .evlink:hover{text-decoration:underline}
+.nvl .evq small{color:var(--muted);font-size:11px}
+.evr.past .evn b{color:var(--muted)}
+
+/* ダイアログの左下（削除など）はまとめて左に寄せる */
+.dlgl{display:flex;gap:4px;margin-right:auto}
+/* スマホ：日付・時間の3つ並びは2列に */
+@media (max-width:760px){ .three,.p2grid3{grid-template-columns:repeat(2,minmax(0,1fr))} }
+/* ダイアログを開いているあいだは右下の＋を隠す */
+body:has(#modal > *) .efabw{display:none}
+/* 左端をそろえる：パンくず・期間ボタンの内側の余白ぶん左へ */
+.fh2 .crumb{margin-left:-4px}
+.fh2r .fper{margin-left:-6px}
+.fh2r h2 + .fper,.fh2r h2 + .fh2m{margin-left:0}
+/* サポート：名前と日時は折り返さない（狭いときはボタンを次の行へ） */
+.iqh{flex-wrap:wrap;row-gap:6px}
+.iqw,.iqh .muted{white-space:nowrap}
+/* カレンダーの凡例 */
+.calleg{flex-wrap:wrap;row-gap:6px}
+.calleg span{white-space:nowrap}
+@media (max-width:760px){
+  /* メンバー：役職は名前の下、名前の文字にそろえる */
+  .tw td .mpost{max-width:none;width:auto;margin-left:29px}
+  .tw td .mpost + .s{padding-left:38px}
+  .tw tr{row-gap:2px}
+}
+@media (max-width:760px){
+  .tw td.a .acts{margin-left:0 !important}
+  .tbar #mq{max-width:none !important;width:100%}
+}
+@media (max-width:760px){
+  /* 期限が近いファイル：狭いときは担当は顔だけ。名前を広く */
+  .mr.soon{grid-template-columns:minmax(0,1fr) auto 20px;gap:10px}
+  .mr.soon .mwho > span:not(:first-child):not(.dim){display:none}
+  .mr.soon .mwho .dim{font-size:11px}
+}
 
 /* ===== 本番 ===== */
 [data-act="reset"]{display:none !important}
@@ -1908,7 +1986,7 @@ function projStats() {
 function nodeModal(n) {
   var root = !parentOf(n), par = parentOf(n), leaf = !kids(n).length && !n.tasks;
   var memo = isFolder(n)
-    ? '<div class="fld"><label for="wM">メモ</label><textarea id="wM" class="input" rows="4" placeholder="どこで・どうやって・結果など"' + (editSelf(n) || n.who === S.me ? '' : ' disabled') + '>' + esc(n.memo || '') + '</textarea></div>'
+    ? '<div class="fld"><label for="wM">メモ</label><textarea id="wM" class="input" rows="4" ' + (editSelf(n) || n.who === S.me ? '' : ' disabled') + '>' + esc(n.memo || '') + '</textarea></div>'
     : '<div class="fld"><label>メモ</label><div class="muted" style="font-size:12px">ファイルを開くと書けます' + (n.memo ? '（' + esc(memoText(n.memo).slice(0, 40)) + '…）' : '') + '</div></div>'; // ファイルのメモはファイルのページで書く
   var body = (par ? '<div class="muted" style="font-size:12px">' + esc(ttl(rootOf(n))) + (par !== rootOf(n) ? ' ／ … ／ ' + esc(ttl(par)) : '') + '</div>' : '') +
     '<div class="fld"><label for="wT">名前</label><input id="wT" class="input" value="' + esc(ttl(n)) + '"' + (editSelf(n) ? '' : ' disabled') + '></div>' +
@@ -2127,24 +2205,21 @@ function viewNotices() {
   var tab = S.ntab;
   var wait = S.offers.filter(function (o) { return o.state === 'wait'; });
   var list = S.notices.slice().sort(function (a, b) { var pa = dayOf(a.due) < TODAY, pb = dayOf(b.due) < TODAY; return pa !== pb ? (pa ? 1 : -1) : dayOf(a.due) - dayOf(b.due); });
-  var types = function (sel) { return NTYPES.map(function (x) { return '<option' + (x === sel ? ' selected' : '') + '>' + x + '</option>'; }).join(''); };
   var body;
   if (tab === 'ev') body = viewEvents();
   else if (tab === 'cal') body = viewCal();
   else if (tab === 'list') {
-    body = '<div class="nsheet"><div class="nh"><span>タイトル</span><span>種類</span><span>主催</span><span>締切</span><span>URL</span><span>公開</span><span></span></div>' +
+    var host0 = function (u) { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return ''; } };
+    body = list.length ? '<div class="evl nvl"><div class="evr evh"><span>告知</span><span>締切</span><span>リンク</span><span>種類</span><span>公開</span><span></span></div>' +
       list.map(function (n) {
-        var past = dayOf(n.due) < TODAY, ok = /^https?:\/\//i.test(n.url || '');
-        return '<div class="nr' + (past ? ' past' : '') + '" data-nid="' + n.id + '">' +
-          '<input class="cell nt" data-n="title" data-id="' + n.id + '" value="' + esc(n.title) + '" aria-label="タイトル" autocomplete="off">' +
-          '<select class="cell" data-n="type" data-id="' + n.id + '" aria-label="種類">' + types(n.type) + '</select>' +
-          '<input class="cell" data-n="host" data-id="' + n.id + '" value="' + esc(n.host === '—' ? '' : n.host) + '" placeholder="主催" aria-label="主催" autocomplete="off">' +
-          '<input type="date" class="cell num" data-n="due" data-id="' + n.id + '" value="' + esc(n.due) + '" aria-label="締切">' +
-          '<span class="nu"><input class="cell" type="url" data-n="url" data-id="' + n.id + '" value="' + esc(ok && n.url !== 'https://example.com' ? n.url : (ok ? n.url : '')) + '" placeholder="https://" aria-label="URL" autocomplete="off">' + (ok ? '<a class="ib" href="' + esc(n.url) + '" target="_blank" rel="noopener" aria-label="開く">↗</a>' : '') + '</span>' +
+        var past = dayOf(n.due) < TODAY, ok = /^https?:\/\//i.test(n.url || ''), hs = n.host && n.host !== '—' ? n.host : '';
+        return '<div class="evr' + (past ? ' past' : '') + '" data-nid="' + n.id + '"><span class="evn"><b>' + esc(n.title) + '</b>' + (hs ? '<span>' + esc(hs) + '</span>' : '') + '</span>' +
+          '<span class="evq num">' + (n.due ? pmd(n.due) + (n.due.slice(0, 4) !== isoOf(TODAY).slice(0, 4) ? ' <small>' + n.due.slice(0, 4) + '</small>' : '') : '<span class="dim">未定</span>') + '</span>' +
+          (ok ? '<a class="evp evlink" href="' + esc(n.url) + '" target="_blank" rel="noopener">' + esc(host0(n.url)) + ' ↗</a>' : '<span class="evp dim">—</span>') +
+          '<span class="evg"><span class="tag">' + esc(n.type) + '</span></span>' +
           (past ? '<span class="muted nsw" style="font-size:12px">終了</span>' : '<button class="sw nsw" role="switch" data-act="nState" data-id="' + n.id + '" aria-checked="' + (n.state === 'pub') + '" aria-label="公開"><i></i></button>') +
-          '<span class="nacts"><button class="ib" data-act="nEdit" data-id="' + n.id + '" aria-label="編集" title="編集">' + PEN + '</button><button class="ib udel" data-act="nDel" data-id="' + n.id + '" aria-label="削除"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/></svg></button></span></div>';
-      }).join('') + '</div>';
-    if (!S.notices.length) body = body.replace('<div class="nsheet">', '<div class="empty big">告知はまだありません</div><div class="nsheet" style="display:none">');
+          '<button class="ib" data-act="nEdit" data-id="' + n.id + '" aria-label="編集" title="編集">' + PEN + '</button></div>';
+      }).join('') + '</div>' : '<div class="empty big">告知はまだありません</div>';
   } else {
     body = '<div class="tw"><table><thead><tr><th>タイトル</th><th>種類</th><th class="hide-sm">提供者</th><th>締切</th><th></th></tr></thead><tbody>' +
       (wait.length ? wait.map(function (o) {
@@ -2206,7 +2281,7 @@ function viewPerms() {
     return '<tr><td><button class="mname" data-act="modal" data-m="member" data-id="' + m.id + '">' + av(m.id, 'lg') + '<span class="cell2"><span style="font-weight:500">' + esc(m.name) + '</span><span class="s">' + esc(m.grade) + '</span></span></button></td>' +
       '<td><select class="cell mpost" data-act="post" data-m="' + m.id + '"' + (self ? ' disabled title="自分の役職は変更できません"' : '') + ' aria-label="' + esc(m.name) + 'の役職">' +
         POSTS.map(function (x) { return '<option value="' + esc(x[0]) + '"' + (x[0] === m.unit ? ' selected' : '') + '>' + esc(postLabel(x[0])) + '</option>'; }).join('') + '</select>' +
-        '<div class="s muted" style="font-size:11px;padding-left:8px">' + (isOps(m) ? permText(m.perms) : (m.roles || []).join('・') || '—') + '</div></td>' +
+        '<div class="s muted" style="font-size:11px">' + (isOps(m) ? permText(m.perms) : (m.roles || []).join('・') || '—') + '</div></td>' +
       '<td class="hide-sm">' + (js.length ? js.map(function (p) { return '<span class="tag" style="background:#fff;box-shadow:inset 0 0 0 1px var(--line)">' + esc(p.name) + '</span>'; }).join(' ') : '<span class="dim">—</span>') + '</td></tr>';
   }).join('');
   return top('メンバー') +
@@ -2220,35 +2295,10 @@ function viewPerms() {
 var lmv = null;
 
 // ---------- 入力・キー操作 ----------
-document.addEventListener('keydown', function (e) {
-  var el = e.target; if (!el.dataset) return;
-  // 告知（外部）の表
-  if (el.dataset.n && el.tagName === 'INPUT' && el.type !== 'date') {
-    if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); el.blur(); return; }
-    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      e.preventDefault(); var cs = Array.prototype.slice.call(document.querySelectorAll('.nsheet .cell[data-n="' + el.dataset.n + '"]'));
-      var n3 = cs[cs.indexOf(el) + (e.key === 'ArrowDown' ? 1 : -1)]; if (n3) { n3.focus(); if (n3.select) n3.select(); } return;
-    }
-    if (e.key === 'Escape') { var no = notice(el.dataset.id); el.value = no ? (no[el.dataset.n] === '—' ? '' : no[el.dataset.n]) : ''; el.blur(); }
-  }
-});
 document.addEventListener('input', function (e) {
   var el = e.target;
   if (el.id === 'mq') { UI.mq = el.value; var pos = el.selectionStart; render(); var m = document.getElementById('mq'); if (m) { m.focus(); m.setSelectionRange(pos, pos); } return; }
 });
-// 確定（フォーカスが外れた / 選択を変えた）
-document.addEventListener('change', function (e) {
-  var el = e.target; if (!el.dataset) return;
-  if (el.dataset.n && el.dataset.id) {
-    e.stopPropagation(); var n = notice(el.dataset.id); if (!n) return; var f = el.dataset.n, val0 = el.value.trim();
-    if (f === 'title' && !val0) { el.value = n.title; return; }
-    if (f === 'due' && !val0) { el.value = n.due; return; }
-    if (f === 'url' && val0 && !/^https?:\/\//i.test(val0)) val0 = 'https://' + val0;
-    n[f] = val0; save();
-    if (f === 'due' || f === 'url') { var id = n.id; render(); focusSel('.cell[data-n="' + f + '"][data-id="' + id + '"]'); }
-    return;
-  }
-}, true);
 document.addEventListener('change', function (e) {
   var el = e.target; if (!el.dataset || el.dataset.act !== 'post') return;
   e.stopImmediatePropagation(); var pm = member(el.dataset.m); if (!pm) return;
@@ -2638,7 +2688,7 @@ function recHTML(p) {
   return '<div class="rh"><div class="rt"><small>' + esc(seriesOf(p)) + '・' + fyOf(p) + '年度</small><b>' + esc('name' in p ? p.name : ttl(p)) + '</b></div><button class="ib" data-act="recClose" aria-label="閉じる">' + ic('x') + '</button></div>' +
     '<div class="rb">' +
     '<section><h3>概要</h3><label class="evt"><input type="checkbox" class="check" data-evt="1"' + (ev ? ' checked' : '') + (ok ? '' : ' disabled') + '>イベント（参加数を記録して統計に入れる）</label>' +
-      f('目的', '<textarea class="input" rows="2" data-rf="purpose"' + dis + ' placeholder="何のためのイベントか">' + esc(p.purpose || '') + '</textarea>') +
+      f('目的', '<textarea class="input" rows="2" data-rf="purpose"' + dis + '>' + esc(p.purpose || '') + '</textarea>') +
       '<div class="two">' + f('日程', '<div class="rv num">' + shortDate(p.start) + ' – ' + shortDate(p.end) + '</div>') + f('場所', '<input class="input" data-rf="place"' + dis + ' value="' + esc(p.place || '') + '">') + '</div>' +
       (ev ? '<div class="two">' + f('担当部', '<select class="input" data-rf="unit"' + dis + '>' + ['教育部', '催事部', '外務部', '会計', '代表'].map(function (u) { return '<option' + (p.unit === u ? ' selected' : '') + '>' + u + '</option>'; }).join('') + '</select>') +
         f('告知', '<select class="input" data-rf="announce"' + dis + '><option value="before"' + (p.announce !== 'done' ? ' selected' : '') + '>告知前</option><option value="done"' + (p.announce === 'done' ? ' selected' : '') + '>告知済み</option></select>') + '</div>' : '') +
@@ -2647,7 +2697,7 @@ function recHTML(p) {
       '<div class="rv muted">業務 ' + g.n + '件・完了 ' + g.d + (g.late ? '・<span class="bad">遅れ ' + g.late + '</span>' : '') + '</div></section>' +
     '<section><h3>結果</h3>' +
       (ev ? '<div class="two">' + f('参加数', '<input class="input num" type="number" min="0" data-rf="reg"' + dis + ' value="' + (p.reg || 0) + '">') + f('参加率', '<div class="rv num">' + pct(p) + '%<small class="muted">（部員 ' + (S.club || 150) + '）</small></div>') + '</div>' : '') +
-      f('振り返り', '<textarea class="input" rows="4" data-rf="review"' + dis + ' placeholder="良かったこと・次回への改善">' + esc(p.review || '') + '</textarea>') +
+      f('振り返り', '<textarea class="input" rows="4" data-rf="review"' + dis + '>' + esc(p.review || '') + '</textarea>') +
       f('資料', '<div class="rl">' + lk.map(function (u, i) { return '<div class="rli"><a href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(host(u) || u) + ' ↗</a>' + (ok ? '<button class="ib" data-act="recLinkDel" data-i="' + i + '" aria-label="削除">' + ic('x') + '</button>' : '') + '</div>'; }).join('') +
         (ok ? '<input class="input" data-rlink="1" placeholder="URL を貼って Enter" autocomplete="off">' : (lk.length ? '' : '<span class="dim">—</span>')) + '</div>') +
     '</section>' +
@@ -2939,7 +2989,7 @@ function fmemoHTML(f) {
   var can = editSelf(f) || isLead(f, S.me), m = f.memo || '';
   if (!m && !can) return '';
   var long = m.split('\n').length > 3 || m.length > 160, open = UI.fmx === f.id;
-  return '<div class="fhm' + (long && !open ? ' clamp' : '') + '"><div class="fhmt' + (can ? ' ied' : '') + (m ? '' : ' empty') + '"' + (can ? ' data-act="ied" data-f="memo" data-id="' + f.id + '"' : '') + ' data-ph="メモ（目的・決まったこと・引き継ぎ・資料URLなど）">' + linkify(m) + '</div>' +
+  return '<div class="fhm' + (long && !open ? ' clamp' : '') + '"><div class="fhmt' + (can ? ' ied' : '') + (m ? '' : ' empty') + '"' + (can ? ' data-act="ied" data-f="memo" data-id="' + f.id + '"' : '') + ' data-ph="メモ">' + linkify(m) + '</div>' +
     (long ? '<button class="fhmx" data-act="fmx">' + (open ? '閉じる' : '…詳細を表示') + '</button>' : '') + '</div>';
 }
 document.addEventListener('click', function (e) {
@@ -3251,7 +3301,7 @@ function filePage(n) {
       (UI.fmn ? '<div class="srtm" role="menu"><button role="menuitem" data-act="toFolder" data-id="' + n.id + '">フォルダーに変える</button>' + (editSelf(n) ? '<button role="menuitem" data-act="edit" data-id="' + n.id + '">名前・期間を編集</button>' : '') + '</div>' : '') + '</span>' : '') +
     '</div></div>';
   var memo = '<div class="body"><div class="fpage2">' + (canM ? docBar() : '') +
-    '<div class="fdoc" id="fdoc" data-id="' + n.id + '"' + (canM ? ' contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="メモ" data-ph="メモを書く（どこで・どうやって・結果・連絡先・資料URLなど）。# で見出し、- で箇条書き、[] でチェックリスト"' : ' data-ph="メモはありません"') + '>' + docHTML(n.memo) + '</div></div></div>';
+    '<div class="fdoc" id="fdoc" data-id="' + n.id + '"' + (canM ? ' contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="メモ" data-ph="メモ"' : ' data-ph="メモはありません"') + '>' + docHTML(n.memo) + '</div></div></div>';
   return top('業務') + '<div class="wk"><aside class="ftree" aria-label="フォルダー">' + ftree() + '</aside><div class="wkm">' + head + memo + '</div></div>';
 }
 document.addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('[data-act="toFolder"]'); if (b) UI.fmn = false; }, true);
@@ -3362,7 +3412,7 @@ function noticeDlg() {
     '<div class="two"><div class="fld"><label for="nH">主催</label><input id="nH" class="input" value="' + esc(host) + '" autocomplete="off"></div>' +
     '<div class="fld"><label for="nU">URL</label><input id="nU" type="url" class="input" placeholder="https://" value="' + esc(url) + '" autocomplete="off"></div></div>' +
     '<div class="fld"><label>対象</label><div class="rchips">' + NROLES.map(function (r) { return '<label class="rchip"><input type="checkbox" class="nR" value="' + r + '"' + (rs.indexOf(r) >= 0 ? ' checked' : '') + '>' + r + '</label>'; }).join('') + '</div><span class="hint">選ばなければ全員向け</span></div>' +
-    '<div class="fld"><label for="nM">詳細</label><textarea id="nM" class="input" placeholder="内容・応募方法・注意点など">' + esc(d.memo || '') + '</textarea></div>';
+    '<div class="fld"><label for="nM">詳細</label><textarea id="nM" class="input">' + esc(d.memo || '') + '</textarea></div>';
   var foot = n
     ? '<button class="btn ghost" data-act="nDel24" data-id="' + n.id + '" style="margin-right:auto;color:var(--red,#DC2626)">削除</button><button class="btn" data-act="close">キャンセル</button><button class="btn primary" data-act="nSave24">保存</button>'
     : '<button class="btn" data-act="close">キャンセル</button><button class="btn" data-act="nSave24" data-s="draft">下書き保存</button><button class="btn primary" data-act="nSave24" data-s="pub">公開</button>';
@@ -3423,14 +3473,14 @@ function patchCards() {
   var c1 = '<div class="card"><div class="ch"><span class="cht">今後の更新<span class="num" style="margin-left:6px;color:var(--muted);font-weight:400">' + plan.length + '</span></span>' + add('plan') + '</div><div class="pnl">' + (plan.length ? plan.map(pRow).join('') : none) + '</div></div>';
   var c2 = '<div class="card"><div class="ch"><span class="cht">パッチノート<span class="num" style="margin-left:6px;color:var(--muted);font-weight:400">' + done.length + '</span></span>' + add('done') + '</div><div class="pnl">' + (done.length ? done.slice(0, lim).map(pRow).join('') : none) + '</div>' +
     (done.length > 6 ? '<button class="pmore" data-act="ptAll">' + (UI.pAll ? '閉じる' : 'すべて表示（' + done.length + '）') + '</button>' : '') + '</div>';
-  return (isAdmin() ? accessCard() : '') + '<div class="dg2" style="margin-top:12px">' + c1 + c2 + '</div>';
+  return (isAdmin() ? accessCard() : '') + '<div class="dg2 pgrid" style="margin-top:12px">' + c1 + c2 + '</div>';
 }
 function patchDlg() {
   var x = M.id ? patchesInit().filter(function (y) { return y.id === M.id; })[0] : null, d = x || { date: M.s === 'plan' ? '' : isoOf(TODAY), title: '', note: '', state: M.s || 'done' };
   var body = '<div class="fld"><label for="pT">内容</label><input id="pT" class="input" value="' + esc(d.title) + '" autocomplete="off"></div>' +
     '<div class="two"><div class="fld"><label for="pS">状態</label><select id="pS" class="input"><option value="plan"' + (d.state === 'plan' ? ' selected' : '') + '>今後の更新</option><option value="done"' + (d.state !== 'plan' ? ' selected' : '') + '>実施済み</option></select></div>' +
     '<div class="fld"><label for="pD">日付</label><input id="pD" type="date" class="input" value="' + esc(d.date || '') + '"></div></div>' +
-    '<div class="fld"><label for="pN">詳細</label><textarea id="pN" class="input" rows="4" placeholder="変更点・理由など">' + esc(d.note || '') + '</textarea></div>';
+    '<div class="fld"><label for="pN">詳細</label><textarea id="pN" class="input" rows="4">' + esc(d.note || '') + '</textarea></div>';
   var foot = (x ? '<button class="btn ghost" data-act="ptDel" data-id="' + x.id + '" style="margin-right:auto;color:var(--red,#DC2626)">削除</button>' : '') + '<button class="btn" data-act="close">キャンセル</button><button class="btn primary" data-act="ptSave">保存</button>';
   return dlg(x ? '更新を編集' : (d.state === 'plan' ? '今後の更新を追加' : 'パッチを記録'), body, foot, true);
 }
@@ -3476,8 +3526,9 @@ function accessCard() {
   var days = a.days || [], mx = Math.max.apply(null, days.map(function (d) { return d.users; }).concat([1]));
   var total = a.total || S.members.length || 1;
   var bars = days.map(function (d, i) {
-    var dt = new Date(d.day + 'T00:00:00Z'), lab = (dt.getUTCMonth() + 1) + '/' + dt.getUTCDate();
-    return '<div class="abar' + (i === days.length - 1 ? ' today' : '') + '" title="' + lab + '：' + d.users + '人・' + d.views + '回"><u>' + (d.users || '') + '</u><i style="height:' + Math.round(d.users / mx * 82) + '%"></i><em>' + (i % 2 === days.length % 2 ? '' : lab) + '</em></div>';
+    var dt = new Date(d.day + 'T00:00:00Z'), md = (dt.getUTCMonth() + 1) + '/' + dt.getUTCDate(), wd = dt.getUTCDay();
+    var lab = i === 0 || dt.getUTCDate() === 1 ? md : String(dt.getUTCDate()); // 日付は毎日。月は最初と月替わりだけ
+    return '<div class="abar' + (i === days.length - 1 ? ' today' : '') + (wd === 0 || wd === 6 ? ' we' : '') + '" title="' + md + '：' + d.users + '人・' + d.views + '回"><u>' + d.users + '</u><i style="height:' + Math.round(d.users / mx * 100) + '%"></i><em>' + lab + '</em></div>';
   }).join('');
   var c1 = '<div class="card"><div class="ch"><span class="cht">アクセス</span></div><div class="akp">' +
     '<div><b class="num">' + a.dau + '</b><span>今日</span></div><div><b class="num">' + a.wau + '</b><span>7日間</span></div><div><b class="num">' + a.mau + '</b><span>30日間</span></div>' +
@@ -3653,7 +3704,7 @@ document.addEventListener('contextmenu', function (e) {
   if (window.getSelection && String(window.getSelection())) return; // 文字を選んでいるときは標準のメニュー（コピー用）
   var x = e.clientX, y = e.clientY, it = null, title = '';
   if (S.view === 'notices' && (S.ntab || 'list') === 'list') {
-    var r = e.target.closest('.nr[data-nid]');
+    var r = e.target.closest('[data-nid]');
     if (r) { var n = notice(r.dataset.nid); if (!n) return; title = n.title;
       it = [['編集', function () { M = { m: 'notice', id: n.id }; renderModal(); }],
             [n.state === 'pub' ? '非公開にする' : '公開する', function () { n.state = n.state === 'pub' ? 'draft' : 'pub'; save(); render(); }],
@@ -4116,7 +4167,7 @@ function viewCal() {
   }
   return '<div class="calh"><button class="ib" data-act="calMv" data-v="-1" aria-label="前の月">' + '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button><b class="num">' + y + '年' + (m + 1) + '月</b><button class="ib" data-act="calMv" data-v="1" aria-label="次の月"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button><button class="btn sm" data-act="calMv" data-v="0">今日</button></div>' +
     '<div class="calg">' + ['日', '月', '火', '水', '木', '金', '土'].map(function (w) { return '<div class="cw">' + w + '</div>'; }).join('') + cells + '</div>' +
-    '<div class="calleg"><span><i style="background:#EEF2FF"></i>部内の予定</span><span><i style="background:#FFF7ED"></i>イベント（業務）</span><span><i style="background:#F3F4F6"></i>外部の締切</span><span><i style="background:#fff;box-shadow:inset 0 0 0 1px var(--line2)"></i>枠だけ＝まだ部員に非公開</span></div>';
+    '<div class="calleg"><span><i style="background:#EEF2FF"></i>部内の予定</span><span><i style="background:#FFF7ED"></i>イベント（業務）</span><span><i style="background:#F3F4F6"></i>外部の締切</span><span><i style="background:#fff;box-shadow:inset 0 0 0 1px var(--line2)"></i>枠だけ＝非公開</span></div>';
 }
 function calDlg() {
   var c = M.id ? calsInit().filter(function (x) { return x.id === M.id; })[0] : null, d = c || { title: '', date: M.d || isoOf(TODAY), to: '', time: '', place: '', memo: '', link: '', state: 'draft' }, inPg = !!(c && evInProg(c.id));
@@ -4126,9 +4177,9 @@ function calDlg() {
     '<div class="fld"><label for="cP">場所</label><input id="cP" class="input" value="' + esc(d.place || '') + '" autocomplete="off"' + (ro ? ' disabled' : '') + '></div>' +
     '<div class="fld"><label for="cM">部員がやること・説明</label><textarea id="cM" class="input" rows="3"' + (ro ? ' disabled' : '') + '>' + esc(d.memo || '') + '</textarea></div>' +
     '<div class="fld"><label for="cL">リンク</label><input id="cL" class="input" value="' + esc(d.link || '') + '" placeholder="https://" autocomplete="off"' + (ro ? ' disabled' : '') + '></div>' +
-    '<label style="display:flex;align-items:center;gap:8px"><input id="cS" type="checkbox" class="check"' + (d.state === 'pub' ? ' checked' : '') + (ro ? ' disabled' : '') + '>部員に公開する（予定タブの部内イベントに出て、参加登録できる）</label>' +
-    (c && !ro && can('tracks') ? '<div style="margin-top:10px"><button class="btn sm" data-act="' + (inPg ? 'evOutProg' : 'evToProg') + '" data-id="' + c.id + '">' + (inPg ? '学ぶから外す' : '学ぶにも追加') + '</button></div>' : '');
-  var foot = ro ? '<button class="btn" data-act="close">閉じる</button>' : (c ? '<button class="btn ghost" data-act="calDel" data-id="' + c.id + '" style="margin-right:auto;color:var(--red,#DC2626)">削除</button>' : '') + '<button class="btn" data-act="close">キャンセル</button><button class="btn primary" data-act="calSave">保存</button>';
+    '<label style="display:flex;align-items:center;gap:8px" title="予定タブの部内イベントに出て、参加登録できる"><input id="cS" type="checkbox" class="check"' + (d.state === 'pub' ? ' checked' : '') + (ro ? ' disabled' : '') + '>部員に公開</label>';
+  var prog = c && can('tracks') ? '<button class="btn ghost" data-act="' + (inPg ? 'evOutProg' : 'evToProg') + '" data-id="' + c.id + '">' + (inPg ? '学ぶから外す' : '学ぶにも追加') + '</button>' : '';
+  var foot = ro ? '<button class="btn" data-act="close">閉じる</button>' : (c ? '<span class="dlgl"><button class="btn ghost" data-act="calDel" data-id="' + c.id + '" style="color:var(--red,#DC2626)">削除</button>' + prog + '</span>' : '') + '<button class="btn" data-act="close">キャンセル</button><button class="btn primary" data-act="calSave">保存</button>';
   return dlg(c ? 'イベントを編集' : 'イベントを追加', body, foot, true);
 }
 function evDlg() {
@@ -4138,8 +4189,8 @@ function evDlg() {
     '<div class="fld"><label>イベント</label><div style="font-weight:600;font-size:15px">' + esc(ttl(n)) + '</div></div>' +
     '<div class="two"><div class="fld"><label for="eS">開始</label><input id="eS" type="date" class="input" value="' + esc(n.start) + '"' + dis + '></div><div class="fld"><label for="eE">終了</label><input id="eE" type="date" class="input" value="' + esc(n.end) + '"' + dis + '></div></div>' +
     '<div class="fld"><label for="eP">場所</label><input id="eP" class="input" value="' + esc(n.place || '') + '" autocomplete="off"' + dis + '></div>' +
-    '<div class="fld"><label for="eD">告知文</label><textarea id="eD" class="input" rows="5" placeholder="内容・対象・持ち物・申し込み方法など"' + dis + '>' + esc(memoText(n.purpose || '')) + '</textarea></div>' +
-    '<label style="display:flex;align-items:center;gap:8px"><input id="eA" type="checkbox" class="check"' + (n.announce === 'done' ? ' checked' : '') + dis + '>部員に公開する（ホーム・カレンダーに出て、参加登録できる）</label>' +
+    '<div class="fld"><label for="eD">告知文</label><textarea id="eD" class="input" rows="5"' + dis + '>' + esc(memoText(n.purpose || '')) + '</textarea></div>' +
+    '<label style="display:flex;align-items:center;gap:8px"><input id="eA" type="checkbox" class="check"' + (n.announce === 'done' ? ' checked' : '') + dis + '>部員に公開</label>' +
     (ok ? '' : '<div class="muted" style="font-size:12px">編集できるのは、このイベントのリーダーか、ひとつ上のフォルダーのリーダーです</div>');
   var foot = ok ? '<button class="btn" data-act="close">キャンセル</button><button class="btn primary" data-act="evSave">保存</button>' : '<button class="btn" data-act="close">閉じる</button>';
   return dlg('イベントの告知', body, foot, true);
@@ -4331,7 +4382,7 @@ function p2Editor() {
   }).join('');
   return head + '<div class="p2tr"><input class="p2code num" data-p2f="code" value="' + esc(u.code) + '" aria-label="コード" autocomplete="off"><input class="p2title" data-p2f="title" value="' + esc(u.title) + '" placeholder="単元名" aria-label="単元名" autocomplete="off"></div>' +
     '<div class="p2row">' + lock + '<span class="p2tags">' + TAGS.map(function (g) { return '<button class="tgl" data-p2a="tag" data-tag="' + g + '" aria-pressed="' + (u.tags.indexOf(g) >= 0) + '">' + g + '</button>'; }).join('') + '</span></div>' +
-    '<label class="p2fld">目標<textarea class="input" data-p2u="goal" rows="2" placeholder="この単元で何ができるようになるか">' + esc(d.goal || '') + '</textarea></label>' +
+    '<label class="p2fld">目標<textarea class="input" data-p2u="goal" rows="2">' + esc(d.goal || '') + '</textarea></label>' +
     '<div class="p2fld"><span>教材</span><div class="p2mats">' + mats + '<input class="input" id="p2url" placeholder="URLを貼り付けて Enter" aria-label="教材のURL" autocomplete="off"></div></div>' +
     '<div class="p2fld"><span>確認問題</span><div class="qzl">' + qh + '<button class="qzadd" data-qzadd="1">＋ 問題</button></div></div>';
 }
@@ -4340,19 +4391,23 @@ function p2EventEditor(n) {
   var c = evCal(n.ref); if (!c) return '';
   var crumb = p2Crumb(n.id).map(function (x) { return '<button data-p2go="' + x.id + '">' + esc(x.name) + '</button>'; }).join('<span>/</span>'), ro = !can('notices'), inN = evInNotice(c);
   var inp = function (k, lab, type, ph) { return '<label>' + lab + '<input class="input" ' + (type ? 'type="' + type + '" ' : '') + 'data-ce="' + k + '" value="' + esc(c[k] || '') + '"' + (ph ? ' placeholder="' + ph + '"' : '') + (ro ? ' disabled' : '') + ' autocomplete="off"></label>'; };
-  var i = lvNodes().indexOf(n), att = (c.att || []).filter(function (id) { return member(id); });
-  var lv = '<label class="p2sw"><input type="checkbox" data-p2lv="1"' + (n.lv ? ' checked' : '') + '><span>レベル</span><small>' + (n.lv ? '出席で Lv' + (i + 1) : '') + '</small></label>';
-  var pub = inN ? '<label class="p2sw"><input type="checkbox" data-ce="state"' + (c.state === 'pub' ? ' checked' : '') + (ro ? ' disabled' : '') + '><span>部員に公開</span><small>予定タブの部内イベントに出て、参加登録できる</small></label>' + lv
-    : '<button class="btn sm" data-act="evToNotice" data-id="' + c.id + '">告知にも追加</button><small class="muted" style="font-size:12px">告知に入れると、そこで部員に公開できます</small>';
+  var i = lvNodes().indexOf(n), att = (c.att || []).filter(function (id) { return member(id); }), pubOn = c.state === 'pub';
+  var sw = function (attr, on, label, tip, dis) { return '<label class="p2sw" title="' + tip + '"><input type="checkbox" ' + attr + (on ? ' checked' : '') + (dis ? ' disabled' : '') + '><span>' + label + '</span></label>'; };
+  var toggles = sw('data-p2f="lock"', n.lock, '鍵', '上の項目が済むまで開かない') +
+    (inN ? sw('data-ce="state"', pubOn, '部員に公開', '予定タブの部内イベントに出て、参加登録できる', ro) : '') +
+    sw('data-p2lv="1"', n.lv, 'レベル' + (n.lv ? '<small class="num">Lv' + (i + 1) + '</small>' : ''), '出席した部員のレベルが上がる');
   var chips = att.map(function (id) { return '<span class="attc">' + av(id) + esc(member(id).name) + '</span>'; }).join('');
+  var stat = inN
+    ? '<div class="p2st"><span class="p2pub' + (pubOn ? ' on' : '') + '">' + (pubOn ? '公開中' : '未公開') + '</span>' + (pubOn ? '<span class="p2stn">参加登録 <b class="num">' + ((S.joins || {})[c.id] || 0) + '</b> 人</span>' : '') + '<button class="p2golink" data-act="evOutNotice" data-id="' + c.id + '">告知から外す</button></div>'
+    : '<div class="p2st"><span class="p2pub">告知に出していません</span><button class="p2golink" data-act="evToNotice" data-id="' + c.id + '">告知にも追加</button></div>';
+  var attend = '<div class="p2st"><span class="p2stn">出席 <b class="num">' + att.length + '</b> 人</span>' + (ro ? '' : '<button class="btn sm" data-attopen="' + c.id + '">' + (att.length ? '出席を変更' : '出席を付ける') + '</button>') + '</div>' + (chips ? '<div class="attl">' + chips + '</div>' : '');
   return '<div class="p2crumb">' + (crumb || '<span>プログラム</span>') + '</div>' +
     '<input class="p2title" data-ce="title" value="' + esc(c.title) + '" placeholder="イベント名" aria-label="イベント名" autocomplete="off"' + (ro ? ' disabled' : '') + '>' +
-    '<div class="p2row"><label class="p2sw"><input type="checkbox" data-p2f="lock"' + (n.lock ? ' checked' : '') + '><span>鍵</span><small>上の項目が済むまで開かない</small></label>' + pub + '</div>' +
+    '<div class="p2row">' + toggles + '</div>' +
     '<div class="p2grid3">' + inp('date', '開始日', 'date') + inp('to', '終了日', 'date') + inp('time', '時間', 'time') + '</div>' +
     '<div class="p2grid">' + inp('place', '場所') + inp('link', 'リンク', '', 'https://') + '</div>' +
     '<label class="p2fld">部員がやること・説明<textarea class="input" data-ce="memo" rows="3"' + (ro ? ' disabled' : '') + '>' + esc(c.memo || '') + '</textarea></label>' +
-    (inN ? '<div class="p2reg">' + (c.state === 'pub' ? '<span class="p2pub on">公開中</span><span>参加登録</span><b class="num">' + ((S.joins || {})[c.id] || 0) + '</b><span>人</span>' : '<span class="p2pub">未公開</span>') + '<button class="p2golink" data-act="evOutNotice" data-id="' + c.id + '">告知から外す</button></div>' : '') +
-    '<div class="p2fld p2att"><span>出席 <b class="num">' + att.length + '</b></span><div class="attl">' + chips + (ro ? '' : '<button class="attb" data-attopen="' + c.id + '">' + (att.length ? '変更' : '付ける') + '</button>') + '</div></div>';
+    '<div class="p2box">' + stat + attend + '</div>';
 }
 function viewTracks () {
   p2(); if (UI.psel && !p2Get(UI.psel)) UI.psel = null;
@@ -4628,7 +4683,7 @@ function viewEvents () {
   return '<div class="evl"><div class="evr evh"><span>イベント</span><span>期間</span><span>場所</span><span>参加登録</span><span>公開</span><span></span></div>' + cs.map(function (c) {
     var end = c.to || c.date, past = !!end && end < today, pub = c.state === 'pub', pg = evInProg(c.id);
     return '<div class="evr" data-calid="' + c.id + '"><span class="evn"><b>' + esc(c.title || 'イベント') + (pg ? '<i class="evtag">学ぶ</i>' : '') + '</b>' + (c.memo ? '<span>' + esc(memoText(c.memo).slice(0, 60)) + '</span>' : '') + '</span>' +
-      '<span class="evq num">' + (c.date ? pmd(c.date) + (c.to ? ' – ' + pmd(c.to) : '') + (c.time ? ' ' + esc(c.time) : '') : '<span class="dim">未定</span>') + '</span><span class="evp">' + esc(c.place || '—') + '</span>' +
+      '<span class="evq num">' + (c.date ? pmd(c.date) + (c.to ? ' – ' + pmd(c.to) : '') + (c.time ? ' ' + esc(c.time) : '') : '<span class="dim">未定</span>') + '</span>' + (c.place ? '<span class="evp">' + esc(c.place) + '</span>' : '<span class="evp dim">—</span>') +
       '<span class="evg num">' + (pub ? ((S.joins || {})[c.id] || 0) + ' 人' : '<span class="dim">—</span>') + '</span>' +
       (past ? '<span class="muted nsw" style="font-size:12px">終了</span>' : '<button class="sw nsw" role="switch" data-act="calPub" data-id="' + c.id + '" aria-checked="' + pub + '" aria-label="部員に公開"' + (okc ? '' : ' disabled') + '><i></i></button>') +
       '<button class="ib" data-act="calItem" data-k="cal" data-id="' + c.id + '" aria-label="編集" title="編集">' + PEN + '</button></div>';
@@ -5555,6 +5610,94 @@ window.__delNotif = function (id) {
 };
 
 boot();
+})();
+// 日付の入力：ブラウザ標準のカレンダーの代わりに、画面になじむ小さなカレンダーを出す
+(function () {
+  var pop = null, cur = null, view = null, focusDay = null;
+  var WD = ['日', '月', '火', '水', '木', '金', '土'];
+  var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+  var iso = function (d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+  var parse = function (v) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || ''); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; };
+  var isDate = function (el) { return el && el.tagName === 'INPUT' && el.type === 'date' && !el.disabled && !el.readOnly; };
+
+  function close(back) {
+    if (!pop) return; pop.remove(); pop = null;
+    if (back && cur && document.contains(cur)) cur.focus();
+    cur = null;
+  }
+  function pick(d) {
+    var el = cur; if (!el) return;
+    el.value = d ? iso(d) : '';
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+    close(true);
+  }
+  function draw() {
+    var y = view.getFullYear(), m = view.getMonth(), first = new Date(y, m, 1), start = new Date(y, m, 1 - first.getDay());
+    var sel = parse(cur.value), today = new Date(); today.setHours(0, 0, 0, 0);
+    var min = parse(cur.min), max = parse(cur.max), h = '';
+    for (var i = 0; i < 42; i++) {
+      var d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i), t = iso(d);
+      var off = (min && d < min) || (max && d > max);
+      h += '<button type="button" class="dpkd' + (d.getMonth() !== m ? ' out' : '') + (sel && t === iso(sel) ? ' on' : '') + (t === iso(today) ? ' now' : '') + (d.getDay() === 0 ? ' sun' : d.getDay() === 6 ? ' sat' : '') + '" data-dpd="' + t + '"' + (off ? ' disabled' : '') + ' tabindex="' + (focusDay && t === iso(focusDay) ? '0' : '-1') + '">' + d.getDate() + '</button>';
+    }
+    pop.innerHTML = '<div class="dpkh"><button type="button" class="dpkn" data-dpm="-1" aria-label="前の月"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button><b>' + y + '年' + (m + 1) + '月</b><button type="button" class="dpkn" data-dpm="1" aria-label="次の月"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button></div>' +
+      '<div class="dpkw">' + WD.map(function (w, k) { return '<span' + (k === 0 ? ' class="sun"' : k === 6 ? ' class="sat"' : '') + '>' + w + '</span>'; }).join('') + '</div>' +
+      '<div class="dpkg">' + h + '</div>' +
+      '<div class="dpkf"><button type="button" data-dpt="today">今日</button>' + (cur.required ? '' : '<button type="button" data-dpt="clear">消す</button>') + '</div>';
+  }
+  function place() {
+    var r = cur.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
+    var left = Math.max(8, Math.min(window.innerWidth - w - 8, r.left));
+    var top = window.innerHeight - r.bottom - 8 >= h ? r.bottom + 6 : Math.max(8, r.top - h - 6);
+    pop.style.left = left + 'px'; pop.style.top = top + 'px';
+  }
+  function open(el) {
+    if (pop && cur === el) return;
+    close(); cur = el; var v = parse(el.value) || new Date(); focusDay = parse(el.value);
+    view = new Date(v.getFullYear(), v.getMonth(), 1);
+    pop = document.createElement('div'); pop.className = 'dpk'; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', '日付を選ぶ');
+    document.body.appendChild(pop); draw(); place();
+  }
+  function moveFocus(days) {
+    var base = focusDay || parse(cur.value) || new Date(view.getFullYear(), view.getMonth(), 1);
+    focusDay = new Date(base.getFullYear(), base.getMonth(), base.getDate() + days);
+    if (focusDay.getMonth() !== view.getMonth() || focusDay.getFullYear() !== view.getFullYear()) view = new Date(focusDay.getFullYear(), focusDay.getMonth(), 1);
+    draw(); var b = pop.querySelector('[data-dpd="' + iso(focusDay) + '"]'); if (b) b.focus();
+  }
+
+  // スマホでは標準のカレンダー（下から出る回転式）を出さない
+  document.addEventListener('pointerdown', function (e) {
+    var el = e.target; if (pop && !pop.contains(el) && el !== cur) close();
+    if (isDate(el) && e.pointerType !== 'mouse') e.preventDefault();
+  }, true);
+  document.addEventListener('click', function (e) {
+    if (pop && pop.contains(e.target)) {
+      var b = e.target.closest('button'); if (!b) return; e.preventDefault(); e.stopPropagation();
+      if (b.dataset.dpm) { view = new Date(view.getFullYear(), view.getMonth() + +b.dataset.dpm, 1); draw(); }
+      else if (b.dataset.dpd) pick(parse(b.dataset.dpd));
+      else if (b.dataset.dpt === 'today') pick(new Date());
+      else if (b.dataset.dpt === 'clear') pick(null);
+      return;
+    }
+    if (isDate(e.target)) open(e.target);
+  }, true);
+  document.addEventListener('keydown', function (e) {
+    if (pop && pop.contains(e.target)) {
+      var k = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[e.key];
+      if (k) { e.preventDefault(); moveFocus(k); return; }
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(true); return; }
+      if (e.key === 'Tab') { close(true); return; }
+      return;
+    }
+    if (isDate(e.target) && ((e.key === 'ArrowDown' && e.altKey) || e.key === 'F4' || e.key === ' ')) {
+      e.preventDefault(); open(e.target); moveFocus(0);
+      return;
+    }
+    if (pop && e.key === 'Escape') { e.stopPropagation(); close(true); }
+  }, true);
+  window.addEventListener('resize', function () { close(); });
+  document.addEventListener('scroll', function (e) { if (pop && !pop.contains(e.target)) close(); }, true);
 })();
 </script>
 <script>

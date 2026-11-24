@@ -29,24 +29,21 @@ function viewNotices() {
   var tab = S.ntab;
   var wait = S.offers.filter(function (o) { return o.state === 'wait'; });
   var list = S.notices.slice().sort(function (a, b) { var pa = dayOf(a.due) < TODAY, pb = dayOf(b.due) < TODAY; return pa !== pb ? (pa ? 1 : -1) : dayOf(a.due) - dayOf(b.due); });
-  var types = function (sel) { return NTYPES.map(function (x) { return '<option' + (x === sel ? ' selected' : '') + '>' + x + '</option>'; }).join(''); };
   var body;
   if (tab === 'ev') body = viewEvents();
   else if (tab === 'cal') body = viewCal();
   else if (tab === 'list') {
-    body = '<div class="nsheet"><div class="nh"><span>タイトル</span><span>種類</span><span>主催</span><span>締切</span><span>URL</span><span>公開</span><span></span></div>' +
+    var host0 = function (u) { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return ''; } };
+    body = list.length ? '<div class="evl nvl"><div class="evr evh"><span>告知</span><span>締切</span><span>リンク</span><span>種類</span><span>公開</span><span></span></div>' +
       list.map(function (n) {
-        var past = dayOf(n.due) < TODAY, ok = /^https?:\/\//i.test(n.url || '');
-        return '<div class="nr' + (past ? ' past' : '') + '" data-nid="' + n.id + '">' +
-          '<input class="cell nt" data-n="title" data-id="' + n.id + '" value="' + esc(n.title) + '" aria-label="タイトル" autocomplete="off">' +
-          '<select class="cell" data-n="type" data-id="' + n.id + '" aria-label="種類">' + types(n.type) + '</select>' +
-          '<input class="cell" data-n="host" data-id="' + n.id + '" value="' + esc(n.host === '—' ? '' : n.host) + '" placeholder="主催" aria-label="主催" autocomplete="off">' +
-          '<input type="date" class="cell num" data-n="due" data-id="' + n.id + '" value="' + esc(n.due) + '" aria-label="締切">' +
-          '<span class="nu"><input class="cell" type="url" data-n="url" data-id="' + n.id + '" value="' + esc(ok && n.url !== 'https://example.com' ? n.url : (ok ? n.url : '')) + '" placeholder="https://" aria-label="URL" autocomplete="off">' + (ok ? '<a class="ib" href="' + esc(n.url) + '" target="_blank" rel="noopener" aria-label="開く">↗</a>' : '') + '</span>' +
+        var past = dayOf(n.due) < TODAY, ok = /^https?:\/\//i.test(n.url || ''), hs = n.host && n.host !== '—' ? n.host : '';
+        return '<div class="evr' + (past ? ' past' : '') + '" data-nid="' + n.id + '"><span class="evn"><b>' + esc(n.title) + '</b>' + (hs ? '<span>' + esc(hs) + '</span>' : '') + '</span>' +
+          '<span class="evq num">' + (n.due ? pmd(n.due) + (n.due.slice(0, 4) !== isoOf(TODAY).slice(0, 4) ? ' <small>' + n.due.slice(0, 4) + '</small>' : '') : '<span class="dim">未定</span>') + '</span>' +
+          (ok ? '<a class="evp evlink" href="' + esc(n.url) + '" target="_blank" rel="noopener">' + esc(host0(n.url)) + ' ↗</a>' : '<span class="evp dim">—</span>') +
+          '<span class="evg"><span class="tag">' + esc(n.type) + '</span></span>' +
           (past ? '<span class="muted nsw" style="font-size:12px">終了</span>' : '<button class="sw nsw" role="switch" data-act="nState" data-id="' + n.id + '" aria-checked="' + (n.state === 'pub') + '" aria-label="公開"><i></i></button>') +
-          '<span class="nacts"><button class="ib" data-act="nEdit" data-id="' + n.id + '" aria-label="編集" title="編集">' + PEN + '</button><button class="ib udel" data-act="nDel" data-id="' + n.id + '" aria-label="削除"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/></svg></button></span></div>';
-      }).join('') + '</div>';
-    if (!S.notices.length) body = body.replace('<div class="nsheet">', '<div class="empty big">告知はまだありません</div><div class="nsheet" style="display:none">');
+          '<button class="ib" data-act="nEdit" data-id="' + n.id + '" aria-label="編集" title="編集">' + PEN + '</button></div>';
+      }).join('') + '</div>' : '<div class="empty big">告知はまだありません</div>';
   } else {
     body = '<div class="tw"><table><thead><tr><th>タイトル</th><th>種類</th><th class="hide-sm">提供者</th><th>締切</th><th></th></tr></thead><tbody>' +
       (wait.length ? wait.map(function (o) {
@@ -108,7 +105,7 @@ function viewPerms() {
     return '<tr><td><button class="mname" data-act="modal" data-m="member" data-id="' + m.id + '">' + av(m.id, 'lg') + '<span class="cell2"><span style="font-weight:500">' + esc(m.name) + '</span><span class="s">' + esc(m.grade) + '</span></span></button></td>' +
       '<td><select class="cell mpost" data-act="post" data-m="' + m.id + '"' + (self ? ' disabled title="自分の役職は変更できません"' : '') + ' aria-label="' + esc(m.name) + 'の役職">' +
         POSTS.map(function (x) { return '<option value="' + esc(x[0]) + '"' + (x[0] === m.unit ? ' selected' : '') + '>' + esc(postLabel(x[0])) + '</option>'; }).join('') + '</select>' +
-        '<div class="s muted" style="font-size:11px;padding-left:8px">' + (isOps(m) ? permText(m.perms) : (m.roles || []).join('・') || '—') + '</div></td>' +
+        '<div class="s muted" style="font-size:11px">' + (isOps(m) ? permText(m.perms) : (m.roles || []).join('・') || '—') + '</div></td>' +
       '<td class="hide-sm">' + (js.length ? js.map(function (p) { return '<span class="tag" style="background:#fff;box-shadow:inset 0 0 0 1px var(--line)">' + esc(p.name) + '</span>'; }).join(' ') : '<span class="dim">—</span>') + '</td></tr>';
   }).join('');
   return top('メンバー') +
@@ -122,35 +119,10 @@ function viewPerms() {
 var lmv = null;
 
 // ---------- 入力・キー操作 ----------
-document.addEventListener('keydown', function (e) {
-  var el = e.target; if (!el.dataset) return;
-  // 告知（外部）の表
-  if (el.dataset.n && el.tagName === 'INPUT' && el.type !== 'date') {
-    if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); el.blur(); return; }
-    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      e.preventDefault(); var cs = Array.prototype.slice.call(document.querySelectorAll('.nsheet .cell[data-n="' + el.dataset.n + '"]'));
-      var n3 = cs[cs.indexOf(el) + (e.key === 'ArrowDown' ? 1 : -1)]; if (n3) { n3.focus(); if (n3.select) n3.select(); } return;
-    }
-    if (e.key === 'Escape') { var no = notice(el.dataset.id); el.value = no ? (no[el.dataset.n] === '—' ? '' : no[el.dataset.n]) : ''; el.blur(); }
-  }
-});
 document.addEventListener('input', function (e) {
   var el = e.target;
   if (el.id === 'mq') { UI.mq = el.value; var pos = el.selectionStart; render(); var m = document.getElementById('mq'); if (m) { m.focus(); m.setSelectionRange(pos, pos); } return; }
 });
-// 確定（フォーカスが外れた / 選択を変えた）
-document.addEventListener('change', function (e) {
-  var el = e.target; if (!el.dataset) return;
-  if (el.dataset.n && el.dataset.id) {
-    e.stopPropagation(); var n = notice(el.dataset.id); if (!n) return; var f = el.dataset.n, val0 = el.value.trim();
-    if (f === 'title' && !val0) { el.value = n.title; return; }
-    if (f === 'due' && !val0) { el.value = n.due; return; }
-    if (f === 'url' && val0 && !/^https?:\/\//i.test(val0)) val0 = 'https://' + val0;
-    n[f] = val0; save();
-    if (f === 'due' || f === 'url') { var id = n.id; render(); focusSel('.cell[data-n="' + f + '"][data-id="' + id + '"]'); }
-    return;
-  }
-}, true);
 document.addEventListener('change', function (e) {
   var el = e.target; if (!el.dataset || el.dataset.act !== 'post') return;
   e.stopImmediatePropagation(); var pm = member(el.dataset.m); if (!pm) return;

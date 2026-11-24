@@ -11,7 +11,7 @@ function noticeDlg() {
     '<div class="two"><div class="fld"><label for="nH">主催</label><input id="nH" class="input" value="' + esc(host) + '" autocomplete="off"></div>' +
     '<div class="fld"><label for="nU">URL</label><input id="nU" type="url" class="input" placeholder="https://" value="' + esc(url) + '" autocomplete="off"></div></div>' +
     '<div class="fld"><label>対象</label><div class="rchips">' + NROLES.map(function (r) { return '<label class="rchip"><input type="checkbox" class="nR" value="' + r + '"' + (rs.indexOf(r) >= 0 ? ' checked' : '') + '>' + r + '</label>'; }).join('') + '</div><span class="hint">選ばなければ全員向け</span></div>' +
-    '<div class="fld"><label for="nM">詳細</label><textarea id="nM" class="input" placeholder="内容・応募方法・注意点など">' + esc(d.memo || '') + '</textarea></div>';
+    '<div class="fld"><label for="nM">詳細</label><textarea id="nM" class="input">' + esc(d.memo || '') + '</textarea></div>';
   var foot = n
     ? '<button class="btn ghost" data-act="nDel24" data-id="' + n.id + '" style="margin-right:auto;color:var(--red,#DC2626)">削除</button><button class="btn" data-act="close">キャンセル</button><button class="btn primary" data-act="nSave24">保存</button>'
     : '<button class="btn" data-act="close">キャンセル</button><button class="btn" data-act="nSave24" data-s="draft">下書き保存</button><button class="btn primary" data-act="nSave24" data-s="pub">公開</button>';

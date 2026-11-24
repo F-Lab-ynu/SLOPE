@@ -198,7 +198,7 @@ function fmemoHTML(f) {
   var can = editSelf(f) || isLead(f, S.me), m = f.memo || '';
   if (!m && !can) return '';
   var long = m.split('\n').length > 3 || m.length > 160, open = UI.fmx === f.id;
-  return '<div class="fhm' + (long && !open ? ' clamp' : '') + '"><div class="fhmt' + (can ? ' ied' : '') + (m ? '' : ' empty') + '"' + (can ? ' data-act="ied" data-f="memo" data-id="' + f.id + '"' : '') + ' data-ph="メモ（目的・決まったこと・引き継ぎ・資料URLなど）">' + linkify(m) + '</div>' +
+  return '<div class="fhm' + (long && !open ? ' clamp' : '') + '"><div class="fhmt' + (can ? ' ied' : '') + (m ? '' : ' empty') + '"' + (can ? ' data-act="ied" data-f="memo" data-id="' + f.id + '"' : '') + ' data-ph="メモ">' + linkify(m) + '</div>' +
     (long ? '<button class="fhmx" data-act="fmx">' + (open ? '閉じる' : '…詳細を表示') + '</button>' : '') + '</div>';
 }
 document.addEventListener('click', function (e) {
@@ -510,7 +510,7 @@ function filePage(n) {
       (UI.fmn ? '<div class="srtm" role="menu"><button role="menuitem" data-act="toFolder" data-id="' + n.id + '">フォルダーに変える</button>' + (editSelf(n) ? '<button role="menuitem" data-act="edit" data-id="' + n.id + '">名前・期間を編集</button>' : '') + '</div>' : '') + '</span>' : '') +
     '</div></div>';
   var memo = '<div class="body"><div class="fpage2">' + (canM ? docBar() : '') +
-    '<div class="fdoc" id="fdoc" data-id="' + n.id + '"' + (canM ? ' contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="メモ" data-ph="メモを書く（どこで・どうやって・結果・連絡先・資料URLなど）。# で見出し、- で箇条書き、[] でチェックリスト"' : ' data-ph="メモはありません"') + '>' + docHTML(n.memo) + '</div></div></div>';
+    '<div class="fdoc" id="fdoc" data-id="' + n.id + '"' + (canM ? ' contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="メモ" data-ph="メモ"' : ' data-ph="メモはありません"') + '>' + docHTML(n.memo) + '</div></div></div>';
   return top('業務') + '<div class="wk"><aside class="ftree" aria-label="フォルダー">' + ftree() + '</aside><div class="wkm">' + head + memo + '</div></div>';
 }
 document.addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('[data-act="toFolder"]'); if (b) UI.fmn = false; }, true);

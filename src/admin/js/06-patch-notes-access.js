@@ -24,14 +24,14 @@ function patchCards() {
   var c1 = '<div class="card"><div class="ch"><span class="cht">今後の更新<span class="num" style="margin-left:6px;color:var(--muted);font-weight:400">' + plan.length + '</span></span>' + add('plan') + '</div><div class="pnl">' + (plan.length ? plan.map(pRow).join('') : none) + '</div></div>';
   var c2 = '<div class="card"><div class="ch"><span class="cht">パッチノート<span class="num" style="margin-left:6px;color:var(--muted);font-weight:400">' + done.length + '</span></span>' + add('done') + '</div><div class="pnl">' + (done.length ? done.slice(0, lim).map(pRow).join('') : none) + '</div>' +
     (done.length > 6 ? '<button class="pmore" data-act="ptAll">' + (UI.pAll ? '閉じる' : 'すべて表示（' + done.length + '）') + '</button>' : '') + '</div>';
-  return (isAdmin() ? accessCard() : '') + '<div class="dg2" style="margin-top:12px">' + c1 + c2 + '</div>';
+  return (isAdmin() ? accessCard() : '') + '<div class="dg2 pgrid" style="margin-top:12px">' + c1 + c2 + '</div>';
 }
 function patchDlg() {
   var x = M.id ? patchesInit().filter(function (y) { return y.id === M.id; })[0] : null, d = x || { date: M.s === 'plan' ? '' : isoOf(TODAY), title: '', note: '', state: M.s || 'done' };
   var body = '<div class="fld"><label for="pT">内容</label><input id="pT" class="input" value="' + esc(d.title) + '" autocomplete="off"></div>' +
     '<div class="two"><div class="fld"><label for="pS">状態</label><select id="pS" class="input"><option value="plan"' + (d.state === 'plan' ? ' selected' : '') + '>今後の更新</option><option value="done"' + (d.state !== 'plan' ? ' selected' : '') + '>実施済み</option></select></div>' +
     '<div class="fld"><label for="pD">日付</label><input id="pD" type="date" class="input" value="' + esc(d.date || '') + '"></div></div>' +
-    '<div class="fld"><label for="pN">詳細</label><textarea id="pN" class="input" rows="4" placeholder="変更点・理由など">' + esc(d.note || '') + '</textarea></div>';
+    '<div class="fld"><label for="pN">詳細</label><textarea id="pN" class="input" rows="4">' + esc(d.note || '') + '</textarea></div>';
   var foot = (x ? '<button class="btn ghost" data-act="ptDel" data-id="' + x.id + '" style="margin-right:auto;color:var(--red,#DC2626)">削除</button>' : '') + '<button class="btn" data-act="close">キャンセル</button><button class="btn primary" data-act="ptSave">保存</button>';
   return dlg(x ? '更新を編集' : (d.state === 'plan' ? '今後の更新を追加' : 'パッチを記録'), body, foot, true);
 }
@@ -77,8 +77,9 @@ function accessCard() {
   var days = a.days || [], mx = Math.max.apply(null, days.map(function (d) { return d.users; }).concat([1]));
   var total = a.total || S.members.length || 1;
   var bars = days.map(function (d, i) {
-    var dt = new Date(d.day + 'T00:00:00Z'), lab = (dt.getUTCMonth() + 1) + '/' + dt.getUTCDate();
-    return '<div class="abar' + (i === days.length - 1 ? ' today' : '') + '" title="' + lab + '：' + d.users + '人・' + d.views + '回"><u>' + (d.users || '') + '</u><i style="height:' + Math.round(d.users / mx * 82) + '%"></i><em>' + (i % 2 === days.length % 2 ? '' : lab) + '</em></div>';
+    var dt = new Date(d.day + 'T00:00:00Z'), md = (dt.getUTCMonth() + 1) + '/' + dt.getUTCDate(), wd = dt.getUTCDay();
+    var lab = i === 0 || dt.getUTCDate() === 1 ? md : String(dt.getUTCDate()); // 日付は毎日。月は最初と月替わりだけ
+    return '<div class="abar' + (i === days.length - 1 ? ' today' : '') + (wd === 0 || wd === 6 ? ' we' : '') + '" title="' + md + '：' + d.users + '人・' + d.views + '回"><u>' + d.users + '</u><i style="height:' + Math.round(d.users / mx * 100) + '%"></i><em>' + lab + '</em></div>';
   }).join('');
   var c1 = '<div class="card"><div class="ch"><span class="cht">アクセス</span></div><div class="akp">' +
     '<div><b class="num">' + a.dau + '</b><span>今日</span></div><div><b class="num">' + a.wau + '</b><span>7日間</span></div><div><b class="num">' + a.mau + '</b><span>30日間</span></div>' +
