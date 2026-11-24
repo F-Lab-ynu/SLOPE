@@ -101,7 +101,7 @@ async def main():
         if nb: await pg.locator('#stage button[aria-label="このお知らせを削除"]').first.click(); await pg.wait_for_timeout(300)
         await pg.evaluate("history.back()") if False else None
         print('notif del:', nb, '->', await pg.locator('#stage button[aria-label="このお知らせを削除"]').count(), len(await db(pg, 'notifications')))
-        await pg.click('#stage button[aria-label="戻る"], #stage button:has(svg path[d^="M15"])') if await pg.locator('#stage button[aria-label="戻る"]').count() else None
+        await pg.screenshot(path='/tmp/npop.png'); await pg.click('.npbg', position={'x': 20, 'y': 400})
         await pg.wait_for_timeout(300); print('read all:', all(n['read'] for n in await db(pg, 'notifications') if n['to_id'] == B))
         await pg.click('#stage nav button:has-text("予定")'); await pg.wait_for_timeout(300)
         print('club events:', await pg.locator('#stage h2:has-text("部内イベント")').count(), await pg.locator('#stage :text("これからの部内イベントはありません")').count())

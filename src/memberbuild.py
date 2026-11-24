@@ -169,33 +169,24 @@ rep('<span class="mode"><span>運営</span><button class="msw" data-to="admin.ht
 rline('aria-label="マイページ"', lambda l: l, 2)
 tpl_i = s.index('<template id="tpl">')
 k = s.index('>YT</span>', tpl_i); s = s[:k] + '>{{ meIni }}</span>' + s[k + len('>YT</span>'):]
-NOTIFPAGE = """<sc-if value="{{ show.notifs }}" hint-placeholder-val="{{ false }}">
-<div style="padding: 6px 20px 32px; display: flex; flex-direction: column; gap: 14px">
-<sc-if value="{{ hasNotifs }}">
-<div style="display: flex; flex-direction: column; gap: 14px">
-<div style="display: flex; justify-content: flex-end; align-items: center"><button onClick="{{ delAllNotifs }}" style="border: 0; background: transparent; color: #A3A19B; font-size: 12px; font-family: inherit; padding: 4px 0">すべて削除</button></div>
-<div class="card" style="padding: 0 18px">
+NOTIFPAGE = """<sc-if value="{{ nPop }}" hint-placeholder-val="{{ false }}">
+<div onClick="{{ closeNotifs }}" class="npbg"></div>
+<div class="nppanel" role="dialog" aria-label="通知">
+<div class="nphead"><span>通知</span><sc-if value="{{ hasNotifs }}"><button onClick="{{ delAllNotifs }}">すべて削除</button></sc-if></div>
+<div class="nplist">
 <sc-for list="{{ notifsAll }}" as="n">
-<div style="display: flex; align-items: flex-start; gap: 6px; border-bottom: {{ n.sep }}">
-<button onClick="{{ n.read }}" style="flex: 1; min-width: 0; display: flex; align-items: flex-start; gap: 10px; padding: 14px 0; border: 0; background: transparent; color: #F3F1EC; text-align: left">
-<span style="flex: none; width: 7px; height: 7px; margin-top: 8px; border-radius: 50%; background: {{ n.dot }}"></span>
-<span style="flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0">
-<span style="font-size: 14px; line-height: 1.5">{{ n.text }}</span>
-<span style="font-size: 12px; color: #A3A19B">{{ n.sub }} · {{ n.at }}</span>
-</span>
-</button>
-<button onClick="{{ n.del }}" aria-label="このお知らせを削除" style="flex: none; width: 36px; height: 36px; margin-top: 8px; margin-right: -10px; border: 0; background: transparent; color: #7D7B76; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+<div class="npi" style="border-bottom: {{ n.sep }}">
+<span class="npdot" style="background: {{ n.dot }}"></span>
+<span class="npt"><span>{{ n.text }}</span><small>{{ n.sub }} · {{ n.at }}</small></span>
+<button onClick="{{ n.del }}" aria-label="このお知らせを削除"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
 </div>
 </sc-for>
+<sc-if value="{{ noNotifs }}"><div class="npempty">お知らせはありません</div></sc-if>
 </div>
 </div>
 </sc-if>
-<sc-if value="{{ noNotifs }}"><div class="card" style="padding: 18px; font-size: 14px; color: #A3A19B; text-align: center">お知らせはありません</div></sc-if>
-</div>
-</sc-if>
-
 """
-rep('<sc-if value="{{ show.me }}" hint-placeholder-val="{{ false }}">', NOTIFPAGE + '<sc-if value="{{ show.me }}" hint-placeholder-val="{{ false }}">')
+# 通知のポップアップはモックの方に入れた
 
 # ---------- テンプレートエンジン：入力イベントとカーソル位置の保持 ----------
 rep("if(n==='onclick'){ var fn=raw(v,sc); if(typeof fn==='function')el.addEventListener('click',fn); continue; }",
