@@ -2,23 +2,24 @@
 <html lang="ja">
 <head>
 <script>
-// テーマ（色）：端末ごとに保存。描く前に当てる
+// 見た目：ダーク／ライトと差し色。端末ごとに保存し、描く前に当てる
 (function () {
-  /*NOTHEME*/var T = window.__THEMES = {
-    'ダーク': [['#070707','#F3F1EC','#F2A93B'],['#070707','#F3F1EC','#6FA8DC'],['#070707','#F3F1EC','#5FB38C'],['#070707','#F3F1EC','#D98BB8'],
-              ['#070707','#F3F1EC','#E8C454'],['#070707','#F3F1EC','#EE5D52'],['#070707','#F3F1EC','#9C82E8'],['#070707','#F3F1EC','#4FC7C0']],
-    '夜': [['#0B1220','#DCE3EC','#7FB2E5'],['#0B1220','#DCE3EC','#F2A93B'],['#14110C','#EFE6D3','#E3B25A'],['#14110C','#EFE6D3','#C9DB6A'],
-           ['#0F1412','#E2ECE6','#6ECB9E'],['#120E16','#ECE4F2','#B79CF0'],['#16100F','#F0E6E2','#EE7A5F'],['#101010','#E6E6E6','#E6E6E6']],
-    'ライト': [['#F3F1EC','#141414','#D9861A'],['#F3F1EC','#141414','#2F6FB0'],['#F3F1EC','#141414','#2E8B62'],['#F3F1EC','#141414','#C9374B'],
-              ['#FFFFFF','#111111','#111111'],['#FFFFFF','#111111','#6B4FC9'],['#F6F4EF','#2B2A27','#B0705A'],['#EEF2F5','#1B2430','#3E7CB1']]
-  };/*/NOTHEME*/
-  function lightOf(bg) { var c = parseInt(bg.slice(1), 16); return ((c >> 16) + ((c >> 8) & 255) + (c & 255)) / 3 > 128; }
-  window.__applyTheme = function (t) {
-    var r = document.documentElement; r.style.setProperty('--bg', t[0]); r.style.setProperty('--fg', t[1]); r.style.setProperty('--ac', t[2]);
-    r.classList.toggle('light', lightOf(t[0])); var m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', t[0]);
+  /*NOTHEME*/var MODES = { dark: ['#070707', '#F3F1EC'], light: ['#F4F2ED', '#161615'] };
+  var ACC = window.__ACCENTS = [ // [名前, ダークでの色, ライトでの色]
+    ['オレンジ', '#F2A93B', '#D9861A'], ['イエロー', '#E8C454', '#B8930F'], ['グリーン', '#5FB38C', '#2E8B62'], ['ティール', '#4FC7C0', '#178C86'],
+    ['ブルー', '#6FA8DC', '#2F6FB0'], ['インディゴ', '#8C9EF0', '#4A5BC4'], ['パープル', '#9C82E8', '#6B4FC9'], ['ピンク', '#D98BB8', '#B84D8A'],
+    ['レッド', '#EE5D52', '#C9374B'], ['ブラウン', '#C9966B', '#9A6640'], ['グレー', '#A3A19B', '#6B6A66'], ['ホワイト', '#F3F1EC', '#161615']];/*/NOTHEME*/
+  function get(k, d) { try { return localStorage.getItem(k) || d; } catch (e) { return d; } }
+  window.__look = function () { return { mode: get('slope-mode', 'dark'), acc: +get('slope-accent', '0') || 0 }; };
+  window.__applyLook = function (mode, acc) {
+    var m = MODES[mode] || MODES.dark, a = ACC[acc] || ACC[0], r = document.documentElement;
+    r.style.setProperty('--bg', m[0]); r.style.setProperty('--fg', m[1]); r.style.setProperty('--ac', mode === 'light' ? a[2] : a[1]);
+    r.classList.toggle('light', mode === 'light'); var mt = document.querySelector('meta[name="theme-color"]'); if (mt) mt.setAttribute('content', m[0]);
   };
+  window.__setLook = function (mode, acc) { try { localStorage.setItem('slope-mode', mode); localStorage.setItem('slope-accent', String(acc)); } catch (e) {} window.__applyLook(mode, acc); };
   window.__tvTheme = function () { return document.documentElement.classList.contains('light') ? 'light' : 'dark'; };
-  try { var t = JSON.parse(localStorage.getItem('slope-theme') || 'null'); if (t && t.length === 3) window.__applyTheme(t); } catch (e) {}
+  try { localStorage.removeItem('slope-theme'); } catch (e) {} // 前の形式
+  var L = window.__look(); if (L.mode !== 'dark' || L.acc) window.__applyLook(L.mode, L.acc);
 })();
 </script>
 
@@ -1410,7 +1411,8 @@ body.wide .iqsheet{bottom:auto;top:50%;transform:translate(-50%,-50%);border-bot
 <section class="mpsec">
 <h2 class="h2">設定</h2>
 <div class="mplist">
-<button class="mprow" data-theme-open="1"><span class="mpl">テーマ</span><span class="thsw" aria-hidden="true"><i style="background: var(--bg)"></i><i style="background: var(--fg)"></i><i style="background: var(--ac)"></i></span><svg class="mpch" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+<button class="mprow" data-mode-toggle="1" role="switch"><span class="mpl">ダークモード</span><span class="mpsw thmode"><i></i></span></button>
+<button class="mprow" data-theme-open="1"><span class="mpl">テーマカラー</span><span class="thdot" aria-hidden="true"></span><svg class="mpch" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
 <button class="mprow" onClick="{{ push.toggle }}" role="switch" aria-checked="{{ push.on }}"><span class="mpl">通知を受け取る<small>{{ push.note }}</small></span><span class="mpsw" style="background: {{ push.bg }}"><i style="left: {{ push.x }}; background: {{ push.knob }}"></i></span></button>
 <a class="mprow" href="{{ calSub.ios }}"><span class="mpl">iPhone・Mac のカレンダーに追加</span><svg class="mpch" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
 <a class="mprow" href="{{ calSub.google }}"><span class="mpl">Google カレンダーに追加</span><svg class="mpch" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
@@ -2632,33 +2634,36 @@ document.addEventListener('click',function(e){
 html.invon,html.invon body{overflow:hidden}
 </style>
 <script>
-// テーマを選ぶ画面
+// テーマカラー（差し色）を選ぶ画面と、ダークモードの切りかえ
 (function () {
-  function cur() { try { return JSON.parse(localStorage.getItem('slope-theme') || 'null') || window.__THEMES['ダーク'][0]; } catch (e) { return window.__THEMES['ダーク'][0]; } }
   function open() {
-    var c = cur().join(), h = '<div class="npbg" data-th-x></div><div class="iqsheet thsheet" role="dialog" aria-label="テーマ"><div class="iqtop"><b>テーマ</b><button data-th-x aria-label="閉じる"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="iqbody">';
-    Object.keys(window.__THEMES).forEach(function (g) {
-      h += '<span class="lbl">' + g + '</span><div class="thgrid">' + window.__THEMES[g].map(function (t) { return '<button class="thc' + (t.join() === c ? ' on' : '') + '" data-th="' + t.join() + '" style="background:' + t[0] + ';border-color:' + (t.join() === c ? t[2] : 'transparent') + '"><i style="background:' + t[0] + ';box-shadow:inset 0 0 0 1px ' + t[1] + '33"></i><i style="background:' + t[1] + '"></i><i style="background:' + t[2] + '"></i></button>'; }).join('') + '</div>';
-    });
-    var w = document.createElement('div'); w.id = 'thpop'; w.innerHTML = h + '</div></div>'; document.body.appendChild(w);
+    var L = window.__look(), h = '<div class="npbg" data-th-x></div><div class="iqsheet thsheet" role="dialog" aria-label="テーマカラー"><div class="iqtop"><b>テーマカラー</b><button data-th-x aria-label="閉じる"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="iqbody"><div class="thgrid">' +
+      window.__ACCENTS.map(function (a, i) { var c = L.mode === 'light' ? a[2] : a[1]; return '<button class="thc' + (i === L.acc ? ' on' : '') + '" data-th="' + i + '" aria-label="' + a[0] + '" aria-pressed="' + (i === L.acc) + '"><i style="background:' + c + '"></i><span>' + a[0] + '</span></button>'; }).join('') + '</div></div></div>';
+    var w = document.createElement('div'); w.id = 'thpop'; w.innerHTML = h; document.body.appendChild(w);
   }
   function close() { var w = document.getElementById('thpop'); if (w) w.remove(); }
+  function sync() { var on = window.__look().mode === 'dark'; Array.prototype.forEach.call(document.querySelectorAll('[data-mode-toggle]'), function (b) { b.setAttribute('aria-checked', String(on)); }); }
   document.addEventListener('click', function (e) {
+    var t = e.target.closest && e.target.closest('[data-mode-toggle]');
+    if (t) { e.preventDefault(); var L = window.__look(); window.__setLook(L.mode === 'dark' ? 'light' : 'dark', L.acc); sync(); return; }
     var o = e.target.closest && e.target.closest('[data-theme-open]'); if (o) { e.preventDefault(); open(); return; }
     if (e.target.closest && e.target.closest('[data-th-x]')) { close(); return; }
     var b = e.target.closest && e.target.closest('[data-th]'); if (!b) return;
-    var t = b.dataset.th.split(','); window.__applyTheme(t); try { localStorage.setItem('slope-theme', JSON.stringify(t)); } catch (er) {}
-    close(); open();
+    window.__setLook(window.__look().mode, +b.dataset.th); close(); open();
   });
+  new MutationObserver(sync).observe(document.documentElement, { childList: true, subtree: true });
 })();
 </script>
 <style>
-.thsw{flex:none;display:flex;gap:4px}
-.thsw i,.thc i{width:14px;height:14px;border-radius:4px;display:block}
-.thsw i:first-child{box-shadow:inset 0 0 0 1px #383836}
-.thgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}
-.thc{height:56px;border:2px solid transparent;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:5px;cursor:pointer}
-.thsheet .lbl{margin-top:4px}
+.thdot{flex:none;width:18px;height:18px;border-radius:50%;background:var(--ac)}
+.thmode{background:var(--n21)}
+.thmode i{left:3px;background:var(--n66)}
+[data-mode-toggle][aria-checked="true"] .thmode{background:var(--fg)}
+[data-mode-toggle][aria-checked="true"] .thmode i{left:21px;background:var(--bg)}
+.thgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.thc{height:76px;border:2px solid transparent;border-radius:12px;background:var(--n8);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;color:var(--n66);font:inherit;font-size:11px}
+.thc i{width:26px;height:26px;border-radius:50%;display:block}
+.thc.on{border-color:var(--ac);color:var(--fg)}
 </style>
 </body>
 </html>
