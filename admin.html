@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '9de22320af', FILE = 'admin.ver';
+  var VER = 'd93aa32fc9', FILE = 'admin.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -1751,11 +1751,7 @@ function allCodes() {
   return map;
 }
 
-// ---------------- auto layout ----------------
-// Layer = 1 + deepest prerequisite (START is layer 0). Within a layer, nodes are ordered by
-// the mean column of their prerequisites so lines cross as little as possible. Nobody types positions.
-
-
+// 教材のURL：種類とサイト名
 function detectType(url) {
   var u = String(url || '').toLowerCase();
   if (/youtube\.com|youtu\.be|vimeo\.com/.test(u)) return '動画';
@@ -2743,7 +2739,6 @@ document.addEventListener('click', function (e) {
   if (b.dataset.act === 'close') { e.stopImmediatePropagation(); if (!b.classList.contains('ov') || e.target === b) closeCopy(); }
 }, true);
 
-// ---------- ux6: 教材＝左にトラック一覧、中央に路線図、右に単元ページ ----------
 // ---------- ux7: 業務＝フォルダー（ファイルアプリ型） ----------
 var FOLD = '<svg class="i fi" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
 var ENTER = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 7l5 5-5 5"/></svg>';
