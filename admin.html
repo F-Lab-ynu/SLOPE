@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '5aad01553b', FILE = 'admin.ver';
+  var VER = 'abd5edf572', FILE = 'admin.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -1933,7 +1933,7 @@ var TABS = [
   { id: 'projects', name: '業務' },
   { id: 'tracks', name: '教材' },
   { id: 'notices', name: '告知' },
-  { id: 'board', name: '部員の声' }
+  { id: 'board', name: 'サポート' }
 ];
 
 // ---------------- sample data (fictional) ----------------
@@ -2545,7 +2545,7 @@ var BADGE = { dash: '自分の未完了の作業', notices: '部員からの情�
 function renderChrome() {
   var m = me(), c = counts();
   document.getElementById('nav').innerHTML = navItems().map(function (v) {
-    var SH = { dash: 'ホーム', tracks: '教材', notices: '告知', board: '部員の声', projects: '業務', perms: 'メンバー' };
+    var SH = { dash: 'ホーム', tracks: '教材', notices: '告知', board: 'サポート', projects: '業務', perms: 'メンバー' };
     return '<button data-act="go" data-view="' + v.id + '"' + (S.view === v.id ? ' aria-current="page"' : '') + '>' + ic(v.id) + '<span class="full">' + v.name + '</span><span class="short">' + (SH[v.id] || v.name) + '</span>' + (c[v.id] ? '<span class="n" title="' + (BADGE[v.id] || '') + ' ' + c[v.id] + '件">' + c[v.id] + '</span>' : '') + '</button>';
   }).join('');
   document.getElementById('acct').innerHTML = '<div class="mode"><span>運営</span><button class="msw on" data-to="./" role="switch" aria-checked="true" aria-label="部員画面に切り替える"><i></i></button></div>' + '<button data-act="acct" aria-haspopup="true" aria-expanded="' + UI.acct + '">' + av(m.id, 'lg') + '<span class="who"><b>' + esc(m.name) + '</b><span>' + esc(m.unit === '—' ? '部員' : m.unit) + '</span></span>' + ic('chev') + '</button>' +
@@ -2655,7 +2655,7 @@ function viewBoard() {
       '<td class="rp">' + (p.reports > 0 && !gone ? '<span class="bad num">' + p.reports + '</span> <span class="muted">' + esc(p.reason) + '</span>' : '<span class="dim">—</span>') + '</td>' +
       '<td class="a"><div class="acts">' + acts + '</div></td></tr>';
   }).join('');
-  return top('部員の声') + utabs('boardTab', [['inq', 'お問い合わせ', inqOpen()], ['rep', '通報', reported.length], ['all', '投稿', S.posts.length]]) +
+  return top('サポート') + utabs('boardTab', [['inq', 'お問い合わせ', inqOpen()], ['rep', '通報', reported.length], ['all', '投稿', S.posts.length]]) +
     '<div class="body"><div class="tw"><table><thead><tr><th>内容</th><th>場所</th><th>通報</th><th></th></tr></thead><tbody>' +
     (rows || '<tr><td colspan="4" class="empty">なし</td></tr>') + '</tbody></table></div></div>';
 }
@@ -3030,7 +3030,7 @@ function viewBoard() {
       '<td class="rp">' + (p.reports > 0 && !gone ? '<span class="bad num">' + p.reports + '</span> <span class="muted">' + esc(p.reason) + '</span>' : '<span class="dim">—</span>') + '</td>' +
       '<td class="a"><div class="acts">' + acts + '</div></td></tr>';
   }).join('');
-  return top('部員の声') + utabs('boardTab', [['inq', 'お問い合わせ', inqOpen()], ['rep', '通報', reported.length], ['all', '投稿', S.posts.length]]) +
+  return top('サポート') + utabs('boardTab', [['inq', 'お問い合わせ', inqOpen()], ['rep', '通報', reported.length], ['all', '投稿', S.posts.length]]) +
     '<div class="body"><div class="tw"><table><thead><tr><th>内容</th><th>場所</th><th>通報</th><th></th></tr></thead><tbody>' +
     (rows || '<tr><td colspan="4" class="empty">' + (S.boardTab === 'rep' ? '対応が必要な通報はありません' : '投稿はありません') + '</td></tr>') + '</tbody></table></div></div>';
 }
@@ -4862,7 +4862,7 @@ document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && M 
 })();
 
 // ---------- ux30 アクセス統計（代表だけ） ----------
-var TABN = { member: { home: 'ホーム', learn: '学ぶ', news: 'ニュース', board: '掲示板', cal: '予定', me: 'マイページ', open: '起動' }, admin: { dash: 'ダッシュボード', projects: '業務', tracks: '教材', notices: '外部告知', board: '部員の声', perms: 'メンバー', open: '起動' } };
+var TABN = { member: { home: 'ホーム', learn: '学ぶ', news: 'ニュース', board: '掲示板', cal: '予定', me: 'マイページ', open: '起動' }, admin: { dash: 'ダッシュボード', projects: '業務', tracks: '教材', notices: '外部告知', board: 'サポート', perms: 'メンバー', open: '起動' } };
 function sampleAccess() {
   var days = [], seed = 7;
   for (var i = 13; i >= 0; i--) { seed = (seed * 37 + 11) % 97; var u = 18 + seed % 40 + (i < 3 ? 15 : 0); days.push({ day: isoOf(TODAY - i * DAY), users: u, views: u * 4 + seed % 20 }); }
@@ -6693,7 +6693,7 @@ p2Editor = function () {
   if (f && f.n.k === 'u') { var t = p2Track(f.n.t), u = p2Unit(f.n); if (t && u) setTimeout(function () { (unitData(t, u.code).materials || []).forEach(function (m) { autoTitle(t, m); }); }, 0); }
   return h;
 };
-// ---------- ux60 部員の声：お問い合わせ・要望（本人と運営だけが見られる）。返すと本人に通知 ----------
+// ---------- ux60 サポート：お問い合わせ・要望（本人と運営だけが見られる）。返すと本人に通知 ----------
 if (!S.inqs) S.inqs = [
   { id: 'q1', user: 'm6', kind: '要望', body: '教材の動画を倍速で見られるようにしてほしいです', status: 'open', reply: '', at: '11.23 21:14' },
   { id: 'q2', user: 'm7', kind: '不具合', body: 'カレンダーの予定が1日ずれて表示されます', status: 'done', reply: '直しました。ご連絡ありがとうございます', at: '11.20 10:02' }

@@ -1,4 +1,4 @@
--- お問い合わせ・要望：送った本人と、掲示板（部員の声）の権限を持つ運営だけが読める
+-- お問い合わせ・要望：送った本人と、掲示板（サポート）の権限を持つ運営だけが読める
 create table if not exists public.inquiries (
   id bigserial primary key,
   user_id uuid not null default auth.uid() references auth.users on delete cascade,
