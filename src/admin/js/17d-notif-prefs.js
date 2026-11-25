@@ -7,7 +7,7 @@ var NKG = [
 var NK_OPS = NKG[0][2].map(function (x) { return x[0]; });
 var NDUE = [[7, '7日前'], [3, '3日前'], [1, '前日'], [0, '当日']];
 var NDUE_P = [[0, '当日'], [1, '前日から'], [3, '3日前から'], [7, '7日前から']];
-function nDueSel(due) { var mx = Math.max.apply(null, due.length ? due : [1]); return '<select class="nsdsel" data-ns-dsel="1" aria-label="知らせる日">' + NDUE_P.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === mx ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>'; }
+function nDueSel(due) { var mx = Math.max.apply(null, due.length ? due : [1]), cur = NDUE_P.filter(function (o) { return o[0] === mx; })[0] || NDUE_P[1]; return '<button type="button" class="nsdsel" data-ns-dd="1" aria-haspopup="listbox" aria-label="知らせる日">' + cur[1] + '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>'; }
 function nDueOf(v) { return NDUE.map(function (d) { return d[0]; }).filter(function (d) { return d <= v; }); }
 function nDueFit() { [].forEach.call(document.querySelectorAll('.nsdsel'), function (s) { var r = s.closest('.nsr'), g = r && r.previousElementSibling && r.previousElementSibling.querySelector('.nseg'); if (g && g.offsetWidth) s.style.width = g.offsetWidth + 'px'; }); }
 function nLabel(k) { var r = ''; NKG.forEach(function (g) { g[2].forEach(function (x) { if (x[0] === k) r = x[1]; }); }); return r; }
@@ -85,6 +85,28 @@ document.addEventListener('pointermove', function (e) { if (NLP && (Math.abs(e.c
 ['pointerup', 'pointercancel'].forEach(function (ev) { document.addEventListener(ev, function () { if (NLP) { clearTimeout(NLP.t); NLP = null; } }); });
 window.addEventListener('contextmenu', function (e) { var r = e.target.closest && e.target.closest('.nr2[data-nid]'); if (!r) return; e.preventDefault(); e.stopImmediatePropagation(); if (Date.now() - NLJ > 600) nMenu(r.dataset.nid, e.clientX, e.clientY); }, true);
 window.addEventListener('click', function (e) { if (Date.now() - NLJ < 600 && e.target.closest && e.target.closest('.nr2')) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
-document.addEventListener('change', function (e) { if (!e.target.matches || !e.target.matches('.nset [data-ns-dsel]')) return; var p = nPrefs(); p.due = nDueOf(+e.target.value); nSet(p); render(); });
+// 知らせる日：小さなメニューで選ぶ
+function nDdClose() { var m = document.getElementById('nsddm'); if (m) m.remove(); }
+document.addEventListener('click', function (e) {
+  var t = e.target; if (!t.closest) return;
+  var o = t.closest('#nsddm [data-ns-dv]');
+  if (o) { e.stopImmediatePropagation(); var p = nPrefs(); p.due = nDueOf(+o.dataset.nsDv); nSet(p); nDdClose(); render(); if (e.detail === 0) { var b0 = document.querySelector('.nsdsel'); if (b0) b0.focus(); } return; }
+  var b = t.closest('.nset [data-ns-dd]');
+  if (!b) { if (!t.closest('#nsddm')) nDdClose(); return; }
+  e.stopImmediatePropagation(); if (document.getElementById('nsddm')) { nDdClose(); return; }
+  var p2 = nPrefs(), mx = Math.max.apply(null, p2.due.length ? p2.due : [1]), r = b.getBoundingClientRect(), m = document.createElement('div');
+  m.id = 'nsddm'; m.setAttribute('role', 'listbox'); m.style.width = r.width + 'px';
+  m.innerHTML = NDUE_P.map(function (x) { return '<button type="button" role="option" data-ns-dv="' + x[0] + '" aria-selected="' + (x[0] === mx) + '">' + x[1] + '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></button>'; }).join('');
+  document.body.appendChild(m);
+  var h = m.offsetHeight; m.style.left = r.left + 'px'; m.style.top = (window.innerHeight - r.bottom - 8 >= h ? r.bottom + 4 : r.top - h - 4) + 'px';
+  var sel = m.querySelector('[aria-selected="true"]') || m.firstChild; sel.focus();
+}, true);
+document.addEventListener('keydown', function (e) {
+  var m = document.getElementById('nsddm'); if (!m) return;
+  if (e.key === 'Escape') { e.preventDefault(); nDdClose(); var b = document.querySelector('.nsdsel'); if (b) b.focus(); return; }
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); var L = [].slice.call(m.children), i = L.indexOf(document.activeElement); i = (i + (e.key === 'ArrowDown' ? 1 : -1) + L.length) % L.length; L[i].focus(); }
+  if (e.key === 'Tab') nDdClose();
+}, true);
+document.addEventListener('scroll', function (e) { if (!(e.target.closest && e.target.closest('#nsddm'))) nDdClose(); }, true);
 new MutationObserver(function () { if (document.querySelector('.nsdsel')) nDueFit(); }).observe(document.documentElement, { childList: true, subtree: true });
 window.addEventListener('resize', nDueFit);

@@ -614,7 +614,9 @@ textarea.cell.ct{display:block;resize:none;overflow:hidden;height:auto;min-heigh
 .acts .btn.danger:hover{background:#FEF2F2}
 .acts{gap:6px}
 /* アカウントメニュー */
-.menu .msm{display:none}
+.menu .msm{display:block;border-bottom:1px solid var(--line);margin-bottom:4px;padding-bottom:4px}
+.menu .msm svg.i{width:16px;height:16px}
+@media (min-width:761px){ .menu .msm [data-view="perms"]{display:none} }
 .menu .msep{height:1px;background:var(--line);margin:4px 2px}
 .menu .mdanger{color:var(--bad)}
 @media (max-width:760px){
@@ -1737,5 +1739,12 @@ input[type=time]::-webkit-calendar-picker-indicator{display:none}
 .gg .gr[data-d] .bar.none .lb{color:var(--bc) !important}
 .gg .gwe{background:#F7F8FA !important}
 /* 通知の設定：知らせる日 */
-.nsdsel{flex:none;margin-left:auto;-webkit-appearance:none;appearance:none;height:30px;padding:0 26px 0 12px;border:1px solid var(--line2);border-radius:6px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239CA3AF' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 8px center;color:var(--text);font:inherit;font-size:12px;cursor:pointer}
-.nsdsel:hover{border-color:var(--line2)}
+.nsdsel{flex:none;margin-left:auto;display:inline-flex;align-items:center;justify-content:space-between;gap:8px;height:30px;padding:0 8px 0 12px;border:0;border-radius:8px;background:var(--hover);color:var(--text);font:inherit;font-size:12px;font-weight:500;cursor:pointer;transition:background .15s}
+.nsdsel:hover,.nsdsel[aria-expanded="true"]{background:#E9EBEF}
+.nsdsel svg{width:14px;height:14px;fill:none;stroke:var(--muted);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#nsddm{position:fixed;z-index:3000;padding:4px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 28px rgba(17,24,39,.14);display:flex;flex-direction:column}
+#nsddm button{display:flex;align-items:center;justify-content:space-between;height:32px;padding:0 8px 0 10px;border:0;border-radius:6px;background:transparent;font:inherit;font-size:12.5px;color:var(--text);cursor:pointer;text-align:left}
+#nsddm button:hover,#nsddm button:focus-visible{background:var(--hover);outline:none}
+#nsddm svg{width:14px;height:14px;fill:none;stroke:var(--text);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;visibility:hidden}
+#nsddm [aria-selected="true"]{font-weight:600}
+#nsddm [aria-selected="true"] svg{visibility:visible}

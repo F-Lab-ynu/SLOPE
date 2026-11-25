@@ -132,23 +132,23 @@ function inGantt(t) { return t && t.closest && t.closest('#gs'); }
 document.addEventListener('wheel', function (e) {
   if (!e.ctrlKey || !inGantt(e.target)) return;
   e.preventDefault(); var gg = document.querySelector('.gg'); if (!gg) return;
-  zoomSoon((ZQ ? ZQ.px : +gg.dataset.px) * Math.exp(-e.deltaY * 0.004), e.clientX);
+  zoomSoon((ZQ ? ZQ.px : +gg.dataset.px) * Math.exp(-e.deltaY * 0.012), e.clientX);
 }, { passive: false });
-var PINCH = null;
+var PINCH = null, ZK = 2; // 指の動きより大きく拡大・縮小する
 document.addEventListener('touchstart', function (e) {
   if (e.touches.length !== 2 || !inGantt(e.target)) return;
   var a = e.touches[0], b = e.touches[1], gg = document.querySelector('.gg');
-  PINCH = { d: Math.abs(a.clientX - b.clientX) || 1, px: +gg.dataset.px, cx: (a.clientX + b.clientX) / 2 };
+  PINCH = { d: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) || 1, px: +gg.dataset.px, cx: (a.clientX + b.clientX) / 2 };
 }, { passive: true });
 document.addEventListener('touchmove', function (e) {
   if (!PINCH || e.touches.length !== 2) return;
   e.preventDefault(); var a = e.touches[0], b = e.touches[1];
-  var d = Math.abs(a.clientX - b.clientX) || 1; zoomSoon(PINCH.px * d / PINCH.d, PINCH.cx);
+  var d = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) || 1; zoomSoon(PINCH.px * Math.pow(d / PINCH.d, ZK), PINCH.cx);
 }, { passive: false });
 document.addEventListener('touchend', function (e) { if (e.touches.length < 2) PINCH = null; });
 var GST = null; // Safari (iOS / macOS) gesture events
 document.addEventListener('gesturestart', function (e) { if (!inGantt(e.target)) return; e.preventDefault(); var gg = document.querySelector('.gg'); GST = { px: +gg.dataset.px, cx: e.clientX }; });
-document.addEventListener('gesturechange', function (e) { if (!GST) return; e.preventDefault(); if (!PINCH) zoomSoon(GST.px * e.scale, GST.cx); });
+document.addEventListener('gesturechange', function (e) { if (!GST) return; e.preventDefault(); if (!PINCH) zoomSoon(GST.px * Math.pow(e.scale, ZK), GST.cx); });
 document.addEventListener('gestureend', function () { GST = null; });
 
 render();

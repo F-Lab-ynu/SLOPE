@@ -80,7 +80,7 @@ function viewDash() {
     var soon = scope.filter(function (o) { return !o.k.done && !o.k.nodate && dayOf(o.k.end) <= TODAY + 14 * DAY; }).sort(function (a, b) { return dayOf(a.k.end) - dayOf(b.k.end); }).slice(0, 6);
     cards.push(card('期限が近いファイル', soon.length ? soon.map(function (o) {
       var du = dueLabel(o.k), who = fileWho(o.k);
-      return '<button class="mr soon" data-act="open" data-id="' + o.k.id + '"><span class="mt">' + FILE + '<b>' + esc(ttl(o.k)) + '</b><span class="ms"><span class="dd ' + du.c + '">' + du.t + '</span><span class="dp">' + esc(ttl(parentOf(o.k) || o.p)) + '</span></span></span><span class="mwho">' + (who.length ? avStack(who) + '<span>' + esc(fwNames(o.k)) + '</span>' : '<span class="dim">担当未定</span>') + '</span><span class="mact">' + GO + '</span></button>';
+      return '<button class="mr soon" data-act="open" data-id="' + o.k.id + '"><span class="mt">' + FILE + '<b>' + esc(ttl(o.k)) + '</b><span class="ms"><span class="dd ' + du.c + '">' + du.t + '</span><span class="dp">' + esc(ttl(parentOf(o.k) || o.p)) + '</span></span></span><span class="mwho">' + (who.length ? avStack(who) : '<span class="dim">担当未定</span>') + '</span><span class="mact">' + GO + '</span></button>';
     }).join('') : none, 'projects'));
     var ps = lv.slice().sort(function (a, b) { return dayOf(a.end) - dayOf(b.end); });
     var anyLate = ps.some(function (p) { return progress(p).late; });

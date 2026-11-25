@@ -314,7 +314,7 @@ function decorateGantt() {
     if (ct) ct.outerHTML = '<button class="gname" data-act="gname" data-id="' + n.id + '" title="' + esc(ttl(n)) + '">' + esc(ttl(n)) + '</button>';
     gl.querySelectorAll('.tbtn, select.gsel, .fin, .ga').forEach(function (x) { x.remove(); });
     var tm = isFolder(n) ? teamOf(n) : fileWho(n);
-    var who = '<button class="gwho" data-act="gwho" data-id="' + n.id + '">' + (tm.length ? (isFolder(n) ? avStack(tm, leadsOf(n)) : (fileWho(n).length > 1 ? avStack(fileWho(n)) + '<span>' + esc(fwNames(n)) + '</span>' : av(n.who) + '<span>' + esc(member(n.who).name) + '</span>')) : '<span class="dim">未定</span>') + '</button>';
+    var who = '<button class="gwho" data-act="gwho" data-id="' + n.id + '">' + (tm.length ? (isFolder(n) ? avStack(tm, leadsOf(n)) : (fileWho(n).length > 1 ? avStack(fileWho(n)) : av(n.who))) : '<span class="dim">未定</span>') + '</button>';
     var ed = (editSelf(n) || n.who === S.me) ? '<button class="gedit" data-act="edit" data-id="' + n.id + '" title="編集" aria-label="編集"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/></svg></button>' : '<span class="gedit ph"></span>';
     var lwh = gl.querySelector('.lwh');
     var pl = isFolder(n) && manages(n) ? '<button class="gedit gplus" data-act="gaddIn" data-id="' + n.id + '" title="中に追加" aria-label="中に追加"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>' : '<span class="gedit ph"></span>';
