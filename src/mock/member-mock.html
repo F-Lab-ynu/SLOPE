@@ -359,6 +359,15 @@ body.wide .iqsheet{bottom:auto;top:50%;transform:translate(-50%,-50%);border-bot
 .frr{display:flex;flex-direction:column;gap:3px}
 .frr .frtext{font-size:14px}
 .frnone{margin:0;padding:24px 0;text-align:center;font-size:14px;color:#7D7B76}
+#annpop{position:fixed;inset:0;z-index:2147481500;display:flex;align-items:center;justify-content:center;padding:24px}
+#annpop .anbg{position:absolute;inset:0;background:rgba(0,0,0,.45);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);animation:anfade .18s ease}
+#annpop .ancard{position:relative;width:min(440px,100%);max-height:80vh;overflow:auto;padding:24px 22px 18px;border-radius:16px;background:#131313;border:1px solid #2C2C2A;color:#F3F1EC;display:flex;flex-direction:column;gap:12px;animation:anup .2s ease}
+#annpop .anl{font-size:12px;letter-spacing:.12em;font-weight:700;color:#F87171}
+#annpop h2{margin:0;font-size:20px;line-height:1.4;font-weight:700;overflow-wrap:anywhere}
+#annpop p{margin:0;font-size:15px;line-height:1.75;color:#D2CFC8;overflow-wrap:anywhere}
+#annpop .anok{align-self:flex-end;margin-top:6px;height:40px;padding:0 18px;border:0;border-radius:10px;background:#2C2C2A;color:#F3F1EC;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+@keyframes anfade{from{opacity:0}}
+@keyframes anup{from{opacity:0;transform:translateY(8px)}}
 </style>
 </head>
 <body>
