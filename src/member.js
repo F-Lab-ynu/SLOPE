@@ -682,11 +682,13 @@ function annPop(a) {
     });
   }
   // キーボードが出ても、下の帯と返信欄はその上に
+  // iOS 26 は「∧ ∨ ✓」の段の上に、キーボード扱いだが中身の見える帯（約50pt）を取る。そのぶん下げてキーボードに寄せる
+  var IOS26_GAP = /iPhone|iPad/.test(navigator.userAgent) && window.CSS && CSS.supports && CSS.supports('color', 'contrast-color(red)') ? 44 : 0;
   function fit() { // 見えている範囲（キーボードの上まで）にぴったり合わせる。後ろの画面は動かさない
     var vv = window.visualViewport, kb = !!vv && window.innerHeight - vv.height > 120;
     ['bxnew', 'bxth'].forEach(function (id) {
       var w = document.getElementById(id); if (!w) return; w.classList.toggle('kb', kb);
-      if (!vv) return; w.style.top = vv.offsetTop + 'px'; w.style.height = vv.height + 'px'; w.style.bottom = 'auto'; w.style.paddingBottom = '';
+      if (!vv) return; w.style.top = vv.offsetTop + 'px'; w.style.height = (vv.height + (kb ? IOS26_GAP : 0)) + 'px'; w.style.bottom = 'auto'; w.style.paddingBottom = '';
     });
     if (kb && (document.getElementById('bxnew') || document.getElementById('bxth')) && window.scrollY) window.scrollTo(0, 0);
   }
