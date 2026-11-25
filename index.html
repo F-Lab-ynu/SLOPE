@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = 'eb2904fbc9', FILE = 'index.ver';
+  var VER = 'e4befa2d1f', FILE = 'index.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -1064,7 +1064,7 @@ function annPop(a) {
       '</div></div><div class="bxrp"><span class="bxav sm">' + e(D.ini(D.me)) + '</span><textarea id="bxrep" rows="1" placeholder="返信する"></textarea><button data-bxsend="' + e(id) + '" disabled>返信</button></div>';
     if (!old) { document.body.appendChild(w); document.documentElement.classList.add('invon'); try { history.pushState({ bxth: 1 }, ''); } catch (er) {} }
     var scr = w.querySelector('.bxths'); scr.scrollTop = sc0; var lastY = sc0;
-    scr.addEventListener('scroll', function () { var y = scr.scrollTop, h = w.querySelector('.nsph'); if (h) h.classList.toggle('hide', y > 60 && y > lastY); lastY = y; }, { passive: true }); // X のように、下へ読むと見出しが隠れる
+    scr.addEventListener('scroll', function () { var h = w.querySelector('.nsph'); if (h) h.classList.toggle('hide', scr.scrollTop > 40); }, { passive: true }); // 下へ読むと見出しが隠れ、いちばん上に戻ったときだけ出る
     fit();
   }
   function closeTh(pop) { var w = document.getElementById('bxth'); if (!w) return; w.remove(); document.documentElement.classList.remove('invon'); if (!pop) try { if (history.state && history.state.bxth) history.back(); } catch (er) {} }
@@ -1112,8 +1112,10 @@ function annPop(a) {
   // キーボードが出ても、下の帯と返信欄はその上に
   // iOS 26 は「∧ ∨ ✓」の段の上に、キーボード扱いだが中身の見える帯（約50pt）を取る。画面の大きさは変えず、下の帯と返信欄だけをその帯へ下げる
   var IOS26_GAP = /iPhone|iPad/.test(navigator.userAgent) && window.CSS && CSS.supports && (CSS.supports('anchor-name: --a') || CSS.supports('field-sizing: content') || CSS.supports('text-wrap-style: pretty')) ? 44 : 0; // Safari 26 で入った機能があるか
+  var FULLH = window.visualViewport ? window.visualViewport.height : window.innerHeight;
   function fit() { // 見えている範囲（キーボードの上まで）にぴったり合わせる
-    var vv = window.visualViewport, kb = !!vv && window.innerHeight - vv.height > 120;
+    var vv = window.visualViewport; if (vv && !/^(TEXTAREA|INPUT)$/.test((document.activeElement || {}).tagName || '')) FULLH = Math.max(FULLH, vv.height);
+    var kb = !!vv && (Math.max(FULLH, window.innerHeight) - vv.height > 120); // 画面の高さが変わる場合もあるので、キーボードを出す前の高さと比べる
     ['bxnew', 'bxth'].forEach(function (id) {
       var w = document.getElementById(id); if (!w) return; w.classList.toggle('kb', kb);
       if (!vv) return; w.style.top = vv.offsetTop + 'px'; w.style.height = vv.height + 'px'; w.style.bottom = 'auto'; w.style.paddingBottom = '';
