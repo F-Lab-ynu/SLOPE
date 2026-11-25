@@ -2782,11 +2782,11 @@ html.light{color-scheme:light}
 .nsph b{font-size:16px}
 /* 掲示板（X のような一覧） */
 .bdx{padding-bottom:calc(120px + env(safe-area-inset-bottom))}
-.bxtabs{position:sticky;top:0;z-index:10;display:flex;background:#070707;border-bottom:1px solid #232322;overflow-x:auto;scrollbar-width:none}
+.bxtabs{position:sticky;top:0;z-index:10;display:flex;padding:0 12px;background:#070707;border-bottom:1px solid #232322;overflow-x:auto;scrollbar-width:none}
 .bxtabs::-webkit-scrollbar{display:none}
-.bxtabs button{flex:1 0 auto;min-width:64px;height:48px;padding:0 12px;border:0;background:transparent;color:#7D7B76;font:inherit;font-size:15px;font-weight:600;position:relative;cursor:pointer}
+.bxtabs button{flex:1 1 0;min-width:0;height:48px;padding:0 4px;border:0;background:transparent;color:#7D7B76;font:inherit;font-size:14px;font-weight:600;letter-spacing:.02em;white-space:nowrap;position:relative;cursor:pointer}
 .bxtabs button[aria-selected="true"]{color:#F3F1EC;font-weight:700}
-.bxtabs button[aria-selected="true"]::after{content:"";position:absolute;left:50%;bottom:0;width:36px;height:3px;margin-left:-18px;border-radius:2px;background:#F2A93B}
+.bxtabs button[aria-selected="true"]::after{content:"";position:absolute;left:50%;bottom:0;width:28px;height:3px;margin-left:-14px;border-radius:2px;background:#F2A93B}
 .bxlist{animation:none}
 .bxlist.inl{animation:bxinl .28s cubic-bezier(.22,.8,.2,1)}.bxlist.inr{animation:bxinr .28s cubic-bezier(.22,.8,.2,1)}
 @keyframes bxinr{from{opacity:.3;transform:translateX(24px)}}@keyframes bxinl{from{opacity:.3;transform:translateX(-24px)}}
