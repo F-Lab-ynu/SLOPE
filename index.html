@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = 'a6ebefc6a9', FILE = 'index.ver';
+  var VER = '52497960f5', FILE = 'index.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -68,6 +68,7 @@
   color-scheme:dark;
 }
 html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--text)}
+body{font-family:'Zen Kaku Gothic New','Noto Sans JP','Hiragino Sans','Yu Gothic UI','Meiryo',sans-serif}
 @media (display-mode: standalone){html{height:auto;min-height:calc(100% + env(safe-area-inset-top))}} /* iPhone：上のバーを透明にしたとき下に隙間ができるのを防ぐ */
 html:has(body.desk),body.desk{background:var(--bg)}
 *{-webkit-tap-highlight-color:transparent}
