@@ -2669,7 +2669,7 @@ document.addEventListener('click',function(e){
 .invt b{max-width:100%;font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .invt small{font-size:12px;color:#7D7B76}
 #inv iframe{flex:1;width:100%;border:0;background:#0E0E0D}
-html.invon,html.invon body{overflow:hidden}
+html.invon,html.invon body{overflow:hidden;overscroll-behavior:none}
 </style>
 <script>
 // テーマを選ぶ画面
@@ -2816,12 +2816,15 @@ button[style*="height"]:not([class]){padding-bottom:2px !important}
 .bxp img,.bxph{width:100%;aspect-ratio:16/10;object-fit:cover;display:block;background:#131313}
 .bxp.n1 img{aspect-ratio:auto;max-height:420px}
 .bxp.n3>:first-child{grid-row:span 2;aspect-ratio:auto;height:100%}
-.bxcs{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.bxcs{display:flex;align-items:center;gap:6px;margin-top:6px;padding:8px 8px 8px 12px;border:1px solid #232322;border-radius:12px;font-size:13px;color:#BDBAB3}
+.bxcs>svg{flex:none;width:16px;height:16px;fill:none;stroke:#7D7B76;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.bxcs>span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bxcs .bxgo{flex:none;height:30px;padding:0 12px;font-size:12px;border:0;background:#F3F1EC;color:#070707}
 .bxc{font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;border:1px solid #474744;color:#E9E6DF}
 .bxc.full{border-color:#232322;color:#7D7B76}
 .bxbk{font-size:13px;color:#A3A19B}
 .bxas{display:flex;align-items:center;gap:18px;margin-top:2px;margin-left:-8px}
-.bxas .bxgo{margin-left:auto}
+
 .bxa{display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 8px;border:0;border-radius:999px;background:transparent;color:#7D7B76;font:inherit;font-size:13px;cursor:pointer;text-decoration:none}
 .bxa:active{background:#1C1C1B}
 .bxa.on{color:#F2A93B}.bxa.on svg{fill:currentColor}

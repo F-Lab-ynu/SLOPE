@@ -574,9 +574,9 @@ function annPop(a) {
     var D = window.DB, d = x.data || {}, mine = x.author === D.me, title = '', body = '', foot = '', acts = '';
     if (tab === 'recruit') {
       title = d.title || ''; body = d.purpose || '';
-      var roles = (d.roles || []).map(function (r) { var w = D.reactors(x.id, 'slot:' + r); return '<span class="bxc' + (w.length ? ' full' : '') + '">' + e(r) + (w.length ? ' ✓' : '') + '</span>'; }).join('');
-      foot = roles ? '<div class="bxcs">' + roles + '</div>' : '';
-      acts = act('rep', x.id, cm(x.id)) + act('vote', x.id, D.count(x.id, 'vote'), D.mine(x.id, 'vote')) + '<button class="bxgo" data-bxo="' + e(x.id) + '">応募する</button>';
+      var open = (d.roles || []).filter(function (r) { return !D.reactors(x.id, 'slot:' + r).length; });
+      foot = (d.roles || []).length ? '<div class="bxcs">' + IC.ppl + '<span>' + (open.length ? '募集中 ' + open.map(e).join('・') : '満員') + '</span>' + (open.length && x.author !== D.me ? '<button class="bxgo" data-bxo="' + e(x.id) + '">応募する</button>' : '') + '</div>' : '';
+      acts = act('rep', x.id, cm(x.id)) + act('vote', x.id, D.count(x.id, 'vote'), D.mine(x.id, 'vote'));
     } else if (tab === 'idea') { title = d.title || ''; body = d.summary || ''; acts = act('rep', x.id, cm(x.id)) + act('vote', x.id, D.count(x.id, 'vote'), D.mine(x.id, 'vote')); }
     else if (tab === 'pain') { body = d.text || ''; acts = act('rep', x.id, cm(x.id)) + act('emp', x.id, D.count(x.id, 'emp'), D.mine(x.id, 'emp'), 'me2'); }
     else { body = d.text || ''; if (d.book) foot = '<div class="bxbk">📖 ' + e(d.book) + (d.bookAuthor ? ' · ' + e(d.bookAuthor) : '') + '</div>'; acts = act('rep', x.id, cm(x.id)) + act('like', x.id, D.count(x.id, 'like'), D.mine(x.id, 'like')); }
@@ -632,7 +632,7 @@ function annPop(a) {
     var dt = new Date(x.created_at), pad = function (n) { return (n < 10 ? '0' : '') + n; }, stamp = pad(dt.getHours()) + ':' + pad(dt.getMinutes()) + ' · ' + dt.getFullYear() + '年' + (dt.getMonth() + 1) + '月' + dt.getDate() + '日';
     var slots = x.kind === 'recruit' ? '<div class="bxsl">' + ((x.data || {}).roles || []).map(function (r) { var w = D.reactors(x.id, 'slot:' + r), me = w.indexOf(D.me) >= 0, full = w.length && !me;
       return '<div class="bxsr"><span><b>' + e(r) + '</b><small>' + (me ? '参加中（あなた）' : full ? '参加済み · ' + e(D.name(w[0])) : '募集中') + '</small></span>' + (full || x.author === D.me ? '' : '<button class="bxgo' + (me ? ' on' : '') + '" data-bxslot="' + e(r) + '" data-id="' + e(x.id) + '">' + (me ? '取り消す' : '応募する') + '</button>') + '</div>'; }).join('') + '</div>' : '';
-    var focus = row(x, x.kind).replace('class="bx"', 'class="bx fx"').replace(/<div class="bxcs">[\s\S]*?<\/div>/, slots).replace(/<button class="bxgo" data-bxo="[^"]*">応募する<\/button>/, '').replace('<div class="bxas">', '<div class="bxst"><span>' + e(stamp) + '</span><div class="bxas">').replace(/<\/div><\/div><\/article>$/, '</div></div></div></article>');
+    var focus = row(x, x.kind).replace('class="bx"', 'class="bx fx"').replace(/<div class="bxcs">[\s\S]*?<\/div>/, slots).replace('<div class="bxas">', '<div class="bxst"><span>' + e(stamp) + '</span><div class="bxas">').replace(/<\/div><\/div><\/article>$/, '</div></div></div></article>');
     w.innerHTML = '<div class="nsph"><button data-bxth-x aria-label="戻る">' + IC.back + '</button><b>投稿</b></div><div class="nspb bxthb">' + focus +
       (reps.length ? reps.map(function (c) { return '<div class="bx rep"><span class="bxav">' + e(D.ini(c.author)) + '</span><div class="bxm"><div class="bxh"><b>' + e(D.name(c.author)) + '</b><span>' + e(D.ago(c.created_at)) + '</span></div><div class="bxb">' + link((c.data || {}).text || '') + '</div>' + pics(c.data || {}) + '</div></div>'; }).join('') : '') +
       '</div><div class="bxrp"><span class="bxav sm">' + e(D.ini(D.me)) + '</span><textarea id="bxrep" rows="1" placeholder="返信する"></textarea><button data-bxsend="' + e(id) + '" disabled>返信</button></div>';
@@ -682,10 +682,15 @@ function annPop(a) {
     });
   }
   // キーボードが出ても、下の帯と返信欄はその上に
-  function fit() { // 画面全体は覆ったまま、下の帯と返信欄だけをキーボードの高さぶん上げる
-    var vv = window.visualViewport, kb = vv ? Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)) : 0;
-    ['bxnew', 'bxth'].forEach(function (id) { var w = document.getElementById(id); if (!w) return; w.classList.toggle('kb', kb > 120); w.style.paddingBottom = kb > 120 ? kb + 'px' : ''; w.style.top = ''; w.style.height = ''; w.style.bottom = ''; });
+  function fit() { // 見えている範囲（キーボードの上まで）にぴったり合わせる。後ろの画面は動かさない
+    var vv = window.visualViewport, kb = !!vv && window.innerHeight - vv.height > 120;
+    ['bxnew', 'bxth'].forEach(function (id) {
+      var w = document.getElementById(id); if (!w) return; w.classList.toggle('kb', kb);
+      if (!vv) return; w.style.top = vv.offsetTop + 'px'; w.style.height = vv.height + 'px'; w.style.bottom = 'auto'; w.style.paddingBottom = '';
+    });
+    if (kb && (document.getElementById('bxnew') || document.getElementById('bxth')) && window.scrollY) window.scrollTo(0, 0);
   }
+  document.addEventListener('focusin', function (ev) { if (ev.target.id === 'bxtx' || ev.target.id === 'bxrep') { setTimeout(fit, 50); setTimeout(fit, 300); } });
   if (window.visualViewport) { window.visualViewport.addEventListener('resize', fit); window.visualViewport.addEventListener('scroll', fit); }
   function shrink(file) { // 端末で縮めてから送る（長い辺 1600px・JPEG）
     return new Promise(function (ok, ng) {
