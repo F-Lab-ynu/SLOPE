@@ -53,10 +53,11 @@
     draw(); var b = pop.querySelector('[data-dpd="' + iso(focusDay) + '"]'); if (b) b.focus();
   }
 
-  // スマホでは標準のカレンダー（下から出る回転式）を出さない
+  // 指で触ったときは端末の標準カレンダーだけにする（iPhone は標準を止められず2つ出るため）
+  var touch = false;
   document.addEventListener('pointerdown', function (e) {
+    touch = e.pointerType === 'touch' || e.pointerType === 'pen';
     var el = e.target; if (pop && !pop.contains(el) && el !== cur) close();
-    if (isDate(el) && e.pointerType !== 'mouse') e.preventDefault();
   }, true);
   document.addEventListener('click', function (e) {
     if (pop && pop.contains(e.target)) {
@@ -67,7 +68,7 @@
       else if (b.dataset.dpt === 'clear') pick(null);
       return;
     }
-    if (isDate(e.target)) open(e.target);
+    if (isDate(e.target) && !touch) open(e.target);
   }, true);
   document.addEventListener('keydown', function (e) {
     if (pop && pop.contains(e.target)) {

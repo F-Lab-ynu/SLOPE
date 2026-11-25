@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '31b36dab35', FILE = 'admin.ver';
+  var VER = 'd65d43f533', FILE = 'admin.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -5741,10 +5741,11 @@ boot();
     draw(); var b = pop.querySelector('[data-dpd="' + iso(focusDay) + '"]'); if (b) b.focus();
   }
 
-  // スマホでは標準のカレンダー（下から出る回転式）を出さない
+  // 指で触ったときは端末の標準カレンダーだけにする（iPhone は標準を止められず2つ出るため）
+  var touch = false;
   document.addEventListener('pointerdown', function (e) {
+    touch = e.pointerType === 'touch' || e.pointerType === 'pen';
     var el = e.target; if (pop && !pop.contains(el) && el !== cur) close();
-    if (isDate(el) && e.pointerType !== 'mouse') e.preventDefault();
   }, true);
   document.addEventListener('click', function (e) {
     if (pop && pop.contains(e.target)) {
@@ -5755,7 +5756,7 @@ boot();
       else if (b.dataset.dpt === 'clear') pick(null);
       return;
     }
-    if (isDate(e.target)) open(e.target);
+    if (isDate(e.target) && !touch) open(e.target);
   }, true);
   document.addEventListener('keydown', function (e) {
     if (pop && pop.contains(e.target)) {
