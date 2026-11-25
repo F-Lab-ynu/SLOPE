@@ -335,8 +335,8 @@ function memberExtras(v) {
       var L = weekEv.slice().sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; }), e0 = L[0];
       var iso = function (d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
       var all = D.calendar(), days = ['日', '月', '火', '水', '木', '金', '土'].map(function (l, k) {
-        var dt = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay() + k)), has = all.some(function (e) { return e.date === dt; }), isT = dt === today, past = dt < today;
-        return { l: l, fw: isT ? '700' : '500', lc: isT ? 'var(--fg)' : 'var(--n37)', bg: has ? (past ? 'var(--n37)' : 'var(--ac)') : 'var(--n16)' };
+        var dd = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay() + k), dt = iso(dd), has = all.some(function (e) { return e.date === dt; }), isT = dt === today, past = dt < today;
+        return { l: String(dd.getDate()), fw: isT ? '700' : '500', lc: isT ? 'var(--fg)' : 'var(--n37)', bg: has ? (past ? 'var(--n37)' : 'var(--ac)') : 'var(--n16)' };
       });
       return { has: !!e0, none: !e0, title: e0 ? e0.title : '', days: days };
     })(), boardNew: { n: String(recent.length), inis: inis.map(function (i) { return { i: i }; }), note: '募集・意見 ' + nr + ' · ペイン ' + np },
