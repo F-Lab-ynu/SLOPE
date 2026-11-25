@@ -254,7 +254,7 @@ function memberExtras(v) {
   // ホーム
   // 運営からのお知らせ（掲載期限まで）があれば、ホームの一番上をそれに
   var goCalTop = function () { if (window.__track) window.__track('cal'); self.setState({ tab: 'cal', sub: null }); };
-  var ann = D.items('ann').map(function (x) { return Object.assign({ at: x.created_at || '' }, x.data || {}); }).filter(function (a) { return a.title && (a.until || '') >= today; }).sort(function (a, b) { return a.at < b.at ? 1 : -1; })[0] || null;
+  var annGone = annHidden(); var ann = D.items('ann').map(function (x) { return Object.assign({ at: x.created_at || '' }, x.data || {}, { id: x.id }); }).filter(function (a) { return a.title && (a.until || '') >= today && annGone.indexOf(a.id) < 0; }).sort(function (a, b) { return a.at < b.at ? 1 : -1; })[0] || null;
   var nextEv = D.clubEvents().filter(function (e) { return e.end >= today; }).sort(function (a, b) { return a.end < b.end ? -1 : 1; })[0];
   var tasks = D.myTasks().map(function (t, i, arr) { var dl = t.nodate ? 999 : daysTo(t.end); return { title: t.title, event: t.event, due: t.nodate ? '期間未定' : md(t.end) + ' ' + wd(t.end), dueColor: dl < 0 ? '#FF5C66' : (dl <= 3 ? RT : '#BDBAB3'), late: dl < 0, sep: i < arr.length - 1 ? '1px solid #252524' : '0', done: function () { D.complete(t); } }; });
   var weekEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (6 - now.getDay()));
@@ -308,7 +308,7 @@ function memberExtras(v) {
   return {
     meIni: D.ini(D.me), isOps: D.isOps(), logout: D.logout,
     todayLabel: WDJ[now.getDay()] + ' · ' + (now.getMonth() + 1) + '.' + now.getDate(), hello: 'こんにちは、' + (self0.name || '') + 'さん',
-    next: ann ? { has: true, label: 'お知らせ', title: ann.title, when: ann.body, left: '', lc: '#F87171', rd: 'none', wc: '', tfs: ann.title.length > 22 ? '18px' : '21px', go: function () { annPop(ann); } } : nextEv ? { has: true, lc: '#F2A93B', rd: 'flex', wc: 'en', tfs: '21px', go: goCalTop, label: 'NEXT · 部内イベント', title: nextEv.title, when: md(nextEv.end) + ' ' + wd(nextEv.end), left: String(Math.max(0, daysTo(nextEv.end))) } : { has: false, lc: '#F2A93B', rd: 'flex', wc: 'en', tfs: '21px', go: goCalTop, label: 'NEXT', title: '予定されているイベントはありません', when: '', left: '—' },
+    next: ann ? { has: true, label: 'お知らせ', title: ann.title, when: ann.body, left: '', lc: '#F87171', rd: 'none', wc: '', tfs: ann.title.length > 22 ? '18px' : '21px', go: function () { annPop(ann); }, aid: ann.id } : nextEv ? { has: true, lc: '#F2A93B', rd: 'flex', wc: 'en', tfs: '21px', go: goCalTop, aid: '', label: 'NEXT · 部内イベント', title: nextEv.title, when: md(nextEv.end) + ' ' + wd(nextEv.end), left: String(Math.max(0, daysTo(nextEv.end))) } : { has: false, lc: '#F2A93B', rd: 'flex', wc: 'en', tfs: '21px', go: goCalTop, aid: '', label: 'NEXT', title: '予定されているイベントはありません', when: '', left: '—' },
     learnCard: { n: rN ? rD + '/' + rN : '—', dash: (ring * pct).toFixed(1) + ' ' + ring.toFixed(1), track: myRole || 'ロール未設定', next: nextU ? nextU.code + '\n' + nextU.title : (roleT ? '全単元修了' : 'マイページでロールを選ぶ') },
     clubEvents: D.clubEvents().filter(function (e) { return e.tbd || e.end >= today; }).map(function (e) { var on = D.mine(e.id, 'join'), p = e.start.split('-');
       return { mon: e.tbd ? '日程' : ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][+p[1] - 1], d: e.tbd ? '未定' : String(+p[2]), dfs: e.tbd ? '15px' : '22px', title: e.title, sub: [e.end !== e.start ? '〜' + md(e.end) : '', e.sub].filter(Boolean).join(' · '),
@@ -442,3 +442,33 @@ function annPop(a) {
   w.addEventListener('click', function (ev) { if (ev.target.closest('[data-anx]')) close(); });
   document.addEventListener('keydown', key);
 }
+
+// お知らせは横にスワイプで消せる（この端末で、そのお知らせだけ）
+function annHidden() { try { return JSON.parse(localStorage.getItem('slope_ann_hidden') || '[]'); } catch (e) { return []; } }
+(function () {
+  var st = null, eat = false;
+  document.addEventListener('pointerdown', function (e) {
+    var c = e.target.closest && e.target.closest('[data-ann]'); if (!c || !c.dataset.ann) return;
+    st = { el: c, x: e.clientX, y: e.clientY, dx: 0, on: false, id: c.dataset.ann };
+  }, true);
+  document.addEventListener('pointermove', function (e) {
+    if (!st) return; var dx = e.clientX - st.x, dy = e.clientY - st.y;
+    if (!st.on) { if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { st = null; return; } if (Math.abs(dx) < 8) return; st.on = true; st.el.style.transition = 'none'; }
+    st.dx = dx; st.el.style.transform = 'translateX(' + dx + 'px)'; st.el.style.opacity = String(Math.max(0, 1 - Math.abs(dx) / 260));
+  }, true);
+  var end = function () {
+    if (!st) return; var s0 = st; st = null; if (!s0.on) return;
+    eat = true; setTimeout(function () { eat = false; }, 50);
+    var el = s0.el; el.style.transition = 'transform .2s ease, opacity .2s ease';
+    if (Math.abs(s0.dx) > 90) {
+      el.style.transform = 'translateX(' + (s0.dx > 0 ? 120 : -120) + '%)'; el.style.opacity = '0';
+      setTimeout(function () {
+        var h = annHidden(); if (h.indexOf(s0.id) < 0) h.push(s0.id); try { localStorage.setItem('slope_ann_hidden', JSON.stringify(h.slice(-50))); } catch (e) {}
+        el.style.transition = 'none'; el.style.transform = ''; el.style.opacity = '';
+        if (window.__comp) window.__comp.forceUpdate();
+      }, 200);
+    } else { el.style.transform = ''; el.style.opacity = ''; }
+  };
+  document.addEventListener('pointerup', end, true); document.addEventListener('pointercancel', end, true);
+  document.addEventListener('click', function (e) { if (eat && e.target.closest && e.target.closest('[data-ann]')) { e.preventDefault(); e.stopPropagation(); } }, true);
+})();
