@@ -124,7 +124,7 @@ function viewEvents () {
   var cs = S.cals.slice().sort(function (a, b) { return (a.date || '') < (b.date || '') ? -1 : 1; });
   if (!cs.length) return '<div class="empty big">イベントはまだありません</div>';
   var today = isoOf(TODAY);
-  return '<div class="evl"><div class="evr evh"><span>イベント</span><span>期間</span><span>場所</span><span>参加登録</span><span>公開</span><span></span></div>' + cs.map(function (c) {
+  return '<div class="evl"><div class="evr evh"><span>イベント</span><span>期間</span><span>場所</span><span>参加登録</span><span style="text-align:center">公開</span><span></span></div>' + cs.map(function (c) {
     var end = c.to || c.date, past = !!end && end < today, pub = c.state === 'pub', pg = evInProg(c.id), fo = evFolder(c.id);
     return '<div class="evr" data-calid="' + c.id + '"><span class="evn"><b>' + esc(c.title || 'イベント') + (pg ? '<i class="evtag">学ぶ</i>' : '') + (fo ? '<i class="evtag wkt">業務</i>' : '') + '</b>' + (c.memo ? '<span>' + esc(memoText(c.memo).slice(0, 60)) + '</span>' : '') + '</span>' +
       '<span class="evq num">' + (c.date ? pmd(c.date) + (c.to ? ' – ' + pmd(c.to) : '') + (c.time ? ' ' + esc(c.time) : '') : '<span class="dim">未定</span>') + '</span>' + (c.place ? '<span class="evp">' + esc(c.place) + '</span>' : '<span class="evp dim">—</span>') +
