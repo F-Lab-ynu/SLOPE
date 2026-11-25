@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = 'e50bc0e415', FILE = 'index.ver';
+  var VER = '860cb8ddf9', FILE = 'index.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -1042,10 +1042,10 @@ function annPop(a) {
     var reps = D.items('comment').filter(function (c) { return c.parent_id === id; }).slice().sort(function (a, b) { return a.created_at < b.created_at ? -1 : 1; });
     var old = document.getElementById('bxth'), w = old || document.createElement('div'); w.id = 'bxth'; w.dataset.id = id;
     var dt = new Date(x.created_at), pad = function (n) { return (n < 10 ? '0' : '') + n; }, stamp = pad(dt.getHours()) + ':' + pad(dt.getMinutes()) + ' · ' + dt.getFullYear() + '年' + (dt.getMonth() + 1) + '月' + dt.getDate() + '日';
-    var focus = row(x, x.kind).replace('class="bx"', 'class="bx fx"').replace('<div class="bxas">', '<div class="bxst">' + e(stamp) + '</div><div class="bxas">');
-    w.innerHTML = '<div class="nsph"><button data-bxth-x aria-label="戻る">' + IC.back + '</button><b>ポスト</b></div><div class="nspb bxthb">' + focus +
+    var focus = row(x, x.kind).replace('class="bx"', 'class="bx fx"').replace('<div class="bxas">', '<div class="bxst"><span>' + e(stamp) + '</span><div class="bxas">').replace(/<\/div><\/div><\/article>$/, '</div></div></div></article>');
+    w.innerHTML = '<div class="nsph"><button data-bxth-x aria-label="戻る">' + IC.back + '</button><b>投稿</b></div><div class="nspb bxthb">' + focus +
       (reps.length ? reps.map(function (c) { return '<div class="bx rep"><span class="bxav">' + e(D.ini(c.author)) + '</span><div class="bxm"><div class="bxh"><b>' + e(D.name(c.author)) + '</b><span>' + e(D.ago(c.created_at)) + '</span></div><div class="bxb">' + link((c.data || {}).text || '') + '</div></div></div>'; }).join('') : '') +
-      '</div><div class="bxrp"><span class="bxav sm">' + e(D.ini(D.me)) + '</span><textarea id="bxrep" rows="1" placeholder="返信をポスト"></textarea><button data-bxsend="' + e(id) + '" disabled>返信</button></div>';
+      '</div><div class="bxrp"><span class="bxav sm">' + e(D.ini(D.me)) + '</span><textarea id="bxrep" rows="1" placeholder="返信する"></textarea><button data-bxsend="' + e(id) + '" disabled>返信</button></div>';
     if (!old) { document.body.appendChild(w); document.documentElement.classList.add('invon'); try { history.pushState({ bxth: 1 }, ''); } catch (er) {} }
   }
   function closeTh(pop) { var w = document.getElementById('bxth'); if (!w) return; w.remove(); document.documentElement.classList.remove('invon'); if (!pop) try { if (history.state && history.state.bxth) history.back(); } catch (er) {} }
@@ -1062,11 +1062,11 @@ function annPop(a) {
   function drawNew() {
     var w = document.getElementById('bxnew'), first = !w; if (first) { w = document.createElement('div'); w.id = 'bxnew'; document.body.appendChild(w); document.documentElement.classList.add('invon'); }
     var t = document.getElementById('bxtx'), val = t ? t.value : '';
-    w.innerHTML = '<div class="bxnh"><button class="bxcan" data-bxnew-x>キャンセル</button><span>' + (TABS.filter(function (z) { return z[0] === NEW.tab; })[0] || [])[1] + '</span><button class="bxpost" data-bxpost="1">ポストする</button></div>' +
+    w.innerHTML = '<div class="bxnh"><button class="bxcan" data-bxnew-x>キャンセル</button><span>' + (TABS.filter(function (z) { return z[0] === NEW.tab; })[0] || [])[1] + '</span><button class="bxpost" data-bxpost="1">投稿する</button></div>' +
       '<div class="bxnb"><div class="bxnr"><span class="bxav">' + e(window.DB.ini(window.DB.me)) + '</span><div class="bxnc"><textarea id="bxtx" placeholder="' + PH[NEW.tab] + '">' + e(val) + '</textarea>' +
       (NEW.files.length ? '<div class="bxp n' + NEW.files.length + ' edit">' + NEW.files.map(function (f, i) { return '<span class="bxpe"><img src="' + f.url + '" alt=""><button data-bxrm="' + i + '" aria-label="写真を外す">' + IC.x + '</button></span>'; }).join('') + '</div>' : '') +
       (NEW.tab === 'recruit' ? '<div class="bxrl"><span>募集するロール</span><div>' + ROLES.map(function (r) { return '<button data-bxrole="' + r + '" aria-pressed="' + (NEW.roles.indexOf(r) >= 0) + '">' + r + '</button>'; }).join('') + '</div></div>' : '') +
-      '</div></div></div><div class="bxnt"><label class="bxpk' + (NEW.files.length >= 4 ? ' off' : '') + '">' + IC.photo + '<input type="file" accept="image/*" multiple id="bxfile"' + (NEW.files.length >= 4 ? ' disabled' : '') + '></label><span>' + (NEW.files.length ? NEW.files.length + ' / 4' : '') + '</span></div>';
+      '</div></div></div><div class="bxnt"><label class="bxpk' + (NEW.files.length >= 4 ? ' off' : '') + '">' + IC.photo + '<span>写真</span><input type="file" accept="image/*" multiple id="bxfile"' + (NEW.files.length >= 4 ? ' disabled' : '') + '></label><span class="bxpn">' + (NEW.files.length ? NEW.files.length + ' / 4' : '4枚まで') + '</span></div>';
     var tx = document.getElementById('bxtx'); if (tx && !first) { tx.focus(); tx.setSelectionRange(tx.value.length, tx.value.length); }
   }
   function closeNew(pop) { var w = document.getElementById('bxnew'); if (!w) return; w.remove(); NEW = null; document.documentElement.classList.remove('invon'); if (!pop) try { if (history.state && history.state.bxnew) history.back(); } catch (er) {} }
@@ -1087,13 +1087,13 @@ function annPop(a) {
         var b = await shrink(NEW.files[i].file), path = D.me + '/' + Date.now() + '_' + i + '.jpg';
         var r = await window.sb.storage.from('board').upload(path, b, { contentType: 'image/jpeg' }); if (r.error) throw r.error; imgs.push(path); URLS[path] = NEW.files[i].url;
       }
-    } catch (er) { D.flash('写真を送れませんでした'); if (btn) { btn.disabled = false; btn.textContent = 'ポストする'; } return; }
+    } catch (er) { D.flash('写真を送れませんでした'); if (btn) { btn.disabled = false; btn.textContent = '投稿する'; } return; }
     var lines = v.split('\n'), head = lines[0].slice(0, 80), rest = lines.slice(1).join('\n').trim(), data;
     if (NEW.tab === 'recruit') data = { title: head, purpose: rest, roles: NEW.roles.slice(), frame: '実プロジェクト枠' };
     else if (NEW.tab === 'idea') data = { title: head, summary: rest };
     else data = { text: v };
     if (imgs.length) data.imgs = imgs;
-    var res = await D.add(NEW.tab, data); if (!res) { if (btn) { btn.disabled = false; btn.textContent = 'ポストする'; } return; }
+    var res = await D.add(NEW.tab, data); if (!res) { if (btn) { btn.disabled = false; btn.textContent = '投稿する'; } return; }
     closeNew(); paint(true);
   }
 
@@ -3163,9 +3163,8 @@ html.light{color-scheme:light}
 .bxc{font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;border:1px solid var(--n27);color:var(--n95)}
 .bxc.full{border-color:var(--n12);color:var(--n49)}
 .bxbk{font-size:13px;color:var(--n66)}
-.bxas{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:center;max-width:360px;margin-top:2px;margin-left:-8px}
-.bxas>*{justify-self:start}
-.bxas .bxgo{grid-column:3 / span 2;justify-self:end}
+.bxas{display:flex;align-items:center;gap:14px;margin-top:2px;margin-left:-8px}
+.bxas .bxgo{margin-left:auto}
 .bxa{display:inline-flex;align-items:center;gap:5px;height:34px;padding:0 8px;border:0;border-radius:999px;background:transparent;color:var(--n49);font:inherit;font-size:13px;cursor:pointer;text-decoration:none}
 .bxa:active{background:var(--n9)}
 .bxa.on{color:var(--ac)}.bxa.on svg{fill:currentColor}
@@ -3181,12 +3180,12 @@ body.wide .bxfab{bottom:32px;right:32px}
 .bx.rep{cursor:default}
 .bx.fx{flex-wrap:wrap;cursor:default}
 .bx.fx .bxt{font-size:19px}.bx.fx .bxb{font-size:17px;line-height:1.65}
-.bxst{padding:10px 0;margin-top:6px;border-top:1px solid var(--n9);border-bottom:1px solid var(--n9);font-size:14px;color:var(--n49)}
-.bx.fx .bxas{max-width:none;margin-left:0}
-.bx.fx .bxas>*{justify-self:center}
-.bxav.sm{width:32px;height:32px;font-size:13px;align-self:center}
-.bxrp{flex:none;display:flex;gap:8px;align-items:flex-end;padding:10px 12px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--n12);max-width:640px;width:100%;margin:0 auto;box-sizing:border-box}
-.bxrp textarea{flex:1;min-height:40px;max-height:160px;resize:none;padding:10px 4px;border:0;border-radius:0;background:transparent;color:var(--fg);font:inherit;font-size:15px;outline:none}
+.bxst{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0 0;margin-top:6px;border-top:1px solid var(--n9);font-size:13px;color:var(--n49)}
+.bxst .bxas{margin:0 -8px 0 0}
+
+.bxav.sm{width:32px;height:32px;font-size:13px}
+.bxrp{flex:none;display:flex;gap:10px;align-items:center;padding:10px 12px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--n12);max-width:640px;width:100%;margin:0 auto;box-sizing:border-box}
+.bxrp textarea{flex:1;min-height:0;height:40px;max-height:160px;resize:none;padding:9px 4px;line-height:22px;box-sizing:border-box;display:block;border:0;border-radius:0;background:transparent;color:var(--fg);font:inherit;font-size:15px;outline:none}
 .bxrp button{flex:none;height:36px;align-self:center;padding:0 16px;border:0;border-radius:18px;background:var(--ac);color:var(--bg);font:inherit;font-weight:700;cursor:pointer}
 .bxrp button:disabled{opacity:.4;cursor:default}
 .bxnh{display:flex;align-items:center;gap:10px;height:calc(56px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 12px 0;flex:none}
@@ -3206,11 +3205,12 @@ body.wide .bxfab{bottom:32px;right:32px}
 .bxrl div{display:flex;flex-wrap:wrap;gap:8px}
 .bxrl button{height:34px;padding:0 14px;border:1px solid var(--n21);border-radius:17px;background:transparent;color:var(--n85);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
 .bxrl button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
-.bxnt{flex:none;display:flex;align-items:center;gap:12px;padding:8px 12px calc(8px + env(safe-area-inset-bottom));border-top:1px solid var(--n12)}
-.bxpk{width:40px;height:40px;display:flex;align-items:center;justify-content:center;color:var(--ac);cursor:pointer;border-radius:50%}
+.bxnt{flex:none;display:flex;align-items:center;gap:12px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--n12)}
+.bxpk{height:40px;padding:0 16px 0 12px;display:inline-flex;align-items:center;gap:8px;color:var(--fg);border:1px solid var(--n21);border-radius:20px;font-size:14px;font-weight:600;cursor:pointer}
+.bxpk svg{width:22px !important;height:22px !important;color:var(--ac)}
 .bxpk.off{opacity:.35;cursor:default}
 .bxpk input{display:none}
-.bxnt span{font-size:12px;color:var(--n49)}
+.bxnt .bxpn{margin-left:auto;font-size:12px;color:var(--n49)}
 #bxmn{position:fixed;inset:0;z-index:2147481600;display:flex;align-items:flex-end;justify-content:center}
 #bxmn .anbg{position:absolute;inset:0;background:rgba(0,0,0,.45)}
 .bxmnc{position:relative;width:min(520px,100%);padding:8px 8px calc(8px + env(safe-area-inset-bottom));background:var(--n5);border-radius:16px 16px 0 0;display:flex;flex-direction:column}

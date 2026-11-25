@@ -2815,9 +2815,8 @@ html.light{color-scheme:light}
 .bxc{font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;border:1px solid #474744;color:#E9E6DF}
 .bxc.full{border-color:#232322;color:#7D7B76}
 .bxbk{font-size:13px;color:#A3A19B}
-.bxas{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:center;max-width:360px;margin-top:2px;margin-left:-8px}
-.bxas>*{justify-self:start}
-.bxas .bxgo{grid-column:3 / span 2;justify-self:end}
+.bxas{display:flex;align-items:center;gap:14px;margin-top:2px;margin-left:-8px}
+.bxas .bxgo{margin-left:auto}
 .bxa{display:inline-flex;align-items:center;gap:5px;height:34px;padding:0 8px;border:0;border-radius:999px;background:transparent;color:#7D7B76;font:inherit;font-size:13px;cursor:pointer;text-decoration:none}
 .bxa:active{background:#1C1C1B}
 .bxa.on{color:#F2A93B}.bxa.on svg{fill:currentColor}
@@ -2833,12 +2832,12 @@ body.wide .bxfab{bottom:32px;right:32px}
 .bx.rep{cursor:default}
 .bx.fx{flex-wrap:wrap;cursor:default}
 .bx.fx .bxt{font-size:19px}.bx.fx .bxb{font-size:17px;line-height:1.65}
-.bxst{padding:10px 0;margin-top:6px;border-top:1px solid #1C1C1B;border-bottom:1px solid #1C1C1B;font-size:14px;color:#7D7B76}
-.bx.fx .bxas{max-width:none;margin-left:0}
-.bx.fx .bxas>*{justify-self:center}
-.bxav.sm{width:32px;height:32px;font-size:13px;align-self:center}
-.bxrp{flex:none;display:flex;gap:8px;align-items:flex-end;padding:10px 12px calc(10px + env(safe-area-inset-bottom));border-top:1px solid #232322;max-width:640px;width:100%;margin:0 auto;box-sizing:border-box}
-.bxrp textarea{flex:1;min-height:40px;max-height:160px;resize:none;padding:10px 4px;border:0;border-radius:0;background:transparent;color:#F3F1EC;font:inherit;font-size:15px;outline:none}
+.bxst{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0 0;margin-top:6px;border-top:1px solid #1C1C1B;font-size:13px;color:#7D7B76}
+.bxst .bxas{margin:0 -8px 0 0}
+
+.bxav.sm{width:32px;height:32px;font-size:13px}
+.bxrp{flex:none;display:flex;gap:10px;align-items:center;padding:10px 12px calc(10px + env(safe-area-inset-bottom));border-top:1px solid #232322;max-width:640px;width:100%;margin:0 auto;box-sizing:border-box}
+.bxrp textarea{flex:1;min-height:0;height:40px;max-height:160px;resize:none;padding:9px 4px;line-height:22px;box-sizing:border-box;display:block;border:0;border-radius:0;background:transparent;color:#F3F1EC;font:inherit;font-size:15px;outline:none}
 .bxrp button{flex:none;height:36px;align-self:center;padding:0 16px;border:0;border-radius:18px;background:#F2A93B;color:#070707;font:inherit;font-weight:700;cursor:pointer}
 .bxrp button:disabled{opacity:.4;cursor:default}
 .bxnh{display:flex;align-items:center;gap:10px;height:calc(56px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 12px 0;flex:none}
@@ -2858,11 +2857,12 @@ body.wide .bxfab{bottom:32px;right:32px}
 .bxrl div{display:flex;flex-wrap:wrap;gap:8px}
 .bxrl button{height:34px;padding:0 14px;border:1px solid #383836;border-radius:17px;background:transparent;color:#D2CFC8;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
 .bxrl button[aria-pressed="true"]{background:#F3F1EC;color:#070707;border-color:#F3F1EC}
-.bxnt{flex:none;display:flex;align-items:center;gap:12px;padding:8px 12px calc(8px + env(safe-area-inset-bottom));border-top:1px solid #232322}
-.bxpk{width:40px;height:40px;display:flex;align-items:center;justify-content:center;color:#F2A93B;cursor:pointer;border-radius:50%}
+.bxnt{flex:none;display:flex;align-items:center;gap:12px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));border-top:1px solid #232322}
+.bxpk{height:40px;padding:0 16px 0 12px;display:inline-flex;align-items:center;gap:8px;color:#F3F1EC;border:1px solid #383836;border-radius:20px;font-size:14px;font-weight:600;cursor:pointer}
+.bxpk svg{width:22px !important;height:22px !important;color:#F2A93B}
 .bxpk.off{opacity:.35;cursor:default}
 .bxpk input{display:none}
-.bxnt span{font-size:12px;color:#7D7B76}
+.bxnt .bxpn{margin-left:auto;font-size:12px;color:#7D7B76}
 #bxmn{position:fixed;inset:0;z-index:2147481600;display:flex;align-items:flex-end;justify-content:center}
 #bxmn .anbg{position:absolute;inset:0;background:rgba(0,0,0,.45)}
 .bxmnc{position:relative;width:min(520px,100%);padding:8px 8px calc(8px + env(safe-area-inset-bottom));background:#131313;border-radius:16px 16px 0 0;display:flex;flex-direction:column}
