@@ -311,7 +311,14 @@ function memberExtras(v) {
     anns: anns.map(function (a) { return { title: a.title, body: a.body || '', tfs: a.title.length > 22 ? '18px' : '21px', go: function () { annPop(a); } }; }), hasAnn: anns.length > 0,
     dots: anns.concat([0]).map(function () { return {}; }),
     next: nextEv ? { has: true, lc: '#F2A93B', rd: 'flex', wc: 'en', tfs: '21px', go: goCalTop, aid: '', label: 'NEXT · 部内イベント', title: nextEv.title, when: md(nextEv.end) + ' ' + wd(nextEv.end), left: String(Math.max(0, daysTo(nextEv.end))) } : { has: false, lc: '#F2A93B', rd: 'flex', wc: 'en', tfs: '21px', go: goCalTop, aid: '', label: 'NEXT', title: '予定されているイベントはありません', when: '', left: '—' },
-    learnCard: { n: rN ? rD + '/' + rN : '—', dash: (ring * pct).toFixed(1) + ' ' + ring.toFixed(1), track: myRole || 'ロール未設定', next: nextU ? nextU.code + '\n' + nextU.title : (roleT ? '全単元修了' : 'マイページでロールを選ぶ') },
+    learnCard: (function () { // 運営のプログラムどおり（変えるとすぐ反映）
+      var used = (window.__progSummary ? 'y' : 'n') + (window.__PROG ? window.__PROG.key + '|' + window.__PROG.jkey : '');
+      setTimeout(function () { var now = (window.__progSummary ? 'y' : 'n') + (window.__PROG ? window.__PROG.key + '|' + window.__PROG.jkey : ''); if (now !== used && window.__comp) window.__comp.forceUpdate(); }, 0); // 学ぶのデータが新しくなったら描き直す
+      var P = window.__progSummary && window.__PROG ? window.__progSummary(window.__PROG) : null;
+      if (!P) return { n: rN ? rD + '/' + rN : '—', dash: (ring * pct).toFixed(1) + ' ' + ring.toFixed(1), track: myRole || 'ロール未設定', next: nextU ? nextU.code + '\n' + nextU.title : (roleT ? '全単元修了' : 'マイページでロールを選ぶ') };
+      var p = P.n ? P.d / P.n : 0;
+      return { n: P.n ? P.d + '/' + P.n : '—', dash: (ring * p).toFixed(1) + ' ' + ring.toFixed(1), track: myRole || 'プログラム', next: P.next ? P.next.code + '\n' + P.next.title : (P.n ? 'すべて修了' : 'まだありません') };
+    })(),
     clubEvents: D.clubEvents().filter(function (e) { return e.tbd || e.end >= today; }).map(function (e) { var on = D.mine(e.id, 'join'), p = e.start.split('-');
       return { id: e.id, mon: e.tbd ? '日程' : ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][+p[1] - 1], d: e.tbd ? '未定' : String(+p[2]), dfs: e.tbd ? '15px' : '22px', title: e.title, sub: [e.end !== e.start ? '〜' + md(e.end) : '', e.sub].filter(Boolean).join(' · '),
         jd: e.pub && !e.tbd ? 'inline-flex' : 'none', /* 日程未定は参加登録できない */ joinLabel: on ? '✓ 登録済み' : '参加登録', joinBd: on ? 'transparent' : '#474744', joinFg: on ? '#7D7B76' : '#D2CFC8', toggle: function () { D.toggle(e.id, 'join'); } }; }),

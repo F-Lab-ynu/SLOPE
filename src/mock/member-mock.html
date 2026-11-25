@@ -2522,6 +2522,13 @@ document.addEventListener('click',function(e){
     return top ? head + (body ? '<div class="pgin">' + body + '</div>' : '') : '<div class="pgsub' + (n._lk ? ' lk' : '') + '">' + head + (open ? '<div class="pgin">' + body + '</div>' : '') + '</div>';
   }
   function v2Of(P) { if (!P._v2) P._v2 = JSON.parse(JSON.stringify(P.v2 || fromOld(P))); return P._v2; }
+  // ホームの「学習」：運営のプログラム（いまの形）どおりの進み具合と、次にやるもの
+  window.__progSummary = function (P) {
+    if (!P) return null; var T = JSON.parse(JSON.stringify(P.v2 || fromOld(P))).filter(function (n) { return !n.out; });
+    var r = mark(P, T, false), c = firstCur(T), nx = null;
+    if (c) nx = c.k === 'u' ? { code: c.c, title: (tById(P, c.t).units[c.c] || {}).title || '' } : { code: md(c.from), title: c.name || 'イベント' };
+    return { d: r.d, n: r.n, next: nx };
+  };
   function progHTML(P) {
     var T = v2Of(P).filter(function (n) { return !n.out; }); mark(P, T, false); var cur = firstCur(T);
     return '<div class="pgtree">' + T.filter(shown).map(function (n) {

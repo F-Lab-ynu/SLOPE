@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = 'bd86866bcc', FILE = 'index.ver';
+  var VER = '321077fd30', FILE = 'index.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -736,7 +736,14 @@ function memberExtras(v) {
     anns: anns.map(function (a) { return { title: a.title, body: a.body || '', tfs: a.title.length > 22 ? '18px' : '21px', go: function () { annPop(a); } }; }), hasAnn: anns.length > 0,
     dots: anns.concat([0]).map(function () { return {}; }),
     next: nextEv ? { has: true, lc: 'var(--ac)', rd: 'flex', wc: 'en', tfs: '21px', go: goCalTop, aid: '', label: 'NEXT · 部内イベント', title: nextEv.title, when: md(nextEv.end) + ' ' + wd(nextEv.end), left: String(Math.max(0, daysTo(nextEv.end))) } : { has: false, lc: 'var(--ac)', rd: 'flex', wc: 'en', tfs: '21px', go: goCalTop, aid: '', label: 'NEXT', title: '予定されているイベントはありません', when: '', left: '—' },
-    learnCard: { n: rN ? rD + '/' + rN : '—', dash: (ring * pct).toFixed(1) + ' ' + ring.toFixed(1), track: myRole || 'ロール未設定', next: nextU ? nextU.code + '\n' + nextU.title : (roleT ? '全単元修了' : 'マイページでロールを選ぶ') },
+    learnCard: (function () { // 運営のプログラムどおり（変えるとすぐ反映）
+      var used = (window.__progSummary ? 'y' : 'n') + (window.__PROG ? window.__PROG.key + '|' + window.__PROG.jkey : '');
+      setTimeout(function () { var now = (window.__progSummary ? 'y' : 'n') + (window.__PROG ? window.__PROG.key + '|' + window.__PROG.jkey : ''); if (now !== used && window.__comp) window.__comp.forceUpdate(); }, 0); // 学ぶのデータが新しくなったら描き直す
+      var P = window.__progSummary && window.__PROG ? window.__progSummary(window.__PROG) : null;
+      if (!P) return { n: rN ? rD + '/' + rN : '—', dash: (ring * pct).toFixed(1) + ' ' + ring.toFixed(1), track: myRole || 'ロール未設定', next: nextU ? nextU.code + '\n' + nextU.title : (roleT ? '全単元修了' : 'マイページでロールを選ぶ') };
+      var p = P.n ? P.d / P.n : 0;
+      return { n: P.n ? P.d + '/' + P.n : '—', dash: (ring * p).toFixed(1) + ' ' + ring.toFixed(1), track: myRole || 'プログラム', next: P.next ? P.next.code + '\n' + P.next.title : (P.n ? 'すべて修了' : 'まだありません') };
+    })(),
     clubEvents: D.clubEvents().filter(function (e) { return e.tbd || e.end >= today; }).map(function (e) { var on = D.mine(e.id, 'join'), p = e.start.split('-');
       return { id: e.id, mon: e.tbd ? '日程' : ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][+p[1] - 1], d: e.tbd ? '未定' : String(+p[2]), dfs: e.tbd ? '15px' : '22px', title: e.title, sub: [e.end !== e.start ? '〜' + md(e.end) : '', e.sub].filter(Boolean).join(' · '),
         jd: e.pub && !e.tbd ? 'inline-flex' : 'none', /* 日程未定は参加登録できない */ joinLabel: on ? '✓ 登録済み' : '参加登録', joinBd: on ? 'transparent' : 'var(--n27)', joinFg: on ? 'var(--n49)' : 'var(--n85)', toggle: function () { D.toggle(e.id, 'join'); } }; }),
@@ -1050,7 +1057,7 @@ setInterval(window.__chrome, 400);
 <svg width="52" height="52" viewBox="0 0 52 52" aria-hidden="true" style="transform: rotate(-90deg)"><circle cx="26" cy="26" r="22" fill="none" stroke="var(--n16)" stroke-width="5"></circle><circle cx="26" cy="26" r="22" fill="none" stroke="var(--fg)" stroke-width="5" stroke-linecap="round" stroke-dasharray="{{ learnCard.dash }}"></circle></svg>
 <span class="en" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700">{{ learnCard.n }}</span>
 </span>
-<span style="display: flex; flex-direction: column; min-width: 0"><span class="en" style="font-size: 12px; color: var(--n66)">{{ learnCard.track }}</span><span style="font-size: 14px; font-weight: 700; line-height: 1.35; white-space: pre-line">{{ learnCard.next }}</span></span>
+<span style="display: flex; flex-direction: column; min-width: 0"><span class="en" style="font-size: 12px; color: var(--n66)">{{ learnCard.track }}</span><span style="font-size: 14px; font-weight: 700; line-height: 1.35; white-space: pre-line; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; overflow-wrap: anywhere">{{ learnCard.next }}</span></span>
 </span>
 </button>
 
@@ -2861,6 +2868,13 @@ document.addEventListener('click',function(e){
     return top ? head + (body ? '<div class="pgin">' + body + '</div>' : '') : '<div class="pgsub' + (n._lk ? ' lk' : '') + '">' + head + (open ? '<div class="pgin">' + body + '</div>' : '') + '</div>';
   }
   function v2Of(P) { if (!P._v2) P._v2 = JSON.parse(JSON.stringify(P.v2 || fromOld(P))); return P._v2; }
+  // ホームの「学習」：運営のプログラム（いまの形）どおりの進み具合と、次にやるもの
+  window.__progSummary = function (P) {
+    if (!P) return null; var T = JSON.parse(JSON.stringify(P.v2 || fromOld(P))).filter(function (n) { return !n.out; });
+    var r = mark(P, T, false), c = firstCur(T), nx = null;
+    if (c) nx = c.k === 'u' ? { code: c.c, title: (tById(P, c.t).units[c.c] || {}).title || '' } : { code: md(c.from), title: c.name || 'イベント' };
+    return { d: r.d, n: r.n, next: nx };
+  };
   function progHTML(P) {
     var T = v2Of(P).filter(function (n) { return !n.out; }); mark(P, T, false); var cur = firstCur(T);
     return '<div class="pgtree">' + T.filter(shown).map(function (n) {
