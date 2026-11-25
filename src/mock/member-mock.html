@@ -2681,6 +2681,10 @@ html.light{color-scheme:light}
   var X = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
   var BACK = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>';
   var NDUE = [[7, '7日前'], [3, '3日前'], [1, '前日'], [0, '当日']];
+  var NDUE_P = [[0, '当日'], [1, '前日から'], [3, '3日前から'], [7, '7日前から']];
+  function nDueSel(due) { var mx = Math.max.apply(null, due.length ? due : [1]); return '<select class="nsdsel" data-ns-dsel="1" aria-label="知らせる日">' + NDUE_P.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === mx ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>'; }
+  function nDueOf(v) { return NDUE.map(function (d) { return d[0]; }).filter(function (d) { return d <= v; }); }
+  function nDueFit() { [].forEach.call(document.querySelectorAll('.nsdsel'), function (s) { var r = s.closest('.nsr'), g = r && r.previousElementSibling && r.previousElementSibling.querySelector('.nseg'); if (g && g.offsetWidth) s.style.width = g.offsetWidth + 'px'; }); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function sw(on, attr, dis) { return '<span class="mpsw nssw" role="switch" aria-checked="' + on + '" ' + attr + (dis ? ' aria-disabled="true"' : '') + ' style="background:' + (on ? '#D2CFC8' : '#2C2C2A') + '"><i style="left:' + (on ? '21px' : '3px') + ';background:' + (on ? '#070707' : (dis ? '#474744' : '#7D7B76')) + '"></i></span>'; }
   // ---- 設定の画面 ----
@@ -2693,12 +2697,12 @@ html.light{color-scheme:light}
       window.__NKG.filter(function (g) { return g[0] === 'member' || np.isOps(); }).map(function (g) {
         return '<span class="lbl">' + g[1] + '</span><div class="nsl">' + g[2].map(function (x) {
           return '<div class="nsr nsk"><span class="mpl">' + esc(x[1]) + '</span>' + seg(x[0]) + '</div>' +
-            (x[0] === 'due' && np.mode(q, 'due') !== 'off' ? '<div class="nsr nsdue"><span class="mpl"><small>知らせる日</small></span><span class="nsdays">' + NDUE.map(function (d) { return '<button data-ns-due="' + d[0] + '" aria-pressed="' + (q.due.indexOf(d[0]) >= 0) + '">' + d[1] + '</button>'; }).join('') + '</span></div>' : '');
+            (x[0] === 'due' && np.mode(q, 'due') !== 'off' ? '<div class="nsr nsdue"><span class="mpl"><small>知らせる日</small></span>' + nDueSel(q.due) + '</div>' : '');
         }).join('') + '</div>';
       }).join('') +
       '<span class="lbl">止めているイベント・フォルダー</span>' + (q.mute.length ? '<div class="nsm">' + q.mute.map(function (m) { return '<button class="nsc" data-ns-un="' + esc(m) + '" aria-label="「' + esc(m) + '」の通知を戻す">' + esc(m) + X + '</button>'; }).join('') + '</div>' : '<p class="nsn">ありません。通知を長押しすると止められます。</p>') +
       '<p class="nsn">運営からの大事な連絡はいつも届きます。設定は運営画面と共通です。</p></div>';
-    var w = old || document.createElement('div'); w.id = 'nspage'; w.innerHTML = h; if (!old) { document.body.appendChild(w); document.documentElement.classList.add('invon'); try { history.pushState({ nsp: 1 }, ''); } catch (er) {} }
+    var w = old || document.createElement('div'); w.id = 'nspage'; w.innerHTML = h; if (!old) { document.body.appendChild(w); document.documentElement.classList.add('invon'); try { history.pushState({ nsp: 1 }, ''); } catch (er) {} } nDueFit();
     w.querySelector('.nspb').scrollTop = y;
   }
   function closePage(fromPop) { var w = document.getElementById('nspage'); if (!w) return; w.remove(); document.documentElement.classList.remove('invon'); if (!fromPop) try { if (history.state && history.state.nsp) history.back(); } catch (er) {} }
@@ -2715,6 +2719,7 @@ html.light{color-scheme:light}
       '<button class="nsa" data-nm-del="' + esc(id) + '">この通知を削除</button><button class="nsa" data-nset-open="1">通知の設定</button></div>';
     closeMenu(); var w = document.createElement('div'); w.id = 'nspop'; w.innerHTML = '<div class="npbg" data-nm-x></div><div class="iqsheet nssheet" role="dialog" aria-label="この通知"><div class="iqtop"><b>この通知</b><button data-nm-x aria-label="閉じる">' + X + '</button></div><div class="iqbody">' + h + '</div></div>'; document.body.appendChild(w);
   }
+  document.addEventListener('change', function (e) { var np = window.__np; if (!np || !e.target.matches || !e.target.matches('#nspage [data-ns-dsel]')) return; var q = np.get(); q.due = nDueOf(+e.target.value); np.set(q); page(); });
   document.addEventListener('click', function (e) {
     var t = e.target.closest ? e.target : null; if (!t) return; var np = window.__np, b;
     if (t.closest('[data-nset-open]')) { e.preventDefault(); e.stopPropagation(); closeMenu(); page(); return; }
@@ -2722,7 +2727,6 @@ html.light{color-scheme:light}
     if (t.closest('[data-nm-x]')) { closeMenu(); return; }
     if (!np) return; var q = np.get();
     if ((b = t.closest('#nspage [data-ns-m]'))) { np.setMode(q, b.dataset.nsK, b.dataset.nsM); np.set(q); page(); return; }
-    if ((b = t.closest('#nspage [data-ns-due]'))) { var d = +b.dataset.nsDue, i = q.due.indexOf(d); if (i >= 0) { if (q.due.length < 2) { np.flash('1つは選んでください'); return; } q.due.splice(i, 1); } else q.due.push(d); q.due.sort(function (a, c) { return c - a; }); np.set(q); page(); return; }
     if ((b = t.closest('#nspage [data-ns-un]'))) { q.mute = q.mute.filter(function (m) { return m !== b.dataset.nsUn; }); np.set(q); page(); return; }
     if ((b = t.closest('#nspage [data-ns-push]'))) { np.pushToggle(); setTimeout(page, 600); setTimeout(page, 2500); return; }
     if ((b = t.closest('[data-nm-k]'))) { np.setMode(q, b.dataset.nmK, b.dataset.nmM); np.set(q); closeMenu(); np.flash((b.dataset.nmM === 'off' ? 'オフ' : 'アプリ内だけ') + 'にしました。通知の設定から戻せます'); return; }
@@ -2763,7 +2767,9 @@ html.light{color-scheme:light}
 .nseg{flex:none;display:inline-flex;gap:2px;padding:2px;border-radius:9px;background:#131313}
 .nseg button,.nsdays button{border:0;background:transparent;color:#7D7B76;font:inherit;font-size:12px;font-weight:500;height:28px;padding:0 10px;border-radius:7px;cursor:pointer;transition:background .15s,color .15s}
 .nseg button[aria-pressed="true"]{background:#2C2C2A;color:#F3F1EC;font-weight:700}
-.nsdays{display:flex;flex-wrap:wrap;gap:6px}
+.nsr.nsdue .mpl small{font-size:13px}
+.nsdsel{flex:none;-webkit-appearance:none;appearance:none;height:32px;padding:0 28px 0 12px;border:0;border-radius:9px;background:#131313 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237D7B76' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center;color:#F3F1EC;font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.nsdsel:focus-visible{outline:2px solid #D2CFC8;outline-offset:1px}
 .nsdays button{background:#131313;border-radius:14px;padding:0 12px}
 .nsdays button[aria-pressed="true"]{background:#2C2C2A;color:#F3F1EC;font-weight:700}
 .nsn{margin:14px 0 0;font-size:12px;color:#7D7B76;line-height:1.6}

@@ -6,6 +6,10 @@ var NKG = [
 ];
 var NK_OPS = NKG[0][2].map(function (x) { return x[0]; });
 var NDUE = [[7, '7日前'], [3, '3日前'], [1, '前日'], [0, '当日']];
+var NDUE_P = [[0, '当日'], [1, '前日から'], [3, '3日前から'], [7, '7日前から']];
+function nDueSel(due) { var mx = Math.max.apply(null, due.length ? due : [1]); return '<select class="nsdsel" data-ns-dsel="1" aria-label="知らせる日">' + NDUE_P.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === mx ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>'; }
+function nDueOf(v) { return NDUE.map(function (d) { return d[0]; }).filter(function (d) { return d <= v; }); }
+function nDueFit() { [].forEach.call(document.querySelectorAll('.nsdsel'), function (s) { var r = s.closest('.nsr'), g = r && r.previousElementSibling && r.previousElementSibling.querySelector('.nseg'); if (g && g.offsetWidth) s.style.width = g.offsetWidth + 'px'; }); }
 function nLabel(k) { var r = ''; NKG.forEach(function (g) { g[2].forEach(function (x) { if (x[0] === k) r = x[1]; }); }); return r; }
 function nKind(t) { t = String(t || ''); if (/」の(担当|メンバー|リーダー)になりました$/.test(t)) return 'assign'; if (/(を完了しました|がすべて完了しました)$/.test(t)) return 'done'; if (/^お問い合わせに返信/.test(t)) return 'reply'; if (/^「.*」(は中止になりました|の日時・場所が変わりました)$/.test(t)) return 'evchange'; if (/^明日：/.test(t)) return 'remind'; return 'system'; }
 function nKindOf(n) { return n.kind || nKind(n.text); }
@@ -32,7 +36,7 @@ function viewNset() {
   var seg = function (k) { var m = nMode(p, k); return '<span class="seg nseg" role="group" aria-label="' + esc(nLabel(k)) + '">' + [['push', 'プッシュ'], ['app', 'アプリ内'], ['off', 'オフ']].map(function (x) { return '<button data-ns-m="' + x[0] + '" data-ns-k="' + k + '" aria-pressed="' + (m === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</span>'; };
   var row = function (x) {
     return '<div class="nsr"><span class="nsl">' + esc(x[1]) + '</span>' + seg(x[0]) + '</div>' +
-      (x[0] === 'due' && nMode(p, 'due') !== 'off' ? '<div class="nsr nsub"><span class="nsl">知らせる日</span><span class="nsdays">' + NDUE.map(function (d) { var on = p.due.indexOf(d[0]) >= 0; return '<button class="vchip" data-ns-due="' + d[0] + '" aria-pressed="' + on + '">' + d[1] + '</button>'; }).join('') + '</span></div>' : '');
+      (x[0] === 'due' && nMode(p, 'due') !== 'off' ? '<div class="nsr nsub"><span class="nsl">知らせる日</span>' + nDueSel(p.due) + '</div>' : '');
   };
   var body = '<div class="body nset">' +
     '<section><h2>この端末</h2><div class="nsg"><div class="nsr"><span class="nsl">プッシュ通知を受け取る<small>' + pnote + '</small></span><button class="nssw" role="switch" aria-checked="' + (ps === 'on') + '" data-ns-push="1"' + (ps === 'on' || ps === 'off' ? '' : ' disabled') + '><i></i></button></div></div></section>' +
@@ -61,7 +65,6 @@ document.addEventListener('click', function (e) {
   if (t.closest('[data-act="nset"]') || t.closest('[data-nm-set]')) { e.stopImmediatePropagation(); e.preventDefault(); closeCM(); nsGo(); return; }
   if (t.closest('[data-act="nsback"]')) { e.stopImmediatePropagation(); S.view = UI.nsPrev || 'dash'; save(); render(); return; }
   if ((b = t.closest('.nset [data-ns-m]'))) { nSetMode(p, b.dataset.nsK, b.dataset.nsM); nSet(p); render(); return; }
-  if ((b = t.closest('.nset [data-ns-due]'))) { var d = +b.dataset.nsDue, i = p.due.indexOf(d); if (i >= 0) { if (p.due.length > 1) p.due.splice(i, 1); else { toast('1つは選んでください'); return; } } else p.due.push(d); p.due.sort(function (a, c) { return c - a; }); nSet(p); render(); return; }
   if ((b = t.closest('.nset [data-ns-un]'))) { p.mute = p.mute.filter(function (m) { return m !== b.dataset.nsUn; }); nSet(p); render(); return; }
   if ((b = t.closest('.nset [data-ns-push]'))) { if (window.__adminPush) window.__adminPush.toggle(render); return; }
   if ((b = t.closest('[data-nm-k],[data-nm-mute],[data-nm-del]'))) {
@@ -82,3 +85,6 @@ document.addEventListener('pointermove', function (e) { if (NLP && (Math.abs(e.c
 ['pointerup', 'pointercancel'].forEach(function (ev) { document.addEventListener(ev, function () { if (NLP) { clearTimeout(NLP.t); NLP = null; } }); });
 window.addEventListener('contextmenu', function (e) { var r = e.target.closest && e.target.closest('.nr2[data-nid]'); if (!r) return; e.preventDefault(); e.stopImmediatePropagation(); if (Date.now() - NLJ > 600) nMenu(r.dataset.nid, e.clientX, e.clientY); }, true);
 window.addEventListener('click', function (e) { if (Date.now() - NLJ < 600 && e.target.closest && e.target.closest('.nr2')) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+document.addEventListener('change', function (e) { if (!e.target.matches || !e.target.matches('.nset [data-ns-dsel]')) return; var p = nPrefs(); p.due = nDueOf(+e.target.value); nSet(p); render(); });
+new MutationObserver(function () { if (document.querySelector('.nsdsel')) nDueFit(); }).observe(document.documentElement, { childList: true, subtree: true });
+window.addEventListener('resize', nDueFit);
