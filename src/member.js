@@ -633,10 +633,13 @@ function annPop(a) {
     var slots = x.kind === 'recruit' ? '<div class="bxsl">' + ((x.data || {}).roles || []).map(function (r) { var w = D.reactors(x.id, 'slot:' + r), me = w.indexOf(D.me) >= 0, full = w.length && !me;
       return '<div class="bxsr"><span><b>' + e(r) + '</b><small>' + (me ? '参加中（あなた）' : full ? '参加済み · ' + e(D.name(w[0])) : '募集中') + '</small></span>' + (full || x.author === D.me ? '' : '<button class="bxgo' + (me ? ' on' : '') + '" data-bxslot="' + e(r) + '" data-id="' + e(x.id) + '">' + (me ? '取り消す' : '応募する') + '</button>') + '</div>'; }).join('') + '</div>' : '';
     var focus = row(x, x.kind).replace('class="bx"', 'class="bx fx"').replace(/<div class="bxcs">[\s\S]*?<\/div>/, slots).replace('<div class="bxas">', '<div class="bxst"><span>' + e(stamp) + '</span><div class="bxas">').replace(/<\/div><\/div><\/article>$/, '</div></div></div></article>');
-    w.innerHTML = '<div class="nsph"><button data-bxth-x aria-label="戻る">' + IC.back + '</button><b>投稿</b></div><div class="nspb bxthb">' + focus +
+    var sc0 = old && old.querySelector('.bxths') ? old.querySelector('.bxths').scrollTop : 0;
+    w.innerHTML = '<div class="bxths"><div class="nsph"><button data-bxth-x aria-label="戻る">' + IC.back + '</button><b>投稿</b></div><div class="nspb bxthb">' + focus +
       (reps.length ? reps.map(function (c) { return '<div class="bx rep"><span class="bxav">' + e(D.ini(c.author)) + '</span><div class="bxm"><div class="bxh"><b>' + e(D.name(c.author)) + '</b><span>' + e(D.ago(c.created_at)) + '</span></div><div class="bxb">' + link((c.data || {}).text || '') + '</div>' + pics(c.data || {}) + '</div></div>'; }).join('') : '') +
-      '</div><div class="bxrp"><span class="bxav sm">' + e(D.ini(D.me)) + '</span><textarea id="bxrep" rows="1" placeholder="返信する"></textarea><button data-bxsend="' + e(id) + '" disabled>返信</button></div>';
+      '</div></div><div class="bxrp"><span class="bxav sm">' + e(D.ini(D.me)) + '</span><textarea id="bxrep" rows="1" placeholder="返信する"></textarea><button data-bxsend="' + e(id) + '" disabled>返信</button></div>';
     if (!old) { document.body.appendChild(w); document.documentElement.classList.add('invon'); try { history.pushState({ bxth: 1 }, ''); } catch (er) {} }
+    var scr = w.querySelector('.bxths'); scr.scrollTop = sc0; var lastY = sc0;
+    scr.addEventListener('scroll', function () { var y = scr.scrollTop, h = w.querySelector('.nsph'); if (h) h.classList.toggle('hide', y > 60 && y > lastY); lastY = y; }, { passive: true }); // X のように、下へ読むと見出しが隠れる
     fit();
   }
   function closeTh(pop) { var w = document.getElementById('bxth'); if (!w) return; w.remove(); document.documentElement.classList.remove('invon'); if (!pop) try { if (history.state && history.state.bxth) history.back(); } catch (er) {} }
@@ -683,7 +686,7 @@ function annPop(a) {
   }
   // キーボードが出ても、下の帯と返信欄はその上に
   // iOS 26 は「∧ ∨ ✓」の段の上に、キーボード扱いだが中身の見える帯（約50pt）を取る。画面の大きさは変えず、下の帯と返信欄だけをその帯へ下げる
-  var IOS26_GAP = /iPhone|iPad/.test(navigator.userAgent) && window.CSS && CSS.supports && CSS.supports('color', 'contrast-color(red)') ? 44 : 0;
+  var IOS26_GAP = /iPhone|iPad/.test(navigator.userAgent) && window.CSS && CSS.supports && (CSS.supports('anchor-name: --a') || CSS.supports('field-sizing: content') || CSS.supports('text-wrap-style: pretty')) ? 44 : 0; // Safari 26 で入った機能があるか
   function fit() { // 見えている範囲（キーボードの上まで）にぴったり合わせる
     var vv = window.visualViewport, kb = !!vv && window.innerHeight - vv.height > 120;
     ['bxnew', 'bxth'].forEach(function (id) {
@@ -702,7 +705,7 @@ function annPop(a) {
   new MutationObserver(function () { lock(!!(document.getElementById('bxnew') || document.getElementById('bxth'))); }).observe(document.body, { childList: true });
   document.addEventListener('touchmove', function (ev) { // 中身のスクロールだけ許す
     var w = ev.target.closest && ev.target.closest('#bxnew, #bxth'); if (!w) return;
-    var sc = ev.target.closest('.nspb, .bxnb, textarea'); if (sc && sc.scrollHeight > sc.clientHeight + 1) return;
+    var sc = ev.target.closest('.bxths, .bxnb, textarea'); if (sc && sc.scrollHeight > sc.clientHeight + 1) return;
     ev.preventDefault();
   }, { passive: false });
   if (window.visualViewport) { window.visualViewport.addEventListener('resize', fit); window.visualViewport.addEventListener('scroll', fit); }
@@ -768,6 +771,20 @@ function annPop(a) {
       w.remove();
     });
   }
+  // 投稿の画面：左端から右へスワイプで戻る（指についてくる）
+  var eg = null;
+  document.addEventListener('touchstart', function (ev) { var w = document.getElementById('bxth'); if (!w || ev.touches.length !== 1 || ev.touches[0].clientX > 28 || document.getElementById('bxnew')) return; eg = { x: ev.touches[0].clientX, y: ev.touches[0].clientY, on: false, w: w }; }, { passive: true });
+  document.addEventListener('touchmove', function (ev) {
+    if (!eg) return; var dx = ev.touches[0].clientX - eg.x, dy = ev.touches[0].clientY - eg.y;
+    if (!eg.on) { if (Math.abs(dy) > Math.abs(dx)) { eg = null; return; } if (dx < 8) return; eg.on = true; eg.w.classList.add('drag'); }
+    ev.preventDefault(); eg.w.style.transform = 'translateX(' + Math.max(0, dx) + 'px)';
+  }, { passive: false });
+  document.addEventListener('touchend', function (ev) {
+    if (!eg) return; var g = eg; eg = null; if (!g.on) return; var dx = ev.changedTouches[0].clientX - g.x;
+    g.w.classList.remove('drag'); g.w.classList.add('back');
+    if (dx > window.innerWidth * 0.3) { g.w.style.transform = 'translateX(100%)'; setTimeout(closeTh, 200); }
+    else { g.w.style.transform = ''; setTimeout(function () { g.w.classList.remove('back'); }, 230); }
+  }, { passive: true });
   // 左右スワイプでタブを切り替え
   var sw = null;
   document.addEventListener('touchstart', function (ev) { if (!ev.target.closest || !ev.target.closest('#bdx .bxlist') || ev.touches.length !== 1) return; sw = { x: ev.touches[0].clientX, y: ev.touches[0].clientY, t: Date.now() }; }, { passive: true });
