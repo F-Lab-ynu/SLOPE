@@ -155,10 +155,15 @@ function p2Editor() {
       '<div class="p2sec"><div class="p2kids">' + (kids || '<div class="p2empty sm">空のフォルダ</div>') + '</div><div class="p2add"><button data-p2a="nf">' + PI2.f + 'フォルダ</button><button data-p2a="nu">' + PI2.u + '単元</button><button data-p2a="ne">' + PI2.e + 'イベント</button></div></div>';
   }
   // 単元
+function matThumb(m) {
+  var yt = (String(m.url || '').match(/(?:youtube\.com\/watch\?(?:.*&)?v=|youtu\.be\/|youtube\.com\/shorts\/)([\w-]{6,})/) || [])[1];
+  var img = m.img || (yt ? 'https://i.ytimg.com/vi/' + yt + '/mqdefault.jpg' : ''), ph = '<span class="p2th">' + esc(m.type || '記事') + '</span>';
+  return img ? '<img class="p2th" src="' + esc(img) + '" alt="" referrerpolicy="no-referrer" loading="lazy" onerror="this.outerHTML=' + esc(JSON.stringify(ph)).replace(/"/g, '&quot;') + '">' : ph;
+}
   var t = p2Track(n.t), u = p2Unit(n); if (!t || !u) return '';
   var d = unitData(t, u.code);
   setTimeout(function () { (unitData(t, u.code).materials || []).forEach(function (m) { autoTitle(t, m); }); }, 0); // 題名・サムネイルを取りにいく
-  var mats = (d.materials || []).map(function (m, i) { return '<div class="p2mat"><span class="tag">' + esc(m.type || '記事') + '</span><input class="cell" data-p2m="' + i + '" value="' + esc(m.memo || '') + '" placeholder="' + esc(m.url) + '" aria-label="タイトル" autocomplete="off"><a href="' + esc(m.url) + '" target="_blank" rel="noopener">' + esc(host(m.url)) + '</a><button class="ib" data-p2a="mdel" data-i="' + i + '" aria-label="削除">' + ic('x') + '</button></div>'; }).join('');
+  var mats = (d.materials || []).map(function (m, i) { return '<div class="p2mat">' + matThumb(m) + '<input class="cell" data-p2m="' + i + '" value="' + esc(m.memo || '') + '" placeholder="' + esc(m.url) + '" aria-label="タイトル" autocomplete="off"><a href="' + esc(m.url) + '" target="_blank" rel="noopener">' + esc(host(m.url)) + '</a><button class="ib" data-p2a="mdel" data-i="' + i + '" aria-label="削除">' + ic('x') + '</button></div>'; }).join('');
   var qh = (d.quiz || []).map(function (q, qi) {
     return '<div class="qz"><div class="qzh"><span class="num">Q' + (qi + 1) + '</span><button class="ib qzx" data-qzdel="' + qi + '" aria-label="問題を削除" title="削除">' + ic('x') + '</button></div>' +
       '<textarea class="input" rows="2" data-qz="' + qi + '" data-qk="q" placeholder="問題" aria-label="問題">' + esc(q.q || '') + '</textarea>' +

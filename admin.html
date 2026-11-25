@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = 'feb4a8818b', FILE = 'admin.ver';
+  var VER = '9d9e1657c5', FILE = 'admin.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -1677,6 +1677,20 @@ select.cell{padding-right:26px;background-repeat:no-repeat;background-position:r
 .tdc,th.tdc{text-align:center}
 .evr .evg{text-align:center}
 .latec{min-width:56px;display:inline-flex;justify-content:center;flex:none}
+/* 時間の選択 */
+input[type=time]{cursor:pointer}
+input[type=time]::-webkit-calendar-picker-indicator{display:none}
+.tpk{width:168px}
+.tpkb{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.tpkl{height:192px;overflow-y:auto;display:flex;flex-direction:column;scrollbar-width:none}
+.tpkl::-webkit-scrollbar{display:none}
+.tpkc{flex:none;height:32px;border:0;border-radius:8px;background:transparent;font:inherit;font-variant-numeric:tabular-nums;color:var(--text);cursor:pointer}
+.tpkc:hover{background:var(--hover)}
+.tpkc.on,.tpkc.on:hover{background:var(--text);color:#fff;font-weight:700}
+.tpkc:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+/* 教材のサムネイル */
+.p2mat{height:52px;padding-left:6px}
+.p2th{width:64px;height:40px;border-radius:4px;object-fit:cover;background:var(--hover);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted)}
 
 /* ===== 本番 ===== */
 [data-act="reset"]{display:none !important}
@@ -4417,10 +4431,15 @@ function p2Editor() {
       '<div class="p2sec"><div class="p2kids">' + (kids || '<div class="p2empty sm">空のフォルダ</div>') + '</div><div class="p2add"><button data-p2a="nf">' + PI2.f + 'フォルダ</button><button data-p2a="nu">' + PI2.u + '単元</button><button data-p2a="ne">' + PI2.e + 'イベント</button></div></div>';
   }
   // 単元
+function matThumb(m) {
+  var yt = (String(m.url || '').match(/(?:youtube\.com\/watch\?(?:.*&)?v=|youtu\.be\/|youtube\.com\/shorts\/)([\w-]{6,})/) || [])[1];
+  var img = m.img || (yt ? 'https://i.ytimg.com/vi/' + yt + '/mqdefault.jpg' : ''), ph = '<span class="p2th">' + esc(m.type || '記事') + '</span>';
+  return img ? '<img class="p2th" src="' + esc(img) + '" alt="" referrerpolicy="no-referrer" loading="lazy" onerror="this.outerHTML=' + esc(JSON.stringify(ph)).replace(/"/g, '&quot;') + '">' : ph;
+}
   var t = p2Track(n.t), u = p2Unit(n); if (!t || !u) return '';
   var d = unitData(t, u.code);
   setTimeout(function () { (unitData(t, u.code).materials || []).forEach(function (m) { autoTitle(t, m); }); }, 0); // 題名・サムネイルを取りにいく
-  var mats = (d.materials || []).map(function (m, i) { return '<div class="p2mat"><span class="tag">' + esc(m.type || '記事') + '</span><input class="cell" data-p2m="' + i + '" value="' + esc(m.memo || '') + '" placeholder="' + esc(m.url) + '" aria-label="タイトル" autocomplete="off"><a href="' + esc(m.url) + '" target="_blank" rel="noopener">' + esc(host(m.url)) + '</a><button class="ib" data-p2a="mdel" data-i="' + i + '" aria-label="削除">' + ic('x') + '</button></div>'; }).join('');
+  var mats = (d.materials || []).map(function (m, i) { return '<div class="p2mat">' + matThumb(m) + '<input class="cell" data-p2m="' + i + '" value="' + esc(m.memo || '') + '" placeholder="' + esc(m.url) + '" aria-label="タイトル" autocomplete="off"><a href="' + esc(m.url) + '" target="_blank" rel="noopener">' + esc(host(m.url)) + '</a><button class="ib" data-p2a="mdel" data-i="' + i + '" aria-label="削除">' + ic('x') + '</button></div>'; }).join('');
   var qh = (d.quiz || []).map(function (q, qi) {
     return '<div class="qz"><div class="qzh"><span class="num">Q' + (qi + 1) + '</span><button class="ib qzx" data-qzdel="' + qi + '" aria-label="問題を削除" title="削除">' + ic('x') + '</button></div>' +
       '<textarea class="input" rows="2" data-qz="' + qi + '" data-qk="q" placeholder="問題" aria-label="問題">' + esc(q.q || '') + '</textarea>' +
@@ -5793,6 +5812,72 @@ boot();
     var r = b.getBoundingClientRect();
     el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: r.left, clientY: r.bottom + 2, button: 2 }));
   }, true);
+})();
+// 時間の入力：ブラウザ標準の代わりに、日付と同じ見た目の小さな選択欄を出す（指で触ったときは端末の標準）
+(function () {
+  var pop = null, cur = null, touch = false;
+  var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+  var isTime = function (el) { return el && el.tagName === 'INPUT' && el.type === 'time' && !el.disabled && !el.readOnly; };
+  var parts = function (v) { var m = /^(\d{2}):(\d{2})/.exec(v || ''); return m ? [+m[1], +m[2]] : null; };
+
+  function close(back) {
+    if (!pop) return; pop.remove(); pop = null;
+    if (back && cur && document.contains(cur)) cur.focus();
+    cur = null;
+  }
+  function set(h, m, done) {
+    var el = cur; if (!el) return;
+    el.value = h == null ? '' : pad(h) + ':' + pad(m);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+    if (done) close(true); else draw();
+  }
+  function draw() {
+    var p = parts(cur.value), hs = '', ms = '';
+    for (var h = 0; h < 24; h++) hs += '<button type="button" class="tpkc' + (p && p[0] === h ? ' on' : '') + '" data-tph="' + h + '">' + pad(h) + '</button>';
+    for (var m = 0; m < 60; m += 5) ms += '<button type="button" class="tpkc' + (p && p[1] === m ? ' on' : '') + '" data-tpm="' + m + '">' + pad(m) + '</button>';
+    var keep = pop.querySelector('.tpkl') ? [].map.call(pop.querySelectorAll('.tpkl'), function (l) { return l.scrollTop; }) : null;
+    pop.innerHTML = '<div class="tpkb"><div class="tpkl">' + hs + '</div><div class="tpkl">' + ms + '</div></div>' +
+      (cur.required ? '' : '<div class="dpkf"><span></span><button type="button" data-tpt="clear">消す</button></div>');
+    var ls = pop.querySelectorAll('.tpkl');
+    if (keep) { ls[0].scrollTop = keep[0]; ls[1].scrollTop = keep[1]; return; }
+    var now = new Date(), hh = p ? p[0] : now.getHours(), mm = p ? p[1] : 0;
+    ls[0].scrollTop = Math.max(0, hh * 32 - 64); ls[1].scrollTop = Math.max(0, Math.floor(mm / 5) * 32 - 64);
+  }
+  function place() {
+    var r = cur.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
+    pop.style.left = Math.max(8, Math.min(window.innerWidth - w - 8, r.left)) + 'px';
+    pop.style.top = (window.innerHeight - r.bottom - 8 >= h ? r.bottom + 6 : Math.max(8, r.top - h - 6)) + 'px';
+  }
+  function open(el) {
+    if (pop && cur === el) return;
+    close(); cur = el;
+    pop = document.createElement('div'); pop.className = 'dpk tpk'; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', '時間を選ぶ');
+    document.body.appendChild(pop); draw(); place();
+  }
+
+  document.addEventListener('pointerdown', function (e) {
+    touch = e.pointerType === 'touch' || e.pointerType === 'pen';
+    if (pop && !pop.contains(e.target) && e.target !== cur) close();
+  }, true);
+  document.addEventListener('click', function (e) {
+    if (pop && pop.contains(e.target)) {
+      var b = e.target.closest('button'); if (!b) return; e.preventDefault(); e.stopPropagation();
+      var p = parts(cur.value);
+      if (b.dataset.tph) set(+b.dataset.tph, p ? p[1] : 0, false);
+      else if (b.dataset.tpm) set(p ? p[0] : new Date().getHours(), +b.dataset.tpm, true);
+      else if (b.dataset.tpt === 'clear') set(null, 0, true);
+      return;
+    }
+    if (isTime(e.target) && !touch) open(e.target);
+  }, true);
+  document.addEventListener('keydown', function (e) {
+    if (!pop) return;
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(true); return; }
+    if (e.key === 'Tab' || (cur && e.target === cur)) close(); // 手で打つときは邪魔しない
+  }, true);
+  window.addEventListener('resize', function () { close(); });
+  document.addEventListener('scroll', function (e) { if (pop && !pop.contains(e.target)) close(); }, true);
 })();
 </script>
 <script>

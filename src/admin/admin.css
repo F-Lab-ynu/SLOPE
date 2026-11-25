@@ -1650,3 +1650,17 @@ select.cell{padding-right:26px;background-repeat:no-repeat;background-position:r
 .tdc,th.tdc{text-align:center}
 .evr .evg{text-align:center}
 .latec{min-width:56px;display:inline-flex;justify-content:center;flex:none}
+/* 時間の選択 */
+input[type=time]{cursor:pointer}
+input[type=time]::-webkit-calendar-picker-indicator{display:none}
+.tpk{width:168px}
+.tpkb{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.tpkl{height:192px;overflow-y:auto;display:flex;flex-direction:column;scrollbar-width:none}
+.tpkl::-webkit-scrollbar{display:none}
+.tpkc{flex:none;height:32px;border:0;border-radius:8px;background:transparent;font:inherit;font-variant-numeric:tabular-nums;color:var(--text);cursor:pointer}
+.tpkc:hover{background:var(--hover)}
+.tpkc.on,.tpkc.on:hover{background:var(--text);color:#fff;font-weight:700}
+.tpkc:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+/* 教材のサムネイル */
+.p2mat{height:52px;padding-left:6px}
+.p2th{width:64px;height:40px;border-radius:4px;object-fit:cover;background:var(--hover);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted)}

@@ -26,6 +26,9 @@ async def main():
                 await pg.click('.dpk [data-dpd="2026-12-10"]'); await pg.wait_for_timeout(400)
                 v = await pg.input_value('[data-ce=date]')
                 print(w, 'picker:', shown == 1, '| value:', v, '| closed:', await pg.locator('.dpk').count() == 0)
+                await pg.click('[data-ce=time]'); await pg.wait_for_timeout(200)
+                await pg.click('.tpk [data-tph="19"]'); await pg.click('.tpk [data-tpm="30"]'); await pg.wait_for_timeout(300)
+                print(w, 'time:', await pg.input_value('[data-ce=time]'), '| closed:', await pg.locator('.tpk').count() == 0)
             # 出席
             await pg.click('[data-attopen]'); await pg.wait_for_timeout(300)
             await pg.locator('[data-attm]').first.check(); await pg.wait_for_timeout(300)
