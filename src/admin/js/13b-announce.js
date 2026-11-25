@@ -1,7 +1,7 @@
-// ---------- お知らせ：部員ホームの一番上に出す（同時に1件。期限が来たら元の「NEXT」に戻る） ----------
+// ---------- お知らせ：部員ホームの一番上に、掲載期限まで出す（新しい順に最大5件。「NEXT」と左右に切り替わる） ----------
 function annsInit() { if (!S.anns) S.anns = []; return S.anns; }
 function annLive(a) { return a && a.until >= isoOf(TODAY); }
-function annActive() { return annsInit().filter(annLive).sort(function (a, b) { return a.at < b.at ? 1 : -1; })[0] || null; }
+function annLiveList() { return annsInit().filter(annLive).sort(function (a, b) { return a.at < b.at ? 1 : -1; }).slice(0, 5); }
 function annIn(days) { return isoOf(TODAY + (days || 7) * DAY); }
 // 中止のときの文面（編集できる）
 function annCancelText(c) {
@@ -20,10 +20,10 @@ document.addEventListener('change', function (e) { if (e.target.id === 'annOn') 
 
 // 告知タブ「お知らせ」
 function viewAnns() {
-  var L = annsInit().slice().sort(function (a, b) { return a.at < b.at ? 1 : -1; }), act = annActive();
+  var L = annsInit().slice().sort(function (a, b) { return a.at < b.at ? 1 : -1; }), act = annLiveList();
   if (!L.length) return '<div class="empty big">お知らせはまだありません</div>';
   return '<div class="evl anl"><div class="evr evh"><span>お知らせ</span><span>出した日</span><span>掲載期限</span><span class="tdc">状態</span><span></span></div>' + L.map(function (a) {
-    var st = a === act ? '<span class="pubc on nsw">掲載中</span>' : annLive(a) ? '<span class="pubc nsw" title="新しいお知らせが出ているため表示されていません">待機</span>' : '<span class="pubc end nsw">終了</span>';
+    var st = act.indexOf(a) >= 0 ? '<span class="pubc on nsw">掲載中</span>' : annLive(a) ? '<span class="pubc nsw" title="新しいお知らせが5件以上あるため表示されていません">待機</span>' : '<span class="pubc end nsw">終了</span>';
     return '<div class="evr' + (annLive(a) ? '' : ' past') + '" data-anid="' + a.id + '"><span class="evn"><b>' + esc(a.title) + '</b>' + (a.body ? '<span>' + esc(a.body) + '</span>' : '') + '</span>' +
       '<span class="evq num">' + pmd(a.at.slice(0, 10)) + '</span><span class="evq num">' + pmd(a.until) + '</span>' + st +
       '<span class="evact"><button class="ib" data-act="annEdit" data-id="' + a.id + '" aria-label="編集" title="編集">' + PEN + '</button><button class="rmore" type="button" tabindex="-1" aria-label="その他" title="その他">' + ic('more') + '</button></span></div>';

@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '2f92145071', FILE = 'admin.ver';
+  var VER = '1bf96f4aea', FILE = 'admin.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -2446,7 +2446,7 @@ function viewNotices() {
       }).join('') : '<tr><td colspan="5" class="empty">新しい情報はありません</td></tr>') + '</tbody></table></div>';
   }
   var evn = (S.cals || []).filter(function (c) { return (c.to || c.date || '9') >= isoOf(TODAY); }).length;
-  return top('告知') + utabs('ntab', [['ev', 'イベント', evn], ['ann', 'お知らせ', annActive() ? 1 : null], ['cal', 'カレンダー', null], ['list', '外部', S.notices.length], ['offer', '部員からの情報', wait.length]]) + '<div class="body">' + body + '</div>';
+  return top('告知') + utabs('ntab', [['ev', 'イベント', evn], ['ann', 'お知らせ', annLiveList().length || null], ['cal', 'カレンダー', null], ['list', '外部', S.notices.length], ['offer', '部員からの情報', wait.length]]) + '<div class="body">' + body + '</div>';
 }
 
 function notice(id) { return S.notices.filter(function (n) { return n.id === id; })[0]; }
@@ -5047,10 +5047,10 @@ document.addEventListener('input', function (e) {
   if (!e.target.dataset || e.target.dataset.evf !== 'date') return;
   var b = document.querySelector('.dlg [data-act="evPubDo"]'); if (b) b.disabled = !e.target.value;
 });
-// ---------- お知らせ：部員ホームの一番上に出す（同時に1件。期限が来たら元の「NEXT」に戻る） ----------
+// ---------- お知らせ：部員ホームの一番上に、掲載期限まで出す（新しい順に最大5件。「NEXT」と左右に切り替わる） ----------
 function annsInit() { if (!S.anns) S.anns = []; return S.anns; }
 function annLive(a) { return a && a.until >= isoOf(TODAY); }
-function annActive() { return annsInit().filter(annLive).sort(function (a, b) { return a.at < b.at ? 1 : -1; })[0] || null; }
+function annLiveList() { return annsInit().filter(annLive).sort(function (a, b) { return a.at < b.at ? 1 : -1; }).slice(0, 5); }
 function annIn(days) { return isoOf(TODAY + (days || 7) * DAY); }
 // 中止のときの文面（編集できる）
 function annCancelText(c) {
@@ -5069,10 +5069,10 @@ document.addEventListener('change', function (e) { if (e.target.id === 'annOn') 
 
 // 告知タブ「お知らせ」
 function viewAnns() {
-  var L = annsInit().slice().sort(function (a, b) { return a.at < b.at ? 1 : -1; }), act = annActive();
+  var L = annsInit().slice().sort(function (a, b) { return a.at < b.at ? 1 : -1; }), act = annLiveList();
   if (!L.length) return '<div class="empty big">お知らせはまだありません</div>';
   return '<div class="evl anl"><div class="evr evh"><span>お知らせ</span><span>出した日</span><span>掲載期限</span><span class="tdc">状態</span><span></span></div>' + L.map(function (a) {
-    var st = a === act ? '<span class="pubc on nsw">掲載中</span>' : annLive(a) ? '<span class="pubc nsw" title="新しいお知らせが出ているため表示されていません">待機</span>' : '<span class="pubc end nsw">終了</span>';
+    var st = act.indexOf(a) >= 0 ? '<span class="pubc on nsw">掲載中</span>' : annLive(a) ? '<span class="pubc nsw" title="新しいお知らせが5件以上あるため表示されていません">待機</span>' : '<span class="pubc end nsw">終了</span>';
     return '<div class="evr' + (annLive(a) ? '' : ' past') + '" data-anid="' + a.id + '"><span class="evn"><b>' + esc(a.title) + '</b>' + (a.body ? '<span>' + esc(a.body) + '</span>' : '') + '</span>' +
       '<span class="evq num">' + pmd(a.at.slice(0, 10)) + '</span><span class="evq num">' + pmd(a.until) + '</span>' + st +
       '<span class="evact"><button class="ib" data-act="annEdit" data-id="' + a.id + '" aria-label="編集" title="編集">' + PEN + '</button><button class="rmore" type="button" tabindex="-1" aria-label="その他" title="その他">' + ic('more') + '</button></span></div>';

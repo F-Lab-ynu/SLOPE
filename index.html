@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = 'e4848d6080', FILE = 'index.ver';
+  var VER = '4152dbe85d', FILE = 'index.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -677,7 +677,7 @@ function memberExtras(v) {
   // ホーム
   // 運営からのお知らせ（掲載期限まで）があれば、ホームの一番上をそれに
   var goCalTop = function () { if (window.__track) window.__track('cal'); self.setState({ tab: 'cal', sub: null }); };
-  var ann = D.items('ann').map(function (x) { return Object.assign({ at: x.created_at || '' }, x.data || {}, { id: x.id }); }).filter(function (a) { return a.title && (a.until || '') >= today; }).sort(function (a, b) { return a.at < b.at ? 1 : -1; })[0] || null;
+  var anns = D.items('ann').map(function (x) { return Object.assign({ at: x.created_at || '' }, x.data || {}, { id: x.id }); }).filter(function (a) { return a.title && (a.until || '') >= today; }).sort(function (a, b) { return a.at < b.at ? 1 : -1; }).slice(0, 5);
   var nextEv = D.clubEvents().filter(function (e) { return e.end >= today; }).sort(function (a, b) { return a.end < b.end ? -1 : 1; })[0];
   var tasks = D.myTasks().map(function (t, i, arr) { var dl = t.nodate ? 999 : daysTo(t.end); return { title: t.title, event: t.event, due: t.nodate ? '期間未定' : md(t.end) + ' ' + wd(t.end), dueColor: dl < 0 ? '#FF5C66' : (dl <= 3 ? RT : 'var(--n76)'), late: dl < 0, sep: i < arr.length - 1 ? '1px solid var(--n13)' : '0', done: function () { D.complete(t); } }; });
   var weekEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (6 - now.getDay()));
@@ -731,7 +731,8 @@ function memberExtras(v) {
   return {
     meIni: D.ini(D.me), isOps: D.isOps(), logout: D.logout,
     todayLabel: WDJ[now.getDay()] + ' · ' + (now.getMonth() + 1) + '.' + now.getDate(), hello: 'こんにちは、' + (self0.name || '') + 'さん',
-    topAnn: ann ? { has: true, title: ann.title, body: ann.body || '', tfs: ann.title.length > 22 ? '18px' : '21px', go: function () { annPop(ann); } } : { has: false },
+    anns: anns.map(function (a) { return { title: a.title, body: a.body || '', tfs: a.title.length > 22 ? '18px' : '21px', go: function () { annPop(a); } }; }), hasAnn: anns.length > 0,
+    dots: anns.concat([0]).map(function () { return {}; }),
     next: nextEv ? { has: true, lc: 'var(--ac)', rd: 'flex', wc: 'en', tfs: '21px', go: goCalTop, aid: '', label: 'NEXT · 部内イベント', title: nextEv.title, when: md(nextEv.end) + ' ' + wd(nextEv.end), left: String(Math.max(0, daysTo(nextEv.end))) } : { has: false, lc: 'var(--ac)', rd: 'flex', wc: 'en', tfs: '21px', go: goCalTop, aid: '', label: 'NEXT', title: '予定されているイベントはありません', when: '', left: '—' },
     learnCard: { n: rN ? rD + '/' + rN : '—', dash: (ring * pct).toFixed(1) + ' ' + ring.toFixed(1), track: myRole || 'ロール未設定', next: nextU ? nextU.code + '\n' + nextU.title : (roleT ? '全単元修了' : 'マイページでロールを選ぶ') },
     clubEvents: D.clubEvents().filter(function (e) { return e.tbd || e.end >= today; }).map(function (e) { var on = D.mine(e.id, 'join'), p = e.start.split('-');
@@ -997,7 +998,7 @@ setInterval(window.__chrome, 400);
 
 <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
 
-<div class="tcar" style="grid-column: span 2"><div class="tcart"><sc-if value="{{ topAnn.has }}"><button onClick="{{ topAnn.go }}" class="card tslide" style="width: 100%; min-height: 138px; padding: 22px 20px; display: flex; flex-direction: column; justify-content: center; gap: 8px; text-align: left; color: var(--fg); background: var(--n5); border-color: var(--n21)"><span class="en" style="font-size: 12px; letter-spacing: 0.12em; font-weight: 700; color: #F87171">お知らせ</span><span style="font-size: {{ topAnn.tfs }}; font-weight: 700; line-height: 1.3; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere">{{ topAnn.title }}</span><span style="font-size: 14px; line-height: 1.55; color: var(--n76); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere">{{ topAnn.body }}</span></button></sc-if><button onClick="{{ next.go }}" class="card tslide" style="width: 100%; min-height: 138px; padding: 22px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; text-align: left; color: var(--fg); background: var(--n5); border-color: var(--n21)">
+<div class="tcar" style="grid-column: span 2"><div class="tcart"><sc-for list="{{ anns }}" as="a"><button onClick="{{ a.go }}" class="card tslide" style="width: 100%; min-height: 138px; padding: 22px 20px; display: flex; flex-direction: column; justify-content: center; gap: 8px; text-align: left; color: var(--fg); background: var(--n5); border-color: var(--n21)"><span class="en" style="font-size: 12px; letter-spacing: 0.12em; font-weight: 700; color: #F87171">お知らせ</span><span style="font-size: {{ a.tfs }}; font-weight: 700; line-height: 1.3; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere">{{ a.title }}</span><span style="font-size: 14px; line-height: 1.55; color: var(--n76); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere">{{ a.body }}</span></button></sc-for><button onClick="{{ next.go }}" class="card tslide" style="width: 100%; min-height: 138px; padding: 22px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; text-align: left; color: var(--fg); background: var(--n5); border-color: var(--n21)">
 <span style="display: flex; flex-direction: column; gap: 8px; min-width: 0; flex: 1">
 <span class="en" style="font-size: 12px; letter-spacing: 0.12em; font-weight: 700; color: {{ next.lc }}">{{ next.label }}</span>
 <span style="font-size: {{ next.tfs }}; font-weight: 700; line-height: 1.3; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere">{{ next.title }}</span>
@@ -1007,7 +1008,7 @@ setInterval(window.__chrome, 400);
 <span class="big" style="font-size: 64px; font-weight: 700; color: var(--ac); line-height: 0.85">{{ next.left }}</span>
 <span class="en" style="font-size: 10px; letter-spacing: 0.14em; font-weight: 700; color: var(--n76); margin-top: 8px">DAYS LEFT</span>
 </span>
-</button></div><sc-if value="{{ topAnn.has }}"><div class="tdots" aria-hidden="true"><i></i><i></i></div></sc-if></div>
+</button></div><sc-if value="{{ hasAnn }}"><div class="tdots" aria-hidden="true"><sc-for list="{{ dots }}" as="d"><i></i></sc-for></div></sc-if></div>
 
 <button onClick="{{ goLearn }}" class="card" style="width: 100%; min-height: 148px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between; gap: 12px; text-align: left; color: var(--fg)">
 <span style="display: flex; justify-content: space-between; align-items: center; width: 100%"><span style="font-size: 13px; font-weight: 700; color: var(--n66)">学習</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--n37)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M7 17 17 7"></path><path d="M9 7h8v8"></path></svg></span>

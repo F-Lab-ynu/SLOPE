@@ -254,7 +254,7 @@ function memberExtras(v) {
   // ホーム
   // 運営からのお知らせ（掲載期限まで）があれば、ホームの一番上をそれに
   var goCalTop = function () { if (window.__track) window.__track('cal'); self.setState({ tab: 'cal', sub: null }); };
-  var ann = D.items('ann').map(function (x) { return Object.assign({ at: x.created_at || '' }, x.data || {}, { id: x.id }); }).filter(function (a) { return a.title && (a.until || '') >= today; }).sort(function (a, b) { return a.at < b.at ? 1 : -1; })[0] || null;
+  var anns = D.items('ann').map(function (x) { return Object.assign({ at: x.created_at || '' }, x.data || {}, { id: x.id }); }).filter(function (a) { return a.title && (a.until || '') >= today; }).sort(function (a, b) { return a.at < b.at ? 1 : -1; }).slice(0, 5);
   var nextEv = D.clubEvents().filter(function (e) { return e.end >= today; }).sort(function (a, b) { return a.end < b.end ? -1 : 1; })[0];
   var tasks = D.myTasks().map(function (t, i, arr) { var dl = t.nodate ? 999 : daysTo(t.end); return { title: t.title, event: t.event, due: t.nodate ? '期間未定' : md(t.end) + ' ' + wd(t.end), dueColor: dl < 0 ? '#FF5C66' : (dl <= 3 ? RT : '#BDBAB3'), late: dl < 0, sep: i < arr.length - 1 ? '1px solid #252524' : '0', done: function () { D.complete(t); } }; });
   var weekEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (6 - now.getDay()));
@@ -308,7 +308,8 @@ function memberExtras(v) {
   return {
     meIni: D.ini(D.me), isOps: D.isOps(), logout: D.logout,
     todayLabel: WDJ[now.getDay()] + ' · ' + (now.getMonth() + 1) + '.' + now.getDate(), hello: 'こんにちは、' + (self0.name || '') + 'さん',
-    topAnn: ann ? { has: true, title: ann.title, body: ann.body || '', tfs: ann.title.length > 22 ? '18px' : '21px', go: function () { annPop(ann); } } : { has: false },
+    anns: anns.map(function (a) { return { title: a.title, body: a.body || '', tfs: a.title.length > 22 ? '18px' : '21px', go: function () { annPop(a); } }; }), hasAnn: anns.length > 0,
+    dots: anns.concat([0]).map(function () { return {}; }),
     next: nextEv ? { has: true, lc: '#F2A93B', rd: 'flex', wc: 'en', tfs: '21px', go: goCalTop, aid: '', label: 'NEXT · 部内イベント', title: nextEv.title, when: md(nextEv.end) + ' ' + wd(nextEv.end), left: String(Math.max(0, daysTo(nextEv.end))) } : { has: false, lc: '#F2A93B', rd: 'flex', wc: 'en', tfs: '21px', go: goCalTop, aid: '', label: 'NEXT', title: '予定されているイベントはありません', when: '', left: '—' },
     learnCard: { n: rN ? rD + '/' + rN : '—', dash: (ring * pct).toFixed(1) + ' ' + ring.toFixed(1), track: myRole || 'ロール未設定', next: nextU ? nextU.code + '\n' + nextU.title : (roleT ? '全単元修了' : 'マイページでロールを選ぶ') },
     clubEvents: D.clubEvents().filter(function (e) { return e.tbd || e.end >= today; }).map(function (e) { var on = D.mine(e.id, 'join'), p = e.start.split('-');

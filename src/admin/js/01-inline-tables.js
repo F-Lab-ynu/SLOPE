@@ -53,7 +53,7 @@ function viewNotices() {
       }).join('') : '<tr><td colspan="5" class="empty">新しい情報はありません</td></tr>') + '</tbody></table></div>';
   }
   var evn = (S.cals || []).filter(function (c) { return (c.to || c.date || '9') >= isoOf(TODAY); }).length;
-  return top('告知') + utabs('ntab', [['ev', 'イベント', evn], ['ann', 'お知らせ', annActive() ? 1 : null], ['cal', 'カレンダー', null], ['list', '外部', S.notices.length], ['offer', '部員からの情報', wait.length]]) + '<div class="body">' + body + '</div>';
+  return top('告知') + utabs('ntab', [['ev', 'イベント', evn], ['ann', 'お知らせ', annLiveList().length || null], ['cal', 'カレンダー', null], ['list', '外部', S.notices.length], ['offer', '部員からの情報', wait.length]]) + '<div class="body">' + body + '</div>';
 }
 
 function notice(id) { return S.notices.filter(function (n) { return n.id === id; })[0]; }
