@@ -2822,6 +2822,7 @@ html.light{color-scheme:light}
 .bxa{display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 8px;border:0;border-radius:999px;background:transparent;color:#7D7B76;font:inherit;font-size:13px;cursor:pointer;text-decoration:none}
 .bxa:active{background:#1C1C1B}
 .bxa.on{color:#F2A93B}.bxa.on svg{fill:currentColor}
+.bxa[data-bxr="vote"].on,.bxa[data-bxr="like"].on{color:#F4395E} /* ♡はいつもの赤 */
 .bxa[data-bxr="emp"].on svg,.bxa[data-bxr="plan"].on svg{fill:none}
 .bxl{font-weight:600}
 .bxgo{height:32px;padding:0 14px;border:1px solid #474744;border-radius:999px;background:transparent;color:#F3F1EC;font:inherit;font-size:13px;font-weight:700;cursor:pointer}
@@ -2854,15 +2855,23 @@ body.wide .bxfab{bottom:32px;right:32px}
 .bxpe img{width:100%;aspect-ratio:16/10;object-fit:cover;display:block}
 .bxpe button{position:absolute;top:6px;right:6px;width:28px;height:28px;border:0;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .bxpe button svg{width:14px;height:14px;stroke:currentColor;stroke-width:2.4;fill:none}
-.bxrl{margin-top:16px;display:flex;flex-direction:column;gap:8px}
+.bxrl{margin-top:12px;display:flex;flex-direction:column;gap:8px}
 .bxrl>span{font-size:13px;color:#A3A19B}
 .bxrl div{display:flex;flex-wrap:wrap;gap:8px}
-.bxrl button{height:34px;padding:0 14px;border:1px solid #383836;border-radius:17px;background:transparent;color:#D2CFC8;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.bxrl div{flex-wrap:wrap;gap:6px !important}
+.bxrl div::-webkit-scrollbar{display:none}
+.bxrl button{flex:none;height:30px;padding:0 12px;border:1px solid #2C2C2A;border-radius:15px;background:#131313;color:#BDBAB3;font:inherit;font-size:12px;font-weight:600;cursor:pointer}
 .bxrl button[aria-pressed="true"]{background:#F3F1EC;color:#070707;border-color:#F3F1EC}
 .bxnt{flex:none;display:flex;align-items:center;gap:12px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));border-top:1px solid #232322}
 .bxpk{height:40px;padding:0 16px 0 12px;display:inline-flex;align-items:center;gap:8px;color:#F3F1EC;border:1px solid #383836;border-radius:20px;font-size:14px;font-weight:600;cursor:pointer}
 .bxpk svg{width:22px !important;height:22px !important;color:#F2A93B}
 .bxpk.off{opacity:.35;cursor:default}
+button.bxpk{background:transparent;font:inherit}
+.bxpk.on{background:#F3F1EC;color:#070707;border-color:#F3F1EC}.bxpk.on svg{color:#070707}
+.bxsl{display:flex;flex-direction:column;margin-top:8px;border:1px solid #232322;border-radius:12px;overflow:hidden}
+.bxsr{display:flex;align-items:center;gap:12px;padding:10px 12px;border-top:1px solid #1C1C1B}.bxsr:first-child{border-top:0}
+.bxsr span{flex:1;display:flex;flex-direction:column;gap:2px}.bxsr b{font-size:15px}.bxsr small{font-size:12px;color:#7D7B76}
+.bxgo.on{background:transparent;color:#7D7B76;border-color:#2C2C2A}
 .bxpk input{display:none}
 .bxnt .bxpn{margin-left:auto;font-size:12px;color:#7D7B76}
 #bxmn{position:fixed;inset:0;z-index:2147481600;display:flex;align-items:flex-end;justify-content:center}
