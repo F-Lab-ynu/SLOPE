@@ -15,7 +15,7 @@
                ['#E8F0F8','#14202E','#2F6FB0'],['#EEEAF7','#1F1A2E','#6B4FC9'],['#F8EAEA','#2E1A1C','#C9374B'],['#E9E9E6','#1C1C1B','#4A4A47']]]
   ];/*/NOTHEME*/
   function lightOf(bg) { var c = parseInt(bg.slice(1), 16); return ((c >> 16) + ((c >> 8) & 255) + (c & 255)) / 3 > 128; }
-  window.__theme = function () { try { var t = JSON.parse(localStorage.getItem('slope-theme') || 'null'); if (t && t.length === 3) return t; } catch (e) {} return T[0][1][0]; };
+  window.__theme = function () { try { var t = JSON.parse(localStorage.getItem('slope-theme') || 'null'); if (t && t.length === 3) return t; } catch (e) {} return T[0][1][7]; }; // 最初はダークの赤
   window.__applyTheme = function (t) {
     var r = document.documentElement; r.style.setProperty('--bg', t[0]); r.style.setProperty('--fg', t[1]); r.style.setProperty('--ac', t[2]);
     r.classList.toggle('light', lightOf(t[0])); var m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', t[0]);
@@ -363,7 +363,7 @@ body.wide .iqsheet{bottom:auto;top:50%;transform:translate(-50%,-50%);border-bot
 #annpop{position:fixed;inset:0;z-index:2147481500;display:flex;align-items:center;justify-content:center;padding:24px}
 #annpop .anbg{position:absolute;inset:0;background:rgba(0,0,0,.45);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);animation:anfade .18s ease}
 #annpop .ancard{position:relative;width:min(440px,100%);max-height:80vh;overflow:auto;padding:24px 22px 18px;border-radius:16px;background:#131313;border:1px solid #2C2C2A;color:#F3F1EC;display:flex;flex-direction:column;gap:12px;animation:anup .2s ease}
-#annpop .anl{font-size:12px;letter-spacing:.12em;font-weight:700;color:#F87171}
+#annpop .anl{font-size:12px;letter-spacing:.12em;font-weight:700;color:#F2A93B}
 #annpop h2{margin:0;font-size:20px;line-height:1.4;font-weight:700;overflow-wrap:anywhere}
 #annpop p{margin:0;font-size:15px;line-height:1.75;color:#D2CFC8;overflow-wrap:anywhere}
 #annpop .anok{align-self:flex-end;margin-top:6px;height:40px;padding:0 18px;border:0;border-radius:10px;background:#2C2C2A;color:#F3F1EC;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
