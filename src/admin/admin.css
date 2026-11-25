@@ -1786,3 +1786,10 @@ button.evst[aria-expanded="true"] svg{transform:none}
   .evs .evgo,.evs .pubc{grid-area:s;min-width:88px}
   .evs .evr .evp.dim{display:none}
 }
+/* 業務のイベント：実施日（告知の予定と同じ） */
+.fres{flex-wrap:wrap;align-items:center;gap:6px 16px}
+.evdt{display:inline-flex;align-items:center;gap:6px}
+.evdl{font-size:13px;color:var(--sub)}
+.evdi.input{height:30px;width:auto;min-width:0;padding:0 8px;font-size:13px}
+.evds{color:var(--muted)}
+.evdr{display:inline-flex;align-items:baseline;gap:4px}

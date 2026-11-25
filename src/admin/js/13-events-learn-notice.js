@@ -4,7 +4,16 @@ function pmd(x) { return x ? x.slice(5).replace('-', '.') : ''; }
 function evCal(id) { return (S.cals || []).filter(function (x) { return x.id === id; })[0] || null; }
 function evInProg(cid) { return !!(S.program && S.program.v2 && p2Find(function (n) { return n.k === 'e' && n.ref === cid; })); }
 function evOutProg(cid) { var f; while ((f = p2Find(function (n) { return n.k === 'e' && n.ref === cid; }))) f.arr.splice(f.i, 1); }
-function evFolder(cid) { return allNodes().filter(function (n) { return isFolder(n) && isEvent(n) && n.ev === cid; })[0] || null; }
+function evFolder(cid) { return allNodes().filter(function (n) { return isEvent(n) && n.ev === cid; })[0] || null; } // イベントにしたフォルダー・ファイル
+function can0(k) { return typeof can === 'function' && can(k); }
+// 業務のイベントの実施日：告知の予定と同じもの（どちらで変えても同じ）
+document.addEventListener('change', function (e) {
+  var el = e.target; if (!el.dataset || !el.dataset.evd) return; var c = evCal(el.dataset.cid); if (!c) return;
+  snap(); c[el.dataset.evd] = el.value;
+  if (el.dataset.evd === 'date' && !c.date) { toast('実施日は空にできません'); c.date = el.defaultValue; }
+  if (c.to && c.to <= c.date) c.to = '';
+  evChanged(c); evSync(); save(); render();
+}, true);
 function evJoins(c) { return (S.joins || {})[c.id] || 0; }
 function evNew(title, date) { var c = { id: uid('c'), title: title || '新しいイベント', date: date || isoOf(TODAY), to: '', time: '', place: '', memo: '', link: '', state: 'draft' }; calsInit().push(c); return c; }
 function evSync() { // プログラムの中のイベントに、本体（予定）の中身を写す（部員側の控え）
@@ -125,12 +134,13 @@ function evMerge(fromId, toId) {
   if (evJoins(a)) { toast('参加登録がある「' + a.title + '」の方を、まとめる先にしてください'); return; }
   snap();
   var inB = evInProg(b.id); p2Walk(p2(), function (n) { if (n.k === 'e' && n.ref === a.id) { if (inB) n._dead = 1; else { n.ref = b.id; inB = true; } } });
-  var fa = evFolder(a.id), fb = evFolder(b.id); if (fa) { if (fb) { fa.kind = 'folder'; delete fa.ev; } else fa.ev = b.id; }
+  var fa = evFolder(a.id), fb = evFolder(b.id); if (fa) { if (fb) evOff(fa); else fa.ev = b.id; }
   b.att = (b.att || []).concat((a.att || []).filter(function (x) { return (b.att || []).indexOf(x) < 0; }));
   ['to', 'time', 'place', 'memo', 'link'].forEach(function (k) { if (!b[k] && a[k]) b[k] = a[k]; });
   S.cals = S.cals.filter(function (x) { return x !== a; }); evSync(); save(); render(); toastUndo('「' + a.title + '」を「' + b.title + '」にまとめました');
 }
-function evUnlink(n) { snap(); n.kind = 'folder'; delete n.ev; save(); render(); toast('イベントを外しました（イベント自体は告知に残っています）'); }
+function evOff(n) { if (isFolder(n)) n.kind = 'folder'; else delete n.kind; delete n.ev; }
+function evUnlink(n) { snap(); evOff(n); save(); render(); toast('イベントを外しました（イベント自体は告知に残っています）'); }
 
 // ---------- 告知のイベント一覧：全部。学ぶ・業務とつながっているものには印 ----------
 // 告知のイベント：計画中 → 公開中 → 当日 →（終了）。当日・終了は日付で自動
@@ -178,7 +188,7 @@ window.addEventListener('contextmenu', function (e) {
     [c.state === 'pub' ? (evJoins(c) ? '中止する' : '非公開にする') : '部員に公開する', function () { evPubAsk(c.id); }, false, ok ? '' : '告知の権限が必要'],
     'sep', [pg ? '学ぶから外す' : '学ぶに出す', function () { if (pg) { snap(); evOutProg(c.id); evSync(); save(); render(); toast('学ぶから外しました'); } else evToProg(c.id); }, false, can('tracks') ? '' : '教材の権限が必要'],
     ['ほかのイベントとまとめる', function () { evPickAsk('merge', c.id); }, false, ok ? '' : '告知の権限が必要'],
-    'sep', ['削除', function () { snap(); evOutProg(c.id); var fo = evFolder(c.id); if (fo) { fo.kind = 'folder'; delete fo.ev; } S.cals = S.cals.filter(function (x) { return x !== c; }); save(); render(); toastUndo('「' + c.title + '」を削除しました'); }, true, ok ? '' : '告知の権限が必要']], e.clientX, e.clientY);
+    'sep', ['削除', function () { snap(); evOutProg(c.id); var fo = evFolder(c.id); if (fo) evOff(fo); S.cals = S.cals.filter(function (x) { return x !== c; }); save(); render(); toastUndo('「' + c.title + '」を削除しました'); }, true, ok ? '' : '告知の権限が必要']], e.clientX, e.clientY);
 }, true);
 
 // 公開の入力：開始日が入ったら「公開する」を押せるように

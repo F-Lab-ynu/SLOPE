@@ -157,7 +157,7 @@ function fcard(n) {
   var can = ed || n.who === S.me, lt = late(n) && !n.done;
   return '<div class="fcard istc' + (n.done ? ' dn' : '') + (lt ? ' lt' : '') + '" data-act="fgo" data-id="' + n.id + '" tabindex="0" role="button" aria-label="' + esc(ttl(n)) + 'を開く">' +
     '<button class="fcx rmore" type="button" aria-label="その他" title="その他">' + ic('more') + '</button>' +
-    '<div class="fct">' + FILE + '<button class="tck" data-act="tdone" data-id="' + n.id + '" aria-pressed="' + !!n.done + '"' + (can ? '' : ' disabled') + ' aria-label="完了"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12l4 4 8-8"/></svg></button><span class="sp"></span><span class="fcm num' + (n.nodate ? ' nodt' : '') + (lt ? ' bad' : '') + '">' + (n.nodate ? '期間未定' : shortDate(n.end)) + '</span></div>' +
+    '<div class="fct">' + FILE + (isEvent(n) ? '<i class="evd" title="イベント"></i>' : '') + '<button class="tck" data-act="tdone" data-id="' + n.id + '" aria-pressed="' + !!n.done + '"' + (can ? '' : ' disabled') + ' aria-label="完了"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12l4 4 8-8"/></svg></button><span class="sp"></span><span class="fcm num' + (n.nodate ? ' nodt' : '') + (lt ? ' bad' : '') + '">' + (n.nodate ? '期間未定' : shortDate(n.end)) + '</span></div>' +
     nm +
     (n.memo ? '<div class="fmemo">' + esc(memoText(n.memo).slice(0, 160)) + '</div>' : '') +
     '<div class="fcf">' + (canAssign(n)
@@ -184,7 +184,10 @@ function fhead2() {
     '</div>' + (f && isEvent(f) ? fresHTML(f) : '') + fmemoHTML(f) + '</div>';
 }
 function fresHTML(f) {
-  return '<div class="fres">参加 <b class="num">' + evCount(f) + '</b><span class="muted num"> / ' + (S.club || 150) + '人・' + pct(f) + '%</span></div>';
+  var c = f.ev && evCal(f.ev), can = c && (editSelf(f) || isLead(f, S.me) || can0('notices'));
+  var dt = c ? '<span class="evdt"><span class="evdl">実施日</span><input type="date" class="input evdi" data-evd="date" data-cid="' + c.id + '" value="' + esc(c.date || '') + '"' + (can ? '' : ' disabled') + ' aria-label="実施日">' +
+    '<span class="evds">–</span><input type="date" class="input evdi" data-evd="to" data-cid="' + c.id + '" value="' + esc(c.to || '') + '"' + (can ? '' : ' disabled') + ' aria-label="終了日（1日だけなら空）"></span>' : '';
+  return '<div class="fres">' + dt + '<span class="evdr">参加 <b class="num">' + evCount(f) + '</b><span class="muted num"> / ' + (S.club || 150) + '人・' + pct(f) + '%</span></span></div>';
 }
 function linkify(t) { return esc(t).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>'); }
 function fmemoHTML(f) {
@@ -201,7 +204,7 @@ document.addEventListener('click', function (e) {
   else {
     e.stopImmediatePropagation(); e.preventDefault();
     if (m.dataset.act === 'fmenu') { UI.fmn = !UI.fmn; render(); return; }
-    var f0 = curFolder(); UI.fmn = false; if (!f0) return;
+    var f0 = m.dataset.id ? task(m.dataset.id) : curFolder(); UI.fmn = false; if (!f0) return;
     if (isEvent(f0)) evUnlink(f0); else evPickAsk('folder', f0.id);
     return;
   }
@@ -349,7 +352,7 @@ function cmItems(n) {
   if (editSelf(n) || (!f && n.who === S.me)) add('edit', '名前・担当・期間を編集');
   if (f && manages(n)) { sep(); add('newF', '新しいフォルダー'); add('newT', '新しいファイル'); }
   if (!f && (editSelf(n) || n.who === S.me)) { sep(); if (editSelf(n) && !n.nodate) add2('cm4', 'nodate', '期間を未定にする'); add('done', n.done ? '未完了に戻す' : '完了にする'); add('toF', 'フォルダーに変える'); }
-  if (f && (editSelf(n) || isLead(n, S.me))) add('evt', isEvent(n) ? 'イベントを外す' : 'イベントにする');
+  if (editSelf(n) || isLead(n, S.me)) add('evt', isEvent(n) ? 'イベントを外す' : 'イベントにする');
   if (f && manages(p)) add('dup', '複製…');
   if (!f && canAssign(n) && n.who !== S.me) add2('cm2', 'me', '自分が担当する');
   if (f && !kids(n).length && p && editSelf(n)) add2('cm2', 'toFile', 'ファイルに変える');
@@ -502,8 +505,8 @@ function filePage(n) {
     (editSelf(n) ? '<button class="fh2m fper num' + (lt ? ' bad' : '') + '" data-act="fper" title="期間を変更">' + per + '</button>' : '<span class="fh2m num' + (lt ? ' bad' : '') + '">' + per + '</span>') +
     who + '<span class="sp"></span>' +
     (editSelf(n) || n.who === S.me ? '<span class="srtw"><button class="ib fhb" data-act="fmenu" aria-label="その他" title="その他" aria-expanded="' + !!UI.fmn + '">' + ic('more') + '</button>' +
-      (UI.fmn ? '<div class="srtm" role="menu"><button role="menuitem" data-act="toFolder" data-id="' + n.id + '">フォルダーに変える</button>' + (editSelf(n) ? '<button role="menuitem" data-act="edit" data-id="' + n.id + '">名前・期間を編集</button>' : '') + '</div>' : '') + '</span>' : '') +
-    '</div></div>';
+      (UI.fmn ? '<div class="srtm" role="menu"><button role="menuitem" data-act="toFolder" data-id="' + n.id + '">フォルダーに変える</button>' + (editSelf(n) ? '<button role="menuitem" data-act="fEvt" data-id="' + n.id + '">' + (isEvent(n) ? 'イベントを外す' : 'イベントにする') + '</button>' : '') + (editSelf(n) ? '<button role="menuitem" data-act="edit" data-id="' + n.id + '">名前・期間を編集</button>' : '') + '</div>' : '') + '</span>' : '') +
+    '</div>' + (isEvent(n) ? fresHTML(n) : '') + '</div>';
   var memo = '<div class="body"><div class="fpage2">' + (canM ? docBar() : '') +
     '<div class="fdoc" id="fdoc" data-id="' + n.id + '"' + (canM ? ' contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="メモ" data-ph="メモ"' : ' data-ph="メモはありません"') + '>' + docHTML(n.memo) + '</div></div></div>';
   return top('業務') + '<div class="wk"><aside class="ftree" aria-label="フォルダー">' + ftree() + '</aside><div class="wkm">' + head + memo + '</div></div>';
