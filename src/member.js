@@ -331,10 +331,14 @@ function memberExtras(v) {
       return { label: '参加予定', n: String(js.length), note: js.length ? '次 ' + (js[0].tbd ? '' : md(js[0].start || js[0].end) + ' ') + js[0].title : '予定タブから参加登録', go: function () { self.setState({ tab: 'cal', sub: null }); } };
     })(),
     weekCount: String(weekEv.length),
-    week: (function () { // 今週の予定：いちばん近いものの名前（なければ —）
+    week: (function () { // 今週の予定：いちばん近いものの名前（なければ —）と、日〜土のどの日に予定があるか
       var L = weekEv.slice().sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; }), e0 = L[0];
-      if (!e0) return { has: false, none: true, title: '', sub: '予定なし' };
-      return { has: true, none: false, title: e0.title, sub: md(e0.date) + ' ' + wd(e0.date) + (e0.time ? ' ' + e0.time : '') + (L.length > 1 ? '・ほか ' + (L.length - 1) + '件' : '') };
+      var iso = function (d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+      var all = D.calendar(), days = ['日', '月', '火', '水', '木', '金', '土'].map(function (l, k) {
+        var dt = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay() + k)), has = all.some(function (e) { return e.date === dt; }), isT = dt === today, past = dt < today;
+        return { l: l, fw: isT ? '700' : '500', lc: isT ? 'var(--fg)' : 'var(--n37)', bg: has ? (past ? 'var(--n37)' : 'var(--ac)') : 'var(--n16)' };
+      });
+      return { has: !!e0, none: !e0, title: e0 ? e0.title : '', days: days };
     })(), boardNew: { n: String(recent.length), inis: inis.map(function (i) { return { i: i }; }), note: '募集・意見 ' + nr + ' · ペイン ' + np },
     hasNews: false, notifs: notifs, hasNotifs: notifs.length > 0, notifsAll: notifsAll, noNotifs: !notifsAll.length, bellDot: D.notifs().some(function (n) { return !n.read; }) ? 'block' : 'none',
     nPop: !!s.nPop, closeNotifs: function () { self.setState({ nPop: false }); },

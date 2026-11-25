@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = 'f06aa5a97d', FILE = 'index.ver';
+  var VER = 'ec7ac1517c', FILE = 'index.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -756,10 +756,14 @@ function memberExtras(v) {
       return { label: '参加予定', n: String(js.length), note: js.length ? '次 ' + (js[0].tbd ? '' : md(js[0].start || js[0].end) + ' ') + js[0].title : '予定タブから参加登録', go: function () { self.setState({ tab: 'cal', sub: null }); } };
     })(),
     weekCount: String(weekEv.length),
-    week: (function () { // 今週の予定：いちばん近いものの名前（なければ —）
+    week: (function () { // 今週の予定：いちばん近いものの名前（なければ —）と、日〜土のどの日に予定があるか
       var L = weekEv.slice().sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; }), e0 = L[0];
-      if (!e0) return { has: false, none: true, title: '', sub: '予定なし' };
-      return { has: true, none: false, title: e0.title, sub: md(e0.date) + ' ' + wd(e0.date) + (e0.time ? ' ' + e0.time : '') + (L.length > 1 ? '・ほか ' + (L.length - 1) + '件' : '') };
+      var iso = function (d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+      var all = D.calendar(), days = ['日', '月', '火', '水', '木', '金', '土'].map(function (l, k) {
+        var dt = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay() + k)), has = all.some(function (e) { return e.date === dt; }), isT = dt === today, past = dt < today;
+        return { l: l, fw: isT ? '700' : '500', lc: isT ? 'var(--fg)' : 'var(--n37)', bg: has ? (past ? 'var(--n37)' : 'var(--ac)') : 'var(--n16)' };
+      });
+      return { has: !!e0, none: !e0, title: e0 ? e0.title : '', days: days };
     })(), boardNew: { n: String(recent.length), inis: inis.map(function (i) { return { i: i }; }), note: '募集・意見 ' + nr + ' · ペイン ' + np },
     hasNews: false, notifs: notifs, hasNotifs: notifs.length > 0, notifsAll: notifsAll, noNotifs: !notifsAll.length, bellDot: D.notifs().some(function (n) { return !n.read; }) ? 'block' : 'none',
     nPop: !!s.nPop, closeNotifs: function () { self.setState({ nPop: false }); },
@@ -1074,19 +1078,19 @@ setInterval(window.__chrome, 400);
 </span>
 </button>
 
-<button onClick="{{ goCal }}" class="card" style="width: 100%; min-height: 148px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between; gap: 12px; text-align: left; color: var(--fg)">
-<span style="display: flex; justify-content: space-between; align-items: center; width: 100%"><span style="font-size: 13px; font-weight: 700; color: var(--n66)">今週の予定</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--n37)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M7 17 17 7"></path><path d="M9 7h8v8"></path></svg></span>
-<span style="display: flex; flex-direction: column; gap: 10px; width: 100%">
-<sc-if value="{{ week.has }}"><span style="font-size: 19px; font-weight: 700; line-height: 1.3; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere">{{ week.title }}</span></sc-if><sc-if value="{{ week.none }}"><span class="big" style="font-size: 46px; font-weight: 700; line-height: 0.9">—</span></sc-if>
-<span style="font-size: 13px; color: var(--n76); overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ week.sub }}</span>
-</span>
-</button>
-
 <button onClick="{{ goBoard }}" class="card" style="width: 100%; min-height: 148px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between; gap: 12px; text-align: left; color: var(--fg)">
 <span style="display: flex; justify-content: space-between; align-items: center; width: 100%"><span style="font-size: 13px; font-weight: 700; color: var(--n66)">掲示板の新着</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--n37)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M7 17 17 7"></path><path d="M9 7h8v8"></path></svg></span>
 <span style="display: flex; flex-direction: column; gap: 10px">
 <span style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><span style="display: flex; align-items: baseline; gap: 4px"><span class="big" style="font-size: 46px; font-weight: 700; line-height: 0.9">{{ boardNew.n }}</span><span style="font-size: 14px; color: var(--n66)">件</span></span><span style="display: flex; padding-left: 6px"><sc-for list="{{ boardNew.inis }}" as="b"><span style="width: 26px; height: 26px; border-radius: 50%; margin-left: -6px; background: var(--n21); border: 2px solid var(--n5); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: var(--fg)">{{ b.i }}</span></sc-for></span></span>
 <span style="font-size: 13px; color: var(--n76)">{{ boardNew.note }}</span>
+</span>
+</button>
+
+<button onClick="{{ goCal }}" class="card" style="width: 100%; min-height: 148px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between; gap: 12px; text-align: left; color: var(--fg)">
+<span style="display: flex; justify-content: space-between; align-items: center; width: 100%"><span style="font-size: 13px; font-weight: 700; color: var(--n66)">今週の予定</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--n37)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M7 17 17 7"></path><path d="M9 7h8v8"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 10px; width: 100%">
+<sc-if value="{{ week.has }}"><span style="font-size: 19px; font-weight: 700; line-height: 1.3; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; overflow-wrap: anywhere">{{ week.title }}</span></sc-if><sc-if value="{{ week.none }}"><span class="big" style="font-size: 46px; font-weight: 700; line-height: 0.9">—</span></sc-if>
+<span style="display: flex; width: 100%"><sc-for list="{{ week.days }}" as="d"><span style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px"><span style="font-size: 10px; font-weight: {{ d.fw }}; color: {{ d.lc }}">{{ d.l }}</span><span style="width: 6px; height: 6px; border-radius: 50%; background: {{ d.bg }}"></span></span></sc-for></span>
 </span>
 </button>
 
