@@ -662,7 +662,7 @@ function annPop(a) {
       '<div class="bxnb">' + (reply ? original(NEW.parent) : '') + '<div class="bxnr"><span class="bxav">' + e(D.ini(D.me)) + '</span><div class="bxnc"><textarea id="bxtx" placeholder="' + PH[NEW.tab] + '">' + e(val) + '</textarea>' +
       (NEW.files.length ? '<div class="bxp n' + NEW.files.length + ' edit">' + NEW.files.map(function (f, i) { return '<span class="bxpe"><img src="' + f.url + '" alt=""><button data-bxrm="' + i + '" aria-label="写真を外す">' + IC.x + '</button></span>'; }).join('') + '</div>' : '') +
       '</div></div></div>' +
-      '<div class="bxnt"><label class="bxpk' + (NEW.files.length >= 4 ? ' off' : '') + '" title="写真（4枚まで）">' + IC.photo + '<span>' + (NEW.files.length ? NEW.files.length + '/4' : '写真') + '</span><input type="file" accept="image/*" multiple id="bxfile"' + (NEW.files.length >= 4 ? ' disabled' : '') + '></label>' +
+      '<div class="bxnt"><label class="bxpk ico' + (NEW.files.length >= 4 ? ' off' : '') + '" title="写真（4枚まで）" aria-label="写真を追加">' + IC.photo + (NEW.files.length ? '<span>' + NEW.files.length + '/4</span>' : '') + '<input type="file" accept="image/*" multiple id="bxfile"' + (NEW.files.length >= 4 ? ' disabled' : '') + '></label>' +
       (reply ? '' : '<button class="bxpk" data-bxkind="1">' + IC.tag + '<span>' + e(kn) + '</span>' + IC.chev + '</button>') +
       (NEW.tab === 'idea' ? '<button class="bxpk' + (NEW.roles.length ? ' on' : '') + '" data-bxrec="1">' + IC.ppl + '<span>' + (NEW.roles.length ? '募集 ' + NEW.roles.length : 'メンバー募集') + '</span></button>' : '') + '</div>';
     fit(); var tx = document.getElementById('bxtx'); if (tx && !first) { tx.focus(); tx.setSelectionRange(tx.value.length, tx.value.length); }
@@ -683,7 +683,8 @@ function annPop(a) {
   }
   // キーボードが出ても、下の帯と返信欄はその上に
   function fit() {
-    var vv = window.visualViewport; ['bxnew', 'bxth'].forEach(function (id) { var w = document.getElementById(id); if (!w) return; if (!vv) { w.style.height = ''; return; } w.style.top = vv.offsetTop + 'px'; w.style.height = vv.height + 'px'; w.style.bottom = 'auto'; });
+    var vv = window.visualViewport, kb = !!vv && window.innerHeight - vv.height > 120; // キーボードが出ている
+    ['bxnew', 'bxth'].forEach(function (id) { var w = document.getElementById(id); if (!w) return; w.classList.toggle('kb', kb); if (!vv) { w.style.height = ''; return; } w.style.top = vv.offsetTop + 'px'; w.style.height = vv.height + 'px'; w.style.bottom = 'auto'; });
   }
   if (window.visualViewport) { window.visualViewport.addEventListener('resize', fit); window.visualViewport.addEventListener('scroll', fit); }
   function shrink(file) { // 端末で縮めてから送る（長い辺 1600px・JPEG）
