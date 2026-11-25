@@ -5,8 +5,9 @@ function whoOpts(n) { // 担当の選択肢：選べる人が決まっていれ�
   var inT = S.members.filter(function (m) { return pt.indexOf(m.id) >= 0; }), out = S.members.filter(function (m) { return pt.indexOf(m.id) < 0; });
   return '<option value="">未定</option>' + (inT.length ? '<optgroup label="' + esc(ttl(p)) + 'のメンバー">' + inT.map(o).join('') + '</optgroup><optgroup label="その他">' + out.map(o).join('') + '</optgroup>' : out.map(o).join(''));
 }
+function tpAnchor(id) { return document.querySelector('.tbtn[data-id="' + id + '"], .gwho[data-id="' + id + '"]'); }
 function openTeam(id, keep) {
-  var n = task(id), btn = document.querySelector('.tbtn[data-id="' + id + '"]'), tp = document.getElementById('tp');
+  var n = task(id), btn = tpAnchor(id), tp = document.getElementById('tp');
   if (!n || !btn) { if (tp) tp.remove(); UI.tp = null; return; }
   if (!tp) { tp = document.createElement('div'); tp.id = 'tp'; tp.className = 'tp'; document.body.appendChild(tp); }
   UI.tp = id; var q = keep ? (UI.tpq || '') : ''; if (!keep) UI.tpq = '';
@@ -56,7 +57,7 @@ document.addEventListener('change', function (e) {
 }, true);
 document.addEventListener('click', function (e) {
   var tp = document.getElementById('tp');
-  if (tp && !tp.contains(e.target) && !(e.target.closest && e.target.closest('.tbtn'))) closeTeam();
+  if (tp && !tp.contains(e.target) && !(e.target.closest && e.target.closest('.tbtn, .gwho'))) closeTeam();
   var b = e.target.closest && e.target.closest('[data-act="teamPick"],[data-act="teamLead"]'); if (!b) return;
   e.stopImmediatePropagation(); e.preventDefault();
   if (b.dataset.act === 'teamPick') { if (UI.tp === b.dataset.id) closeTeam(); else openTeam(b.dataset.id); return; }
@@ -68,9 +69,9 @@ document.addEventListener('click', function (e) {
   teamChanged(n, []);
 }, true);
 document.addEventListener('input', function (e) { if (e.target.classList && e.target.classList.contains('tpq')) { UI.tpq = e.target.value; openTeam(UI.tp, true); var qi = document.querySelector('#tp .tpq'); if (qi) { qi.focus(); qi.setSelectionRange(qi.value.length, qi.value.length); } } });
-document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && UI.tp) { var id = UI.tp; closeTeam(); var b = document.querySelector('.tbtn[data-id="' + id + '"]'); if (b) b.focus(); } });
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && UI.tp) { var id = UI.tp; closeTeam(); var b = tpAnchor(id); if (b) b.focus(); } });
 window.addEventListener('resize', function () { if (UI.tp) closeTeam(); });
-document.addEventListener('scroll', function (e) { if (UI.tp && !(e.target.closest && e.target.closest('#tp'))) { var b = document.querySelector('.tbtn[data-id="' + UI.tp + '"]'); if (!b) closeTeam(); else openTeam(UI.tp, true); } }, true);
+document.addEventListener('scroll', function (e) { if (UI.tp && !(e.target.closest && e.target.closest('#tp'))) { var b = tpAnchor(UI.tp); if (!b) closeTeam(); else openTeam(UI.tp, true); } }, true);
 
 // ---------------- 業務：表示設定（展開 × 強調） ----------------
 var HLS = [

@@ -401,7 +401,7 @@ document.addEventListener('click', function (e) {
   else if (a === 'ftreeTog') { S.ftreeC = !S.ftreeC; save(); render(); }
   else if (a === 'fback') { var h = UI.fhist || []; if (!h.length) return; S.fcur = h.pop(); UI.fopen = {}; UI.sp = null; save(); render(); }
   else if (a === 'gname') { var n = task(b.dataset.id); if (!n) return; closePop(); goFolder(n.id); }
-  else if (a === 'gwho') { var n2 = task(b.dataset.id); if (!n2) return; popAt(b, whoPop(n2)); }
+  else if (a === 'gwho') { var n2 = task(b.dataset.id); if (!n2) return; closePop(); if (canAssign(n2)) { if (UI.tp === n2.id) closeTeam(); else openTeam(n2.id); } else popAt(b, whoPop(n2)); }
 }, true);
 document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closeCM(); closePop(); } });
 window.addEventListener('scroll', function () { closeCM(); closePop(); }, true);
@@ -411,9 +411,7 @@ function geditRow(row, n) {
   var gl = row.querySelector('.gl'); if (!gl) return;
   var d = UI.gdraft;
   var nm = gl.querySelector('.gname'); if (nm) nm.outerHTML = '<input class="gin" data-gin="1" value="' + esc(d.name) + '" aria-label="名前" autocomplete="off">';
-  var who = gl.querySelector('.gwho');
-  if (who) who.outerHTML = isFolder(n) ? '<span class="gwho2">' + teamBtn(n, canAssign(n) ? '' : ' disabled', true) + '</span>'
-    : '<select class="gsel2" data-gsel="1"' + (canAssign(n) ? '' : ' disabled') + ' aria-label="担当">' + whoOpts(n).replace(' selected', '').replace('value="' + d.who + '"', 'value="' + d.who + '" selected') + '</select>';
+  // 担当は編集ボタンを押さなくても、行の担当ボタンからワンタッチで選べる
   var ed = gl.querySelector('.gedit'); if (ed) ed.outerHTML = '<span class="gok"><button class="gx" data-act="gcancel" title="キャンセル" aria-label="キャンセル">' + ic('x') + '</button><button class="gy" data-act="gsave" title="保存" aria-label="保存">' + CHK + '</button></span>';
   row.classList.add('gediting');
 }
@@ -424,7 +422,7 @@ function gEnd(saveIt) {
   if (saveIt) {
     var v = (d.name || '').replace(/\s+/g, ' ').trim(); if (v && v !== ttl(n)) setTitle(n, v);
     if (!isFolder(n) && d.who !== (n.who || '') && canAssign(n)) { n.who = d.who; if (d.who) { window.notify(d.who, '「' + ttl(n) + '」の担当になりました', ttl(rootOf(n))); toast(member(d.who).name + 'に通知しました'); } }
-  } else if (isFolder(n)) { n.team = d.team; n.leads = d.leads; n.who = d.ow; }
+  } // 担当は行の担当ボタンで直接変わるので、キャンセルしても戻さない
   closeTeam(); save(); render();
 }
 document.addEventListener('click', function (e) {

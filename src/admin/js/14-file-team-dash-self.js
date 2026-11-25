@@ -1,6 +1,6 @@
 // ---------- ux54 ファイルも担当を複数に。下の段の担当は、上のフォルダのメンバーからだけ選べる ----------
 function pickFrom(n) { for (var a = parentOf(n); a; a = parentOf(a)) { if (teamOf(a).length) return a; } return null; }
-function pickable(n) { if (isAdmin()) return null; var a = pickFrom(n); return a ? teamOf(a) : []; } // null＝制限なし。代表以外は、自分に与えられた（上の段の）メンバーからだけ選べる
+function pickable(n) { var a = pickFrom(n); if (a) return teamOf(a); return isAdmin() ? null : []; } // null＝制限なし（いちばん上の段を代表が決めるときだけ）。それ以外は代表も含め、上のフォルダで与えられたメンバーからだけ選べる
 function fwNames(n) { return fileWho(n).map(function (id) { var m = member(id); return m ? m.name : ''; }).join('・'); }
 function fileWho(n) { var t = (n.team || []).slice(); if (n.who && t.indexOf(n.who) < 0) t.unshift(n.who); return t; }
 function setFileWho(n, list) { n.team = list.slice(); n.who = list[0] || ''; delete n.leads; }

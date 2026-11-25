@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '9d9e1657c5', FILE = 'admin.ver';
+  var VER = '2fb7253e63', FILE = 'admin.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -2437,8 +2437,9 @@ function whoOpts(n) { // 担当の選択肢：選べる人が決まっていれ�
   var inT = S.members.filter(function (m) { return pt.indexOf(m.id) >= 0; }), out = S.members.filter(function (m) { return pt.indexOf(m.id) < 0; });
   return '<option value="">未定</option>' + (inT.length ? '<optgroup label="' + esc(ttl(p)) + 'のメンバー">' + inT.map(o).join('') + '</optgroup><optgroup label="その他">' + out.map(o).join('') + '</optgroup>' : out.map(o).join(''));
 }
+function tpAnchor(id) { return document.querySelector('.tbtn[data-id="' + id + '"], .gwho[data-id="' + id + '"]'); }
 function openTeam(id, keep) {
-  var n = task(id), btn = document.querySelector('.tbtn[data-id="' + id + '"]'), tp = document.getElementById('tp');
+  var n = task(id), btn = tpAnchor(id), tp = document.getElementById('tp');
   if (!n || !btn) { if (tp) tp.remove(); UI.tp = null; return; }
   if (!tp) { tp = document.createElement('div'); tp.id = 'tp'; tp.className = 'tp'; document.body.appendChild(tp); }
   UI.tp = id; var q = keep ? (UI.tpq || '') : ''; if (!keep) UI.tpq = '';
@@ -2488,7 +2489,7 @@ document.addEventListener('change', function (e) {
 }, true);
 document.addEventListener('click', function (e) {
   var tp = document.getElementById('tp');
-  if (tp && !tp.contains(e.target) && !(e.target.closest && e.target.closest('.tbtn'))) closeTeam();
+  if (tp && !tp.contains(e.target) && !(e.target.closest && e.target.closest('.tbtn, .gwho'))) closeTeam();
   var b = e.target.closest && e.target.closest('[data-act="teamPick"],[data-act="teamLead"]'); if (!b) return;
   e.stopImmediatePropagation(); e.preventDefault();
   if (b.dataset.act === 'teamPick') { if (UI.tp === b.dataset.id) closeTeam(); else openTeam(b.dataset.id); return; }
@@ -2500,9 +2501,9 @@ document.addEventListener('click', function (e) {
   teamChanged(n, []);
 }, true);
 document.addEventListener('input', function (e) { if (e.target.classList && e.target.classList.contains('tpq')) { UI.tpq = e.target.value; openTeam(UI.tp, true); var qi = document.querySelector('#tp .tpq'); if (qi) { qi.focus(); qi.setSelectionRange(qi.value.length, qi.value.length); } } });
-document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && UI.tp) { var id = UI.tp; closeTeam(); var b = document.querySelector('.tbtn[data-id="' + id + '"]'); if (b) b.focus(); } });
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && UI.tp) { var id = UI.tp; closeTeam(); var b = tpAnchor(id); if (b) b.focus(); } });
 window.addEventListener('resize', function () { if (UI.tp) closeTeam(); });
-document.addEventListener('scroll', function (e) { if (UI.tp && !(e.target.closest && e.target.closest('#tp'))) { var b = document.querySelector('.tbtn[data-id="' + UI.tp + '"]'); if (!b) closeTeam(); else openTeam(UI.tp, true); } }, true);
+document.addEventListener('scroll', function (e) { if (UI.tp && !(e.target.closest && e.target.closest('#tp'))) { var b = tpAnchor(UI.tp); if (!b) closeTeam(); else openTeam(UI.tp, true); } }, true);
 
 // ---------------- 業務：表示設定（展開 × 強調） ----------------
 var HLS = [
@@ -3265,7 +3266,7 @@ document.addEventListener('click', function (e) {
   else if (a === 'ftreeTog') { S.ftreeC = !S.ftreeC; save(); render(); }
   else if (a === 'fback') { var h = UI.fhist || []; if (!h.length) return; S.fcur = h.pop(); UI.fopen = {}; UI.sp = null; save(); render(); }
   else if (a === 'gname') { var n = task(b.dataset.id); if (!n) return; closePop(); goFolder(n.id); }
-  else if (a === 'gwho') { var n2 = task(b.dataset.id); if (!n2) return; popAt(b, whoPop(n2)); }
+  else if (a === 'gwho') { var n2 = task(b.dataset.id); if (!n2) return; closePop(); if (canAssign(n2)) { if (UI.tp === n2.id) closeTeam(); else openTeam(n2.id); } else popAt(b, whoPop(n2)); }
 }, true);
 document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closeCM(); closePop(); } });
 window.addEventListener('scroll', function () { closeCM(); closePop(); }, true);
@@ -3275,9 +3276,7 @@ function geditRow(row, n) {
   var gl = row.querySelector('.gl'); if (!gl) return;
   var d = UI.gdraft;
   var nm = gl.querySelector('.gname'); if (nm) nm.outerHTML = '<input class="gin" data-gin="1" value="' + esc(d.name) + '" aria-label="名前" autocomplete="off">';
-  var who = gl.querySelector('.gwho');
-  if (who) who.outerHTML = isFolder(n) ? '<span class="gwho2">' + teamBtn(n, canAssign(n) ? '' : ' disabled', true) + '</span>'
-    : '<select class="gsel2" data-gsel="1"' + (canAssign(n) ? '' : ' disabled') + ' aria-label="担当">' + whoOpts(n).replace(' selected', '').replace('value="' + d.who + '"', 'value="' + d.who + '" selected') + '</select>';
+  // 担当は編集ボタンを押さなくても、行の担当ボタンからワンタッチで選べる
   var ed = gl.querySelector('.gedit'); if (ed) ed.outerHTML = '<span class="gok"><button class="gx" data-act="gcancel" title="キャンセル" aria-label="キャンセル">' + ic('x') + '</button><button class="gy" data-act="gsave" title="保存" aria-label="保存">' + CHK + '</button></span>';
   row.classList.add('gediting');
 }
@@ -3288,7 +3287,7 @@ function gEnd(saveIt) {
   if (saveIt) {
     var v = (d.name || '').replace(/\s+/g, ' ').trim(); if (v && v !== ttl(n)) setTitle(n, v);
     if (!isFolder(n) && d.who !== (n.who || '') && canAssign(n)) { n.who = d.who; if (d.who) { window.notify(d.who, '「' + ttl(n) + '」の担当になりました', ttl(rootOf(n))); toast(member(d.who).name + 'に通知しました'); } }
-  } else if (isFolder(n)) { n.team = d.team; n.leads = d.leads; n.who = d.ow; }
+  } // 担当は行の担当ボタンで直接変わるので、キャンセルしても戻さない
   closeTeam(); save(); render();
 }
 document.addEventListener('click', function (e) {
@@ -4839,7 +4838,7 @@ window.addEventListener('contextmenu', function (e) {
 }, true);
 // ---------- ux54 ファイルも担当を複数に。下の段の担当は、上のフォルダのメンバーからだけ選べる ----------
 function pickFrom(n) { for (var a = parentOf(n); a; a = parentOf(a)) { if (teamOf(a).length) return a; } return null; }
-function pickable(n) { if (isAdmin()) return null; var a = pickFrom(n); return a ? teamOf(a) : []; } // null＝制限なし。代表以外は、自分に与えられた（上の段の）メンバーからだけ選べる
+function pickable(n) { var a = pickFrom(n); if (a) return teamOf(a); return isAdmin() ? null : []; } // null＝制限なし（いちばん上の段を代表が決めるときだけ）。それ以外は代表も含め、上のフォルダで与えられたメンバーからだけ選べる
 function fwNames(n) { return fileWho(n).map(function (id) { var m = member(id); return m ? m.name : ''; }).join('・'); }
 function fileWho(n) { var t = (n.team || []).slice(); if (n.who && t.indexOf(n.who) < 0) t.unshift(n.who); return t; }
 function setFileWho(n, list) { n.team = list.slice(); n.who = list[0] || ''; delete n.leads; }
