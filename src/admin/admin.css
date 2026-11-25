@@ -1762,3 +1762,27 @@ input[type=time]::-webkit-calendar-picker-indicator{display:none}
 .gr.mvsrc .gl > .hldot{opacity:0}
 .gl .gwho{justify-content:flex-start;flex-basis:72px;width:72px} /* 担当は左揃え、チェックとの間を詰める */
 .gl .check.wck,.gl .fck{margin:0 0 0 2px}
+/* 告知のイベント：当日・公開中・計画中・終了 */
+.evsecs{display:flex;flex-direction:column;gap:16px}
+.evs .evr{grid-template-columns:minmax(0,1.6fr) 150px minmax(0,1fr) 92px 96px 64px}
+.evsh{display:flex;align-items:center;gap:8px;height:40px;padding:0 12px;border-bottom:1px solid var(--line);font-size:13px;font-weight:600;color:var(--text)}
+.evsh .num{font-size:12px;font-weight:500;color:var(--muted)}
+.evsh.none{border-bottom:0;color:var(--dim)}
+.evsh.none .num{color:var(--dim)}
+.evs:has(.evsh.none){border-style:dashed;background:transparent}
+.evst{display:inline-flex;align-items:center;gap:4px;border:0;background:transparent;font:inherit;color:inherit;padding:0;cursor:default}
+button.evst{cursor:pointer}
+button.evst svg{width:14px;height:14px;transform:rotate(-90deg);transition:transform .15s;color:var(--muted)}
+button.evst[aria-expanded="true"] svg{transform:none}
+.ev-end:not(:has(.evr)) .evsh{border-bottom:0}
+.ev-day .evsh .evst::before{content:"";width:7px;height:7px;border-radius:50%;background:#10B981;margin-right:4px}
+.evs .evc{font-size:12px;white-space:nowrap}
+.evs .evgo{justify-self:center;min-width:88px;justify-content:center}
+.evs .pubc{min-width:88px}
+.dlgp.sm{font-size:12px;color:var(--muted);margin-top:4px}
+@media (max-width:760px){
+  .evs .evr{grid-template-columns:minmax(0,1fr) auto 64px;grid-template-areas:"n s e" "d d d" "p p p"}
+  .evs .evr .evq{grid-area:d}.evs .evr .evp{grid-area:p}.evs .evc{display:none}
+  .evs .evgo,.evs .pubc{grid-area:s;min-width:88px}
+  .evs .evr .evp.dim{display:none}
+}

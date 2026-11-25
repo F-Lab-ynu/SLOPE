@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = 'af36bfcc95', FILE = 'admin.ver';
+  var VER = 'cb3ef13686', FILE = 'admin.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -1789,6 +1789,30 @@ input[type=time]::-webkit-calendar-picker-indicator{display:none}
 .gr.mvsrc .gl > .hldot{opacity:0}
 .gl .gwho{justify-content:flex-start;flex-basis:72px;width:72px} /* 担当は左揃え、チェックとの間を詰める */
 .gl .check.wck,.gl .fck{margin:0 0 0 2px}
+/* 告知のイベント：当日・公開中・計画中・終了 */
+.evsecs{display:flex;flex-direction:column;gap:16px}
+.evs .evr{grid-template-columns:minmax(0,1.6fr) 150px minmax(0,1fr) 92px 96px 64px}
+.evsh{display:flex;align-items:center;gap:8px;height:40px;padding:0 12px;border-bottom:1px solid var(--line);font-size:13px;font-weight:600;color:var(--text)}
+.evsh .num{font-size:12px;font-weight:500;color:var(--muted)}
+.evsh.none{border-bottom:0;color:var(--dim)}
+.evsh.none .num{color:var(--dim)}
+.evs:has(.evsh.none){border-style:dashed;background:transparent}
+.evst{display:inline-flex;align-items:center;gap:4px;border:0;background:transparent;font:inherit;color:inherit;padding:0;cursor:default}
+button.evst{cursor:pointer}
+button.evst svg{width:14px;height:14px;transform:rotate(-90deg);transition:transform .15s;color:var(--muted)}
+button.evst[aria-expanded="true"] svg{transform:none}
+.ev-end:not(:has(.evr)) .evsh{border-bottom:0}
+.ev-day .evsh .evst::before{content:"";width:7px;height:7px;border-radius:50%;background:#10B981;margin-right:4px}
+.evs .evc{font-size:12px;white-space:nowrap}
+.evs .evgo{justify-self:center;min-width:88px;justify-content:center}
+.evs .pubc{min-width:88px}
+.dlgp.sm{font-size:12px;color:var(--muted);margin-top:4px}
+@media (max-width:760px){
+  .evs .evr{grid-template-columns:minmax(0,1fr) auto 64px;grid-template-areas:"n s e" "d d d" "p p p"}
+  .evs .evr .evq{grid-area:d}.evs .evr .evp{grid-area:p}.evs .evc{display:none}
+  .evs .evgo,.evs .pubc{grid-area:s;min-width:88px}
+  .evs .evr .evp.dim{display:none}
+}
 
 /* ===== 本番 ===== */
 [data-act="reset"]{display:none !important}
@@ -4843,13 +4867,27 @@ function evTell(c, text, sub) { ((S.joinIds || {})[c.id] || []).forEach(function
 function evPubAsk(cid) { if (!can('notices')) { toast('告知の権限が必要です'); return; } M = { m: 'pub', id: cid }; renderModal(); }
 function evPubDlg() {
   var c = evCal(M.id); if (!c) return ''; var n = evJoins(c), on = c.state === 'pub', t = esc(c.title);
-  if (!on) return dlg('部員に公開', '<p class="dlgp">「' + t + '」が予定タブとカレンダーに出て、参加登録が始まります。</p>', '<button class="btn" data-act="close">やめる</button><button class="btn primary" data-act="evPubDo">公開する</button>');
+  if (!on) {
+    var f = function (k, lab, type, ph) { return '<div class="fld"><label for="pf' + k + '">' + lab + '</label><input id="pf' + k + '" class="input" type="' + type + '" data-pf="' + k + '" value="' + esc(c[k] || '') + '"' + (ph ? ' placeholder="' + ph + '"' : '') + ' autocomplete="off"></div>'; };
+    return dlg('「' + t + '」を公開', '<div class="two">' + f('date', '開始日', 'date') + f('to', '終了日', 'date') + '</div><div class="two">' + f('time', '時間', 'time') + f('place', '場所', 'text') + '</div>' +
+      '<div class="fld"><label for="pfmemo">部員がやること・説明</label><textarea id="pfmemo" class="input" rows="3" data-pf="memo">' + esc(memoText(c.memo || '')) + '</textarea></div>' + f('link', 'リンク', 'url', 'https://') +
+      '<p class="dlgp sm">公開すると予定タブとカレンダーに出て、参加登録が始まります。</p>',
+      '<button class="btn" data-act="close">やめる</button><button class="btn primary" data-act="evPubDo"' + (c.date ? '' : ' disabled title="開始日を入れてください"') + '>公開する</button>');
+  }
   if (!n) return dlg('非公開にする', '<p class="dlgp">「' + t + '」を部員から見えなくします。</p>', '<button class="btn" data-act="close">やめる</button><button class="btn primary" data-act="evPubDo">非公開にする</button>');
   return dlg('中止する', '<p class="dlgp">参加登録した ' + n + '人に、「' + t + '」の中止を知らせます。</p>', '<button class="btn" data-act="close">やめる</button><button class="btn danger" data-act="evPubDo">中止を知らせる</button>');
 }
 function evPubDo() {
-  var c = evCal(M.id); M = null; if (!c) { renderModal(); return; }
-  snap(); var was = c.state === 'pub', n = evJoins(c);
+  var c = evCal(M.id); if (!c) { M = null; renderModal(); return; }
+  var pf = {}; [].forEach.call(document.querySelectorAll('[data-pf]'), function (el) { pf[el.dataset.pf] = el.value.trim(); });
+  if (c.state !== 'pub' && Object.keys(pf).length && !pf.date) { toast('開始日を入れてください'); return; }
+  snap();
+  if (c.state !== 'pub' && Object.keys(pf).length) {
+    ['date', 'to', 'time', 'place', 'memo', 'link'].forEach(function (k) { if (k === 'memo' && pf.memo === memoText(c.memo || '')) return; c[k] = pf[k] || ''; });
+    if (c.to && c.to <= c.date) c.to = '';
+  }
+  M = null;
+  var was = c.state === 'pub', n = evJoins(c);
   c.state = was ? 'draft' : 'pub'; if (!was) evSnap(c);
   if (was && n) evTell(c, '「' + c.title + '」は中止になりました', 'カレンダーに追加していた場合は消してください');
   evSync(); save(); render(); toast(was ? (n ? '中止を知らせました' : '非公開にしました') : '公開しました');
@@ -4915,20 +4953,43 @@ function evMerge(fromId, toId) {
 function evUnlink(n) { snap(); n.kind = 'folder'; delete n.ev; save(); render(); toast('イベントを外しました（イベント自体は告知に残っています）'); }
 
 // ---------- 告知のイベント一覧：全部。学ぶ・業務とつながっているものには印 ----------
+// 告知のイベント：計画中 → 公開中 → 当日 →（終了）。当日・終了は日付で自動
+function evStage(c, today) {
+  var end = c.to || c.date;
+  if (end && end < today) return 'end';
+  if (c.state !== 'pub') return 'plan';
+  return c.date && c.date <= today ? 'day' : 'pub';
+}
 function viewEvents () {
   calsInit(); p2();
-  var cs = S.cals.slice().sort(function (a, b) { return (a.date || '') < (b.date || '') ? -1 : 1; });
+  var cs = S.cals.slice().sort(function (a, b) { return (a.date || '9') < (b.date || '9') ? -1 : 1; });
   if (!cs.length) return '<div class="empty big">イベントはまだありません</div>';
-  var today = isoOf(TODAY);
-  return '<div class="evl"><div class="evr evh"><span>イベント</span><span>期間</span><span>場所</span><span>参加登録</span><span style="text-align:center">公開</span><span></span></div>' + cs.map(function (c) {
-    var end = c.to || c.date, past = !!end && end < today, pub = c.state === 'pub', pg = evInProg(c.id), fo = evFolder(c.id);
-    return '<div class="evr" data-calid="' + c.id + '"><span class="evn"><b>' + esc(c.title || 'イベント') + (pg ? '<i class="evtag">学ぶ</i>' : '') + (fo ? '<i class="evtag wkt">業務</i>' : '') + '</b>' + (c.memo ? '<span>' + esc(memoText(c.memo).slice(0, 60)) + '</span>' : '') + '</span>' +
-      '<span class="evq num">' + (c.date ? pmd(c.date) + (c.to ? ' – ' + pmd(c.to) : '') + (c.time ? ' ' + esc(c.time) : '') : '<span class="dim">未定</span>') + '</span>' + (c.place ? '<span class="evp">' + esc(c.place) + '</span>' : '<span class="evp dim">—</span>') +
-      '<span class="evg num">' + (pub ? evJoins(c) + ' 人' : '<span class="dim">—</span>') + '</span>' +
-      (past ? '<span class="pubc end nsw">終了</span>' : '<button class="pubc nsw' + (pub ? ' on' : '') + '" data-act="evPub" data-id="' + c.id + '" title="' + (pub ? '非公開にする' : '部員に公開する') + '">' + (pub ? '公開中' : '非公開') + '</button>') +
+  var today = isoOf(TODAY), G = { plan: [], pub: [], day: [], end: [] };
+  cs.forEach(function (c) { G[evStage(c, today)].push(c); });
+  G.end.reverse(); // 終わったものは新しい順
+  var ok = can('notices');
+  var row = function (c, st) {
+    var pg = evInProg(c.id), fo = evFolder(c.id), att = (c.att || []).length, jn = evJoins(c);
+    var cnt = st === 'plan' ? '<span class="dim">—</span>' : st === 'pub' ? '登録 ' + jn : '出席 ' + att + (jn ? '<span class="muted"> / ' + jn + '</span>' : '');
+    var act = st === 'plan' ? '<button class="btn sm evgo" data-act="evPub" data-id="' + c.id + '"' + (ok ? '' : ' disabled') + '>公開する</button>'
+      : st === 'pub' ? '<button class="pubc on nsw" data-act="evPub" data-id="' + c.id + '" title="' + (jn ? '中止する' : '非公開にする') + '">公開中</button>'
+      : '<button class="btn sm evgo' + (st === 'day' ? ' primary' : '') + '" data-attopen="' + c.id + '">' + (st === 'day' ? '出欠を取る' : '出欠') + '</button>';
+    return '<div class="evr' + (st === 'end' ? ' past' : '') + '" data-calid="' + c.id + '"><span class="evn"><b>' + esc(c.title || 'イベント') + (pg ? '<i class="evtag">学ぶ</i>' : '') + (fo ? '<i class="evtag wkt">業務</i>' : '') + '</b>' + (c.memo ? '<span>' + esc(memoText(c.memo).slice(0, 60)) + '</span>' : '') + '</span>' +
+      '<span class="evq num">' + (c.date ? pmd(c.date) + (c.to ? ' – ' + pmd(c.to) : '') + (c.time ? ' ' + esc(c.time) : '') : '<span class="dim">日時未定</span>') + '</span>' + (c.place ? '<span class="evp">' + esc(c.place) + '</span>' : '<span class="evp dim">—</span>') +
+      '<span class="evc num">' + cnt + '</span>' + act +
       '<span class="evact"><button class="ib" data-act="calItem" data-k="cal" data-id="' + c.id + '" aria-label="編集" title="編集">' + PEN + '</button>' + '<button class="rmore" type="button" tabindex="-1" aria-label="その他" title="その他">' + ic('more') + '</button>' + '</span></div>';
-  }).join('') + '</div>';
+  };
+  var sec = function (k, name) {
+    var L = G[k], open = k !== 'end' || UI.evEnd;
+    var h = '<div class="evsh' + (L.length ? '' : ' none') + '">' + (k === 'end' ? '<button class="evst" data-act="evEnd" aria-expanded="' + !!UI.evEnd + '">' + ic('chev') + name + '</button>' : '<span class="evst">' + name + '</span>') + '<span class="num">' + L.length + '</span></div>';
+    return '<section class="evl evs ev-' + k + '">' + h + (open ? L.map(function (c) { return row(c, k); }).join('') : '') + '</section>';
+  };
+  return '<div class="evsecs">' + sec('day', '当日') + sec('pub', '公開中') + sec('plan', '計画中') + (G.end.length ? sec('end', '終了') : '') + '</div>';
 }
+document.addEventListener('click', function (e) {
+  var b = e.target.closest && e.target.closest('[data-act="evEnd"]'); if (!b) return;
+  e.preventDefault(); e.stopImmediatePropagation(); UI.evEnd = !UI.evEnd; render();
+}, true);
 // 告知の行の右クリック
 window.addEventListener('contextmenu', function (e) {
   if (S.view !== 'notices' || !e.target.closest) return; var r = e.target.closest('.evr[data-calid]'); if (!r) return;
@@ -4939,6 +5000,12 @@ window.addEventListener('contextmenu', function (e) {
     ['ほかのイベントとまとめる', function () { evPickAsk('merge', c.id); }, false, ok ? '' : '告知の権限が必要'],
     'sep', ['削除', function () { snap(); evOutProg(c.id); var fo = evFolder(c.id); if (fo) { fo.kind = 'folder'; delete fo.ev; } S.cals = S.cals.filter(function (x) { return x !== c; }); save(); render(); toastUndo('「' + c.title + '」を削除しました'); }, true, ok ? '' : '告知の権限が必要']], e.clientX, e.clientY);
 }, true);
+
+// 公開の入力：開始日が入ったら「公開する」を押せるように
+document.addEventListener('input', function (e) {
+  if (!e.target.dataset || e.target.dataset.pf !== 'date') return;
+  var b = document.querySelector('.dlg [data-act="evPubDo"]'); if (b) b.disabled = !e.target.value;
+});
 // ---------- ux54 ファイルも担当を複数に。下の段の担当は、上のフォルダのメンバーからだけ選べる ----------
 function pickFrom(n) { return parentOf(n) || null; } // 担当の候補を決める、すぐ上のフォルダー
 function pickable(n) { var a = pickFrom(n); if (a) return teamOf(a); return isAdmin() ? null : []; } // null＝制限なし（いちばん上の段を代表が決めるときだけ）。それ以外は代表も含め、すぐ上のフォルダーのメンバーからだけ選べる（未定なら誰も選べない）
