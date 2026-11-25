@@ -331,9 +331,8 @@ function decorateGantt() {
     var gl = row.querySelector('.gl'); if (!gl || gl.querySelector('.hldot')) return;
     var n = task(row.dataset.row); if (!n) return; var f = hlFlags(n); if (!f.length) return;
     var col = (HLS.filter(function (h) { return h[0] === f[0]; })[0] || [])[2];
-    var w = gl.querySelector('.gwho, .gwho2, .gsel2');
     var dot = '<i class="hldot" style="background:' + col + '" title="' + f.map(function (k) { return HLN[k] || k; }).join('・') + '"></i>';
-    if (w) w.insertAdjacentHTML('beforebegin', dot); else gl.insertAdjacentHTML('beforeend', dot);
+    gl.insertAdjacentHTML('afterbegin', dot); // 左端の余白に置く（ほかの位置をずらさない）
   });
 }
 // 右クリック

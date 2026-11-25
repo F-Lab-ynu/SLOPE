@@ -1047,6 +1047,9 @@ svg.fli{width:15px;height:15px;flex:none;color:#9CA3AF}
 .gr.hl .gl,.gr.hl-late .gl{box-shadow:none !important}
 .gl .lt{display:none}
 .hldot{flex:none;width:10px;height:10px;border-radius:50%;box-shadow:0 0 0 2px #fff}
+.gl > .hldot{position:absolute;left:12.5px;top:50%;width:7px;height:7px;margin-top:-3.5px;box-shadow:none;pointer-events:none;transition:opacity .12s}
+@media (hover:hover){ .gr:hover .gl > .hldot{opacity:0} } /* カーソルを合わせると同じ場所に移動のつまみが出る */
+@media (max-width:760px){ .gl > .hldot{left:3px;width:6px;height:6px;margin-top:-3px} }
 .tki[aria-pressed="true"]{background:#FFF7ED;color:var(--text);box-shadow:inset 3px 0 0 #F59E0B}
 /* ---------- ux19 表の詰まり ---------- */
 .tgl{height:24px;padding:0 8px;font-size:11px}

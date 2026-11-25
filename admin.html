@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '133246b85e', FILE = 'admin.ver';
+  var VER = '80e4942fb7', FILE = 'admin.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -1074,6 +1074,9 @@ svg.fli{width:15px;height:15px;flex:none;color:#9CA3AF}
 .gr.hl .gl,.gr.hl-late .gl{box-shadow:none !important}
 .gl .lt{display:none}
 .hldot{flex:none;width:10px;height:10px;border-radius:50%;box-shadow:0 0 0 2px #fff}
+.gl > .hldot{position:absolute;left:12.5px;top:50%;width:7px;height:7px;margin-top:-3.5px;box-shadow:none;pointer-events:none;transition:opacity .12s}
+@media (hover:hover){ .gr:hover .gl > .hldot{opacity:0} } /* カーソルを合わせると同じ場所に移動のつまみが出る */
+@media (max-width:760px){ .gl > .hldot{left:3px;width:6px;height:6px;margin-top:-3px} }
 .tki[aria-pressed="true"]{background:#FFF7ED;color:var(--text);box-shadow:inset 3px 0 0 #F59E0B}
 /* ---------- ux19 表の詰まり ---------- */
 .tgl{height:24px;padding:0 8px;font-size:11px}
@@ -3281,9 +3284,8 @@ function decorateGantt() {
     var gl = row.querySelector('.gl'); if (!gl || gl.querySelector('.hldot')) return;
     var n = task(row.dataset.row); if (!n) return; var f = hlFlags(n); if (!f.length) return;
     var col = (HLS.filter(function (h) { return h[0] === f[0]; })[0] || [])[2];
-    var w = gl.querySelector('.gwho, .gwho2, .gsel2');
     var dot = '<i class="hldot" style="background:' + col + '" title="' + f.map(function (k) { return HLN[k] || k; }).join('・') + '"></i>';
-    if (w) w.insertAdjacentHTML('beforebegin', dot); else gl.insertAdjacentHTML('beforeend', dot);
+    gl.insertAdjacentHTML('afterbegin', dot); // 左端の余白に置く（ほかの位置をずらさない）
   });
 }
 // 右クリック
