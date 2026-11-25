@@ -682,17 +682,29 @@ function annPop(a) {
     });
   }
   // キーボードが出ても、下の帯と返信欄はその上に
-  // iOS 26 は「∧ ∨ ✓」の段の上に、キーボード扱いだが中身の見える帯（約50pt）を取る。そのぶん下げてキーボードに寄せる
+  // iOS 26 は「∧ ∨ ✓」の段の上に、キーボード扱いだが中身の見える帯（約50pt）を取る。画面の大きさは変えず、下の帯と返信欄だけをその帯へ下げる
   var IOS26_GAP = /iPhone|iPad/.test(navigator.userAgent) && window.CSS && CSS.supports && CSS.supports('color', 'contrast-color(red)') ? 44 : 0;
-  function fit() { // 見えている範囲（キーボードの上まで）にぴったり合わせる。後ろの画面は動かさない
+  function fit() { // 見えている範囲（キーボードの上まで）にぴったり合わせる
     var vv = window.visualViewport, kb = !!vv && window.innerHeight - vv.height > 120;
     ['bxnew', 'bxth'].forEach(function (id) {
       var w = document.getElementById(id); if (!w) return; w.classList.toggle('kb', kb);
-      if (!vv) return; w.style.top = vv.offsetTop + 'px'; w.style.height = (vv.height + (kb ? IOS26_GAP : 0)) + 'px'; w.style.bottom = 'auto'; w.style.paddingBottom = '';
+      if (!vv) return; w.style.top = vv.offsetTop + 'px'; w.style.height = vv.height + 'px'; w.style.bottom = 'auto'; w.style.paddingBottom = '';
+      var bar = w.querySelector('.bxnt, .bxrp'); if (bar) bar.style.transform = kb && IOS26_GAP ? 'translateY(' + IOS26_GAP + 'px)' : '';
     });
-    if (kb && (document.getElementById('bxnew') || document.getElementById('bxth')) && window.scrollY) window.scrollTo(0, 0);
   }
-  document.addEventListener('focusin', function (ev) { if (ev.target.id === 'bxtx' || ev.target.id === 'bxrep') { setTimeout(fit, 50); setTimeout(fit, 300); } });
+  // 開いている間は後ろの画面を固定（スクロールできないように）
+  var LOCK = null;
+  function lock(on) {
+    var b = document.body;
+    if (on && !LOCK) { LOCK = { y: window.scrollY }; b.style.position = 'fixed'; b.style.top = -LOCK.y + 'px'; b.style.left = '0'; b.style.right = '0'; }
+    if (!on && LOCK && !document.getElementById('bxnew') && !document.getElementById('bxth')) { b.style.position = ''; b.style.top = ''; b.style.left = ''; b.style.right = ''; window.scrollTo(0, LOCK.y); LOCK = null; }
+  }
+  new MutationObserver(function () { lock(!!(document.getElementById('bxnew') || document.getElementById('bxth'))); }).observe(document.body, { childList: true });
+  document.addEventListener('touchmove', function (ev) { // 中身のスクロールだけ許す
+    var w = ev.target.closest && ev.target.closest('#bxnew, #bxth'); if (!w) return;
+    var sc = ev.target.closest('.nspb, .bxnb, textarea'); if (sc && sc.scrollHeight > sc.clientHeight + 1) return;
+    ev.preventDefault();
+  }, { passive: false });
   if (window.visualViewport) { window.visualViewport.addEventListener('resize', fit); window.visualViewport.addEventListener('scroll', fit); }
   function shrink(file) { // 端末で縮めてから送る（長い辺 1600px・JPEG）
     return new Promise(function (ok, ng) {
