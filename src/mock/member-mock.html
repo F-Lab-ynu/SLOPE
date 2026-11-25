@@ -2844,7 +2844,7 @@ body.wide .bxfab{bottom:32px;right:32px}
 .bxrp button{flex:none;height:36px;align-self:center;padding:0 16px;border:0;border-radius:18px;background:#F2A93B;color:#070707;font:inherit;font-weight:700;cursor:pointer}
 .bxrp button:disabled{opacity:.4;cursor:default}
 .bxnh{display:flex;align-items:center;gap:10px;height:calc(56px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 12px 0;flex:none}
-.bxnh span{flex:1;font-weight:700;color:#A3A19B;font-size:14px}
+.bxnh{justify-content:space-between}
 .bxpost{height:36px;padding:0 18px;border:0;border-radius:18px;background:#F2A93B;color:#070707;font:inherit;font-weight:700;cursor:pointer}
 .bxpost:disabled{opacity:.5}
 .bxnb{flex:1;overflow:auto;padding:4px 16px 16px;max-width:640px;width:100%;margin:0 auto;box-sizing:border-box}
@@ -2866,6 +2866,26 @@ body.wide .bxfab{bottom:32px;right:32px}
 .bxpk{height:40px;padding:0 16px 0 12px;display:inline-flex;align-items:center;gap:8px;color:#F3F1EC;border:1px solid #383836;border-radius:20px;font-size:14px;font-weight:600;cursor:pointer}
 .bxpk svg{width:22px !important;height:22px !important;color:#F2A93B}
 .bxpk.off{opacity:.35;cursor:default}
+.bxnt{overflow-x:auto;scrollbar-width:none}.bxnt::-webkit-scrollbar{display:none}
+.bxpk{flex:none;height:38px !important;padding:0 14px 0 11px !important;gap:6px !important}
+.bxpk svg{width:20px !important;height:20px !important}
+.bxpk svg+span+svg{width:14px !important;height:14px !important;color:#7D7B76 !important;margin-left:-2px}
+.bxog{display:flex;gap:12px;padding:4px 0 12px;position:relative}
+.bxog::after{content:"";position:absolute;left:19px;top:48px;bottom:-4px;width:2px;background:#2C2C2A}
+.bxog .bxb{-webkit-line-clamp:4;font-size:14px;color:#BDBAB3}
+.bxto{font-size:13px;color:#7D7B76;margin-top:4px}
+#bxsh{position:fixed;inset:0;z-index:2147481700;display:flex;align-items:flex-end;justify-content:center}
+#bxsh .anbg{position:absolute;inset:0;background:rgba(0,0,0,.5)}
+.bxshc{position:relative;width:min(520px,100%);max-height:70vh;overflow:auto;padding:6px 8px calc(10px + env(safe-area-inset-bottom));background:#131313;border-radius:18px 18px 0 0}
+.bxshc.in{animation:anup .2s ease}
+.bxshc::before{content:"";display:block;width:36px;height:4px;border-radius:2px;background:#383836;margin:4px auto 8px}
+.bxshh{display:flex;align-items:center;justify-content:space-between;padding:4px 12px 10px}
+.bxshh b{font-size:15px}
+.bxshh button{height:32px;padding:0 14px;border:0;border-radius:16px;background:#F3F1EC;color:#070707;font:inherit;font-weight:700;cursor:pointer}
+.bxshi{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;padding:0 12px;border:0;border-radius:10px;background:transparent;color:#F3F1EC;font:inherit;font-size:16px;text-align:left;cursor:pointer}
+.bxshi:active{background:#1C1C1B}
+.bxshi span{display:flex;flex-direction:column}.bxshi small{font-size:12px;color:#7D7B76}
+.bxshi i{width:22px;height:22px;color:#F2A93B}.bxshi i svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 button.bxpk{background:transparent;font:inherit}
 .bxpk.on{background:#F3F1EC;color:#070707;border-color:#F3F1EC}.bxpk.on svg{color:#070707}
 .bxsl{display:flex;flex-direction:column;margin-top:8px;border:1px solid #232322;border-radius:12px;overflow:hidden}
@@ -2873,7 +2893,7 @@ button.bxpk{background:transparent;font:inherit}
 .bxsr span{flex:1;display:flex;flex-direction:column;gap:2px}.bxsr b{font-size:15px}.bxsr small{font-size:12px;color:#7D7B76}
 .bxgo.on{background:transparent;color:#7D7B76;border-color:#2C2C2A}
 .bxpk input{display:none}
-.bxnt .bxpn{margin-left:auto;font-size:12px;color:#7D7B76}
+
 #bxmn{position:fixed;inset:0;z-index:2147481600;display:flex;align-items:flex-end;justify-content:center}
 #bxmn .anbg{position:absolute;inset:0;background:rgba(0,0,0,.45)}
 .bxmnc{position:relative;width:min(520px,100%);padding:8px 8px calc(8px + env(safe-area-inset-bottom));background:#131313;border-radius:16px 16px 0 0;display:flex;flex-direction:column}

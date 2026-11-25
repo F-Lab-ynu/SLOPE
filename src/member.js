@@ -551,6 +551,9 @@ function annPop(a) {
     x: '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
     cal: '<svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>',
     out: '<svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5H5V6h5"/></svg>',
+    tag: '<svg viewBox="0 0 24 24"><path d="M4 5h7l9 9-6 6-9-9z"/><circle cx="8.5" cy="9.5" r="1.3"/></svg>',
+    chev: '<svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5"/></svg>',
+    check: '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
     ppl: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 19c.6-3.2 3-5 6-5s5.4 1.8 6 5"/><path d="M16 5.2a3 3 0 0 1 0 5.6M18 14.2c1.6.7 2.6 2.4 3 4.8"/></svg>'
   };
   var cur = function () { var c = window.__comp; var s = c ? c.state.seg : 'idea'; return TABS.some(function (t) { return t[0] === s; }) ? s : 'idea'; };
@@ -597,18 +600,27 @@ function annPop(a) {
     return (tab === 'idea' ? D.items('idea').concat(D.items('recruit')) : D.items(tab)).slice().sort(function (a, b) { return a.created_at < b.created_at ? 1 : -1; });
   }
   var lastKey = '';
-  function paint(force) {
+  function paint(force) { // 変わった投稿だけ描き直す（連打しても画面がちらつかない）
     var root = document.getElementById('bdx'); if (!root || !window.DB) return;
-    var tab = cur(), L = list(tab), D = window.DB;
-    var key = tab + '|' + L.map(function (x) { return x.id + ':' + JSON.stringify(x.data).length + ':' + cm(x.id) + ':' + ['vote', 'emp', 'like', 'plan'].map(function (k) { return D.count(x.id, k) + (D.mine(x.id, k) ? 'm' : ''); }).join(',') + ':' + (x.data && x.data.roles ? x.data.roles.map(function (r) { return D.count(x.id, 'slot:' + r); }).join('') : ''); }).join(';') + '|' + Object.keys(URLS).length;
-    if (!force && key === lastKey && root.firstChild) return; lastKey = key;
-    var y = root.querySelector('.bxl0') ? root.querySelector('.bxl0').scrollLeft : 0;
-    root.innerHTML = '<div class="bxtabs" role="tablist">' + TABS.map(function (t) { return '<button role="tab" aria-selected="' + (t[0] === tab) + '" data-bxt="' + t[0] + '">' + t[1] + '</button>'; }).join('') + '</div>' +
-      '<div class="bxlist">' + (L.length ? L.map(function (x) { return tab === 'event' ? evRow(x) : row(x, x.kind); }).join('') : '<div class="bxempty">まだ投稿はありません</div>') + '</div>' +
-      '<button class="bxfab" data-bxnew="1" aria-label="投稿する">' + IC.plus + '</button>';
+    var tab = cur(), L = list(tab);
+    if (!root.querySelector('.bxtabs') || root.dataset.tab !== tab) {
+      root.dataset.tab = tab;
+      root.innerHTML = '<div class="bxtabs" role="tablist">' + TABS.map(function (t) { return '<button role="tab" aria-selected="' + (t[0] === tab) + '" data-bxt="' + t[0] + '">' + t[1] + '</button>'; }).join('') + '</div><div class="bxlist"></div><button class="bxfab" data-bxnew="1" aria-label="投稿する">' + IC.plus + '</button>';
+    }
+    var box = root.querySelector('.bxlist'), want = L.map(function (x) { return { id: x.id, h: tab === 'event' ? evRow(x) : row(x, x.kind) }; });
+    if (!want.length) { if (!box.querySelector('.bxempty')) box.innerHTML = '<div class="bxempty">まだ投稿はありません</div>'; return; }
+    var em = box.querySelector('.bxempty'); if (em) em.remove();
+    var have = {}; [].forEach.call(box.children, function (el) { have[el.dataset.pid] = el; });
+    var prev = null;
+    want.forEach(function (w) {
+      var el = have[w.id]; delete have[w.id];
+      if (!el || el._h !== w.h) { var t = document.createElement('div'); t.innerHTML = w.h; var n = t.firstChild; n.dataset.pid = w.id; n._h = w.h; if (el) el.replaceWith(n); el = n; }
+      var at = prev ? prev.nextSibling : box.firstChild; if (at !== el) box.insertBefore(el, at); prev = el;
+    });
+    Object.keys(have).forEach(function (k) { have[k].remove(); });
   }
   window.__bxPaint = paint;
-  setInterval(function () { if (document.getElementById('bdx')) paint(false); }, 400);
+  setInterval(function () { if (document.getElementById('bdx')) paint(); }, 400);
 
   function setTab(t, dir) { var c = window.__comp; if (!c || t === cur()) return; c.setState({ seg: t }); setTimeout(function () { paint(true); var l = document.querySelector('.bxlist'); if (l && dir) { l.classList.add(dir < 0 ? 'inl' : 'inr'); } window.scrollTo(0, 0); }, 0); }
 
@@ -622,32 +634,58 @@ function annPop(a) {
       return '<div class="bxsr"><span><b>' + e(r) + '</b><small>' + (me ? '参加中（あなた）' : full ? '参加済み · ' + e(D.name(w[0])) : '募集中') + '</small></span>' + (full || x.author === D.me ? '' : '<button class="bxgo' + (me ? ' on' : '') + '" data-bxslot="' + e(r) + '" data-id="' + e(x.id) + '">' + (me ? '取り消す' : '応募する') + '</button>') + '</div>'; }).join('') + '</div>' : '';
     var focus = row(x, x.kind).replace('class="bx"', 'class="bx fx"').replace(/<div class="bxcs">[\s\S]*?<\/div>/, slots).replace(/<button class="bxgo" data-bxo="[^"]*">応募する<\/button>/, '').replace('<div class="bxas">', '<div class="bxst"><span>' + e(stamp) + '</span><div class="bxas">').replace(/<\/div><\/div><\/article>$/, '</div></div></div></article>');
     w.innerHTML = '<div class="nsph"><button data-bxth-x aria-label="戻る">' + IC.back + '</button><b>投稿</b></div><div class="nspb bxthb">' + focus +
-      (reps.length ? reps.map(function (c) { return '<div class="bx rep"><span class="bxav">' + e(D.ini(c.author)) + '</span><div class="bxm"><div class="bxh"><b>' + e(D.name(c.author)) + '</b><span>' + e(D.ago(c.created_at)) + '</span></div><div class="bxb">' + link((c.data || {}).text || '') + '</div></div></div>'; }).join('') : '') +
+      (reps.length ? reps.map(function (c) { return '<div class="bx rep"><span class="bxav">' + e(D.ini(c.author)) + '</span><div class="bxm"><div class="bxh"><b>' + e(D.name(c.author)) + '</b><span>' + e(D.ago(c.created_at)) + '</span></div><div class="bxb">' + link((c.data || {}).text || '') + '</div>' + pics(c.data || {}) + '</div></div>'; }).join('') : '') +
       '</div><div class="bxrp"><span class="bxav sm">' + e(D.ini(D.me)) + '</span><textarea id="bxrep" rows="1" placeholder="返信する"></textarea><button data-bxsend="' + e(id) + '" disabled>返信</button></div>';
     if (!old) { document.body.appendChild(w); document.documentElement.classList.add('invon'); try { history.pushState({ bxth: 1 }, ''); } catch (er) {} }
+    fit();
   }
   function closeTh(pop) { var w = document.getElementById('bxth'); if (!w) return; w.remove(); document.documentElement.classList.remove('invon'); if (!pop) try { if (history.state && history.state.bxth) history.back(); } catch (er) {} }
   window.addEventListener('popstate', function () { closeTh(true); closeNew(true); });
 
-  // ---- 投稿（本文と写真。募集だけロールを選ぶ） ----
-  var NEW = null;
-  function openNew() {
-    var tab = cur(); if (tab === 'event') { window.__comp.setState({ sub: 'eventNew' }); return; }
-    NEW = { tab: tab, files: [], roles: [] }; drawNew(); try { history.pushState({ bxnew: 1 }, ''); } catch (er) {}
+  // ---- 投稿・返信（本文と写真。下の帯：写真・種類・メンバー募集。キーボードの上に出る） ----
+  var NEW = null, KIND = [['idea', 'アイデア'], ['pain', 'ペイン'], ['other', 'フリー']];
+  var PH = { idea: 'アイデアを書く（1行目がタイトル）', pain: '困っていること', other: 'いまどうしてる？', reply: '返信を書く' };
+  function openNew(parent) {
+    var tab = cur(); if (!parent && tab === 'event') { window.__comp.setState({ sub: 'eventNew' }); return; }
+    NEW = { tab: parent ? 'reply' : tab, parent: parent || null, files: [], roles: [], rec: false }; drawNew(); try { history.pushState({ bxnew: 1 }, ''); } catch (er) {}
     setTimeout(function () { var t = document.getElementById('bxtx'); if (t) t.focus(); }, 60);
   }
-  var PH = { idea: 'アイデアを書く（1行目がタイトル）', pain: '困っていること', other: 'いまどうしてる？' };
+  function original(id) {
+    var D = window.DB, x = D.items('recruit').concat(D.items('idea'), D.items('pain'), D.items('other')).filter(function (y) { return y.id === id; })[0]; if (!x) return '';
+    var d = x.data || {}, txt = [d.title, d.purpose || d.summary || d.text].filter(Boolean).join('\n');
+    return '<div class="bxog"><span class="bxav">' + e(D.ini(x.author)) + '</span><div class="bxm"><div class="bxh"><b>' + e(D.name(x.author)) + '</b><span>' + e(D.ago(x.created_at)) + '</span></div><div class="bxb">' + link(txt) + '</div><div class="bxto">返信先：' + e(D.name(x.author)) + 'さん</div></div></div>';
+  }
   function drawNew() {
-    var w = document.getElementById('bxnew'), first = !w; if (first) { w = document.createElement('div'); w.id = 'bxnew'; document.body.appendChild(w); document.documentElement.classList.add('invon'); }
-    var t = document.getElementById('bxtx'), val = t ? t.value : '';
-    w.innerHTML = '<div class="bxnh"><button class="bxcan" data-bxnew-x>キャンセル</button><span>' + (TABS.filter(function (z) { return z[0] === NEW.tab; })[0] || [])[1] + '</span><button class="bxpost" data-bxpost="1">投稿する</button></div>' +
-      '<div class="bxnb"><div class="bxnr"><span class="bxav">' + e(window.DB.ini(window.DB.me)) + '</span><div class="bxnc"><textarea id="bxtx" placeholder="' + PH[NEW.tab] + '">' + e(val) + '</textarea>' +
+    var D = window.DB, w = document.getElementById('bxnew'), first = !w; if (first) { w = document.createElement('div'); w.id = 'bxnew'; document.body.appendChild(w); document.documentElement.classList.add('invon'); }
+    var t = document.getElementById('bxtx'), val = t ? t.value : '', reply = NEW.tab === 'reply', kn = (KIND.filter(function (z) { return z[0] === NEW.tab; })[0] || [])[1];
+    w.innerHTML = '<div class="bxnh"><button class="bxcan" data-bxnew-x>キャンセル</button><button class="bxpost" data-bxpost="1">' + (reply ? '返信する' : '投稿する') + '</button></div>' +
+      '<div class="bxnb">' + (reply ? original(NEW.parent) : '') + '<div class="bxnr"><span class="bxav">' + e(D.ini(D.me)) + '</span><div class="bxnc"><textarea id="bxtx" placeholder="' + PH[NEW.tab] + '">' + e(val) + '</textarea>' +
       (NEW.files.length ? '<div class="bxp n' + NEW.files.length + ' edit">' + NEW.files.map(function (f, i) { return '<span class="bxpe"><img src="' + f.url + '" alt=""><button data-bxrm="' + i + '" aria-label="写真を外す">' + IC.x + '</button></span>'; }).join('') + '</div>' : '') +
-      (NEW.tab === 'idea' && NEW.rec ? '<div class="bxrl"><div>' + ROLES.map(function (r) { return '<button data-bxrole="' + r + '" aria-pressed="' + (NEW.roles.indexOf(r) >= 0) + '">' + r + '</button>'; }).join('') + '</div></div>' : '') +
-      '</div></div></div><div class="bxnt"><label class="bxpk' + (NEW.files.length >= 4 ? ' off' : '') + '">' + IC.photo + '<span>写真</span><input type="file" accept="image/*" multiple id="bxfile"' + (NEW.files.length >= 4 ? ' disabled' : '') + '></label>' + (NEW.tab === 'idea' ? '<button class="bxpk' + (NEW.rec ? ' on' : '') + '" data-bxrec="1" aria-pressed="' + !!NEW.rec + '">' + IC.ppl + '<span>メンバー募集</span></button>' : '') + '<span class="bxpn">' + (NEW.files.length ? NEW.files.length + ' / 4' : '4枚まで') + '</span></div>';
-    var tx = document.getElementById('bxtx'); if (tx && !first) { tx.focus(); tx.setSelectionRange(tx.value.length, tx.value.length); }
+      '</div></div></div>' +
+      '<div class="bxnt"><label class="bxpk' + (NEW.files.length >= 4 ? ' off' : '') + '" title="写真（4枚まで）">' + IC.photo + '<span>' + (NEW.files.length ? NEW.files.length + '/4' : '写真') + '</span><input type="file" accept="image/*" multiple id="bxfile"' + (NEW.files.length >= 4 ? ' disabled' : '') + '></label>' +
+      (reply ? '' : '<button class="bxpk" data-bxkind="1">' + IC.tag + '<span>' + e(kn) + '</span>' + IC.chev + '</button>') +
+      (NEW.tab === 'idea' ? '<button class="bxpk' + (NEW.roles.length ? ' on' : '') + '" data-bxrec="1">' + IC.ppl + '<span>' + (NEW.roles.length ? '募集 ' + NEW.roles.length : 'メンバー募集') + '</span></button>' : '') + '</div>';
+    fit(); var tx = document.getElementById('bxtx'); if (tx && !first) { tx.focus(); tx.setSelectionRange(tx.value.length, tx.value.length); }
   }
   function closeNew(pop) { var w = document.getElementById('bxnew'); if (!w) return; w.remove(); NEW = null; document.documentElement.classList.remove('invon'); if (!pop) try { if (history.state && history.state.bxnew) history.back(); } catch (er) {} }
+  // 下からのメニュー（種類・募集するロール）
+  function sheet(title, items, multi, done) {
+    var old = document.getElementById('bxsh'); if (old) old.remove();
+    var w = document.createElement('div'); w.id = 'bxsh'; var sel = items.filter(function (x) { return x.on; }).map(function (x) { return x.k; });
+    var drawn = false, draw = function () { w.innerHTML = '<div class="anbg" data-bxsh-x></div><div class="bxshc' + (drawn ? '' : ' in') + '"><div class="bxshh"><b>' + e(title) + '</b>' + (multi ? '<button data-bxsh-ok>決定</button>' : '') + '</div>' + items.map(function (x) { var on = sel.indexOf(x.k) >= 0; return '<button class="bxshi' + (on ? ' on' : '') + '" data-bxsh-k="' + e(x.k) + '"><span>' + e(x.n) + (x.s ? '<small>' + e(x.s) + '</small>' : '') + '</span><i>' + (on ? IC.check : '') + '</i></button>'; }).join('') + '</div>'; drawn = true; };
+    draw(); document.body.appendChild(w);
+    w.addEventListener('click', function (ev) {
+      var b = ev.target.closest('[data-bxsh-k],[data-bxsh-ok],[data-bxsh-x]'); if (!b) return;
+      if (b.dataset.bxshK) { var k = b.dataset.bxshK; if (!multi) { w.remove(); done([k]); return; } var i = sel.indexOf(k); if (i >= 0) sel.splice(i, 1); else sel.push(k); draw(); return; }
+      if (b.hasAttribute('data-bxsh-ok')) done(sel.slice());
+      w.remove();
+    });
+  }
+  // キーボードが出ても、下の帯と返信欄はその上に
+  function fit() {
+    var vv = window.visualViewport; ['bxnew', 'bxth'].forEach(function (id) { var w = document.getElementById(id); if (!w) return; if (!vv) { w.style.height = ''; return; } w.style.top = vv.offsetTop + 'px'; w.style.height = vv.height + 'px'; w.style.bottom = 'auto'; });
+  }
+  if (window.visualViewport) { window.visualViewport.addEventListener('resize', fit); window.visualViewport.addEventListener('scroll', fit); }
   function shrink(file) { // 端末で縮めてから送る（長い辺 1600px・JPEG）
     return new Promise(function (ok, ng) {
       var img = new Image(), u = URL.createObjectURL(file);
@@ -656,24 +694,23 @@ function annPop(a) {
     });
   }
   async function post() {
-    var D = window.DB, tx = (document.getElementById('bxtx') || {}).value || '', v = tx.trim(); if (!v && !NEW.files.length) { D.flash('本文を書いてください'); return; }
-    var btn = document.querySelector('[data-bxpost]'); if (btn) { btn.disabled = true; btn.textContent = '送信中…'; }
-    var imgs = [];
+    var D = window.DB, tx = (document.getElementById('bxtx') || {}).value || '', v = tx.trim(); if (!v && !NEW.files.length) { D.flash(NEW.tab === 'reply' ? '返信を書いてください' : '本文を書いてください'); return; }
+    var btn = document.querySelector('[data-bxpost]'), label = btn ? btn.textContent : ''; if (btn) { btn.disabled = true; btn.textContent = '送信中…'; }
+    var undo = function () { if (btn) { btn.disabled = false; btn.textContent = label; } }, imgs = [];
     try {
       for (var i = 0; i < NEW.files.length; i++) {
         var b = await shrink(NEW.files[i].file), path = D.me + '/' + Date.now() + '_' + i + '.jpg';
         var r = await window.sb.storage.from('board').upload(path, b, { contentType: 'image/jpeg' }); if (r.error) throw r.error; imgs.push(path); URLS[path] = NEW.files[i].url;
       }
-    } catch (er) { D.flash('写真を送れませんでした'); if (btn) { btn.disabled = false; btn.textContent = '投稿する'; } return; }
-    var lines = v.split('\n'), head = lines[0].slice(0, 80), rest = lines.slice(1).join('\n').trim(), data;
-    if (NEW.rec && !NEW.roles.length) { D.flash('募集するロールを選んでください'); if (btn) { btn.disabled = false; btn.textContent = '投稿する'; } return; }
-    var kind = NEW.tab === 'idea' && NEW.rec && NEW.roles.length ? 'recruit' : NEW.tab; // 役割を選んだらメンバー募集
-    if (kind === 'recruit') data = { title: head, purpose: rest, roles: NEW.roles.slice(), frame: '実プロジェクト枠' };
+    } catch (er) { D.flash('写真を送れませんでした'); undo(); return; }
+    var lines = v.split('\n'), head = lines[0].slice(0, 80), rest = lines.slice(1).join('\n').trim(), data, kind = NEW.tab;
+    if (kind === 'reply') { kind = 'comment'; data = { text: v }; }
+    else if (kind === 'idea' && NEW.roles.length) { kind = 'recruit'; data = { title: head, purpose: rest, roles: NEW.roles.slice(), frame: '実プロジェクト枠' }; } // 役割を選んだらメンバー募集
     else if (kind === 'idea') data = { title: head, summary: rest };
     else data = { text: v };
     if (imgs.length) data.imgs = imgs;
-    var res = await D.add(kind, data); if (!res) { if (btn) { btn.disabled = false; btn.textContent = '投稿する'; } return; }
-    closeNew(); paint(true);
+    var parent = NEW.parent, res = await D.add(kind, data, parent || undefined); if (!res) { undo(); return; }
+    closeNew(); paint(); if (parent && document.getElementById('bxth')) thread(parent);
   }
 
   // ---- 操作 ----
@@ -683,12 +720,12 @@ function annPop(a) {
     if ((b = t.closest('[data-bxnew]'))) { openNew(); return; }
     if (t.closest('[data-bxnew-x]')) { closeNew(); return; }
     if (t.closest('[data-bxpost]')) { post(); return; }
-    if (t.closest('[data-bxrec]')) { NEW.rec = !NEW.rec; if (!NEW.rec) NEW.roles = []; drawNew(); return; }
-    if ((b = t.closest('[data-bxrole]'))) { var r = b.dataset.bxrole, k = NEW.roles.indexOf(r); if (k >= 0) NEW.roles.splice(k, 1); else NEW.roles.push(r); b.setAttribute('aria-pressed', String(k < 0)); return; }
+    if (t.closest('[data-bxrec]')) { sheet('募集するロール', ROLES.map(function (r) { return { k: r, n: r, on: NEW.roles.indexOf(r) >= 0 }; }), true, function (sel) { NEW.roles = ROLES.filter(function (r) { return sel.indexOf(r) >= 0; }); drawNew(); }); return; }
+    if (t.closest('[data-bxkind]')) { sheet('投稿する場所', KIND.map(function (z) { return { k: z[0], n: z[1], on: z[0] === NEW.tab }; }), false, function (sel) { NEW.tab = sel[0]; if (NEW.tab !== 'idea') NEW.roles = []; drawNew(); }); return; }
     if ((b = t.closest('[data-bxrm]'))) { NEW.files.splice(+b.dataset.bxrm, 1); drawNew(); return; }
     if (t.closest('[data-bxth-x]')) { closeTh(); return; }
     if ((b = t.closest('[data-bxsend]'))) { var ta = document.getElementById('bxrep'), v = ta ? ta.value.trim() : '', id = b.dataset.bxsend; if (!v) return; b.disabled = true; D.add('comment', { text: v }, id).then(function () { thread(id); }); return; }
-    if ((b = t.closest('[data-bxr]'))) { var kd = b.dataset.bxr, iid = b.dataset.id; if (kd === 'rep') { thread(iid); return; } Promise.resolve(D.toggle(iid, kd)).then(function () { setTimeout(function () { paint(true); if (document.getElementById('bxth')) thread(document.getElementById('bxth').dataset.id); }, 30); }); return; }
+    if ((b = t.closest('[data-bxr]'))) { var kd = b.dataset.bxr, iid = b.dataset.id; if (kd === 'rep') { openNew(iid); return; } var on = b.getAttribute('aria-pressed') !== 'true', sp = b.querySelector('span:not(.bxl)'), n0 = sp ? +sp.textContent : 0; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); Promise.resolve(D.toggle(iid, kd)).then(function () { paint(); if (document.getElementById('bxth')) thread(document.getElementById('bxth').dataset.id); }); return; }
     if ((b = t.closest('[data-bxo]'))) { thread(b.dataset.bxo); return; }
     if ((b = t.closest('[data-bxslot]'))) { var xid = b.dataset.id, role = b.dataset.bxslot, X0 = D.items('recruit').filter(function (y) { return y.id === xid; })[0]; if (X0 && X0.author === D.me) { D.flash('自分の募集には応募できません'); return; } Promise.resolve(D.toggle(xid, 'slot:' + role, true)).then(function () { setTimeout(function () { thread(xid); paint(true); }, 40); }); return; }
     if ((b = t.closest('[data-bxm]'))) { menu(b.dataset.bxm, b.dataset.mine === 'true'); return; }

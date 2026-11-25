@@ -60,7 +60,7 @@ async def main():
         await pg.screenshot(path='/tmp/m2.png')
         # メンバー募集（ロールを選ぶ）
         await pg.click('[data-bxnew]'); await pg.wait_for_timeout(200)
-        await pg.fill('#bxtx', '空きコマバイト\n時間割から提案'); await pg.click('[data-bxrec]'); await pg.click('[data-bxrole=Engineer]'); await pg.click('[data-bxpost]'); await pg.wait_for_timeout(500)
+        await pg.fill('#bxtx', '空きコマバイト\n時間割から提案'); await pg.click('[data-bxrec]'); await pg.click('[data-bxsh-k=Engineer]'); await pg.click('[data-bxsh-ok]'); await pg.click('[data-bxpost]'); await pg.wait_for_timeout(500)
         print('in idea tab:', await pg.locator('#bdx .bx[data-k=recruit]').count(), await pg.locator('#bdx .bx[data-k=idea]').count())
         rec = [i for i in await db(pg, 'items') if i['kind'] == 'recruit']; print('recruit:', [(r['data']['title'], r['data']['roles']) for r in rec])
         # スレッドで返信
