@@ -2682,7 +2682,7 @@ html.light{color-scheme:light}
   var BACK = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>';
   var NDUE = [[7, '7日前'], [3, '3日前'], [1, '前日'], [0, '当日']];
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
-  function sw(on, attr, dis) { return '<span class="mpsw nssw" role="switch" aria-checked="' + on + '" ' + attr + (dis ? ' aria-disabled="true"' : '') + ' style="background:' + (on ? '#F3F1EC' : '#383836') + '"><i style="left:' + (on ? '21px' : '3px') + ';background:' + (on ? '#070707' : (dis ? '#7D7B76' : '#D2CFC8')) + '"></i></span>'; }
+  function sw(on, attr, dis) { return '<span class="mpsw nssw" role="switch" aria-checked="' + on + '" ' + attr + (dis ? ' aria-disabled="true"' : '') + ' style="background:' + (on ? '#D2CFC8' : '#2C2C2A') + '"><i style="left:' + (on ? '21px' : '3px') + ';background:' + (on ? '#070707' : (dis ? '#474744' : '#7D7B76')) + '"></i></span>'; }
   // ---- 設定の画面 ----
   function page() {
     var np = window.__np; if (!np) return; var q = np.get(), ps = np.push(), old = document.getElementById('nspage'), y = old ? old.querySelector('.nspb').scrollTop : 0;
@@ -2751,22 +2751,21 @@ html.light{color-scheme:light}
 .nsph b{font-size:16px}
 .nspb{flex:1;overflow:auto;padding:8px 16px calc(32px + env(safe-area-inset-bottom));max-width:640px;width:100%;margin:0 auto;box-sizing:border-box}
 #nspage .lbl{display:block;margin:20px 0 8px}
-.nsl{display:flex;flex-direction:column;border:1px solid #2C2C2A;border-radius:12px;overflow:hidden}
-.nsr,.nsa{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;padding:8px 14px;border:0;border-top:1px solid #232322;background:transparent;color:#F3F1EC;font:inherit;font-size:14px;text-align:left;box-sizing:border-box}
+.nsl{display:flex;flex-direction:column;border:1px solid #1C1C1B;border-radius:12px;overflow:hidden;background:#0E0E0D}
+.nsr,.nsa{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;padding:8px 14px;border:0;border-top:1px solid #1C1C1B;background:transparent;color:#F3F1EC;font:inherit;font-size:14px;text-align:left;box-sizing:border-box}
 .nsa{font-size:15px;cursor:pointer}
 .nsr:first-child,.nsa:first-child{border-top:0}
 .nsr.nsdue{border-top:0;min-height:0;padding-top:0;padding-bottom:12px;flex-wrap:wrap}
-.nsr .mpl{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.nsr .mpl{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;color:#D2CFC8}
 .nsr .mpl small{font-size:12px;color:#7D7B76}
 .nssw{flex:none;position:relative;width:44px;height:26px;border-radius:13px;cursor:pointer}
 .nssw i{position:absolute;top:3px;width:20px;height:20px;border-radius:50%}
-.nseg{flex:none;display:inline-flex;border:1px solid #383836;border-radius:8px;overflow:hidden}
-.nseg button,.nsdays button{border:0;background:transparent;color:#D2CFC8;font:inherit;font-size:12px;font-weight:700;height:30px;padding:0 9px;cursor:pointer}
-.nseg button+button{border-left:1px solid #383836}
-.nseg button[aria-pressed="true"],.nsdays button[aria-pressed="true"]{background:#F3F1EC;color:#070707}
+.nseg{flex:none;display:inline-flex;gap:2px;padding:2px;border-radius:9px;background:#131313}
+.nseg button,.nsdays button{border:0;background:transparent;color:#7D7B76;font:inherit;font-size:12px;font-weight:500;height:28px;padding:0 10px;border-radius:7px;cursor:pointer;transition:background .15s,color .15s}
+.nseg button[aria-pressed="true"]{background:#2C2C2A;color:#F3F1EC;font-weight:700}
 .nsdays{display:flex;flex-wrap:wrap;gap:6px}
-.nsdays button{border:1px solid #383836;border-radius:15px}
-.nsdays button[aria-pressed="true"]{border-color:#F3F1EC}
+.nsdays button{background:#131313;border-radius:14px;padding:0 12px}
+.nsdays button[aria-pressed="true"]{background:#2C2C2A;color:#F3F1EC;font-weight:700}
 .nsn{margin:14px 0 0;font-size:12px;color:#7D7B76;line-height:1.6}
 .nsq{margin:0 0 12px;font-size:14px;color:#D2CFC8;line-height:1.6}
 .nsm{display:flex;flex-wrap:wrap;gap:8px}

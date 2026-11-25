@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '1daf899634', FILE = 'index.ver';
+  var VER = 'b71df509d9', FILE = 'index.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -2929,7 +2929,7 @@ html.light{color-scheme:light}
   var BACK = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>';
   var NDUE = [[7, '7日前'], [3, '3日前'], [1, '前日'], [0, '当日']];
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
-  function sw(on, attr, dis) { return '<span class="mpsw nssw" role="switch" aria-checked="' + on + '" ' + attr + (dis ? ' aria-disabled="true"' : '') + ' style="background:' + (on ? 'var(--fg)' : 'var(--n21)') + '"><i style="left:' + (on ? '21px' : '3px') + ';background:' + (on ? 'var(--bg)' : (dis ? 'var(--n49)' : 'var(--n85)')) + '"></i></span>'; }
+  function sw(on, attr, dis) { return '<span class="mpsw nssw" role="switch" aria-checked="' + on + '" ' + attr + (dis ? ' aria-disabled="true"' : '') + ' style="background:' + (on ? 'var(--n85)' : 'var(--n16)') + '"><i style="left:' + (on ? '21px' : '3px') + ';background:' + (on ? 'var(--bg)' : (dis ? 'var(--n27)' : 'var(--n49)')) + '"></i></span>'; }
   // ---- 設定の画面 ----
   function page() {
     var np = window.__np; if (!np) return; var q = np.get(), ps = np.push(), old = document.getElementById('nspage'), y = old ? old.querySelector('.nspb').scrollTop : 0;
@@ -2998,22 +2998,21 @@ html.light{color-scheme:light}
 .nsph b{font-size:16px}
 .nspb{flex:1;overflow:auto;padding:8px 16px calc(32px + env(safe-area-inset-bottom));max-width:640px;width:100%;margin:0 auto;box-sizing:border-box}
 #nspage .lbl{display:block;margin:20px 0 8px}
-.nsl{display:flex;flex-direction:column;border:1px solid var(--n16);border-radius:12px;overflow:hidden}
-.nsr,.nsa{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;padding:8px 14px;border:0;border-top:1px solid var(--n12);background:transparent;color:var(--fg);font:inherit;font-size:14px;text-align:left;box-sizing:border-box}
+.nsl{display:flex;flex-direction:column;border:1px solid var(--n9);border-radius:12px;overflow:hidden;background:var(--n3)}
+.nsr,.nsa{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;padding:8px 14px;border:0;border-top:1px solid var(--n9);background:transparent;color:var(--fg);font:inherit;font-size:14px;text-align:left;box-sizing:border-box}
 .nsa{font-size:15px;cursor:pointer}
 .nsr:first-child,.nsa:first-child{border-top:0}
 .nsr.nsdue{border-top:0;min-height:0;padding-top:0;padding-bottom:12px;flex-wrap:wrap}
-.nsr .mpl{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.nsr .mpl{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;color:var(--n85)}
 .nsr .mpl small{font-size:12px;color:var(--n49)}
 .nssw{flex:none;position:relative;width:44px;height:26px;border-radius:13px;cursor:pointer}
 .nssw i{position:absolute;top:3px;width:20px;height:20px;border-radius:50%}
-.nseg{flex:none;display:inline-flex;border:1px solid var(--n21);border-radius:8px;overflow:hidden}
-.nseg button,.nsdays button{border:0;background:transparent;color:var(--n85);font:inherit;font-size:12px;font-weight:700;height:30px;padding:0 9px;cursor:pointer}
-.nseg button+button{border-left:1px solid var(--n21)}
-.nseg button[aria-pressed="true"],.nsdays button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+.nseg{flex:none;display:inline-flex;gap:2px;padding:2px;border-radius:9px;background:var(--n5)}
+.nseg button,.nsdays button{border:0;background:transparent;color:var(--n49);font:inherit;font-size:12px;font-weight:500;height:28px;padding:0 10px;border-radius:7px;cursor:pointer;transition:background .15s,color .15s}
+.nseg button[aria-pressed="true"]{background:var(--n16);color:var(--fg);font-weight:700}
 .nsdays{display:flex;flex-wrap:wrap;gap:6px}
-.nsdays button{border:1px solid var(--n21);border-radius:15px}
-.nsdays button[aria-pressed="true"]{border-color:var(--fg)}
+.nsdays button{background:var(--n5);border-radius:14px;padding:0 12px}
+.nsdays button[aria-pressed="true"]{background:var(--n16);color:var(--fg);font-weight:700}
 .nsn{margin:14px 0 0;font-size:12px;color:var(--n49);line-height:1.6}
 .nsq{margin:0 0 12px;font-size:14px;color:var(--n85);line-height:1.6}
 .nsm{display:flex;flex-wrap:wrap;gap:8px}
