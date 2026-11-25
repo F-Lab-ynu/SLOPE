@@ -1760,5 +1760,5 @@ input[type=time]::-webkit-calendar-picker-indicator{display:none}
 .gl .fck.on svg{width:12px;height:12px;stroke:#fff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
 .gl .wck{margin:0 0 0 2px}
 .gr.mvsrc .gl > .hldot{opacity:0}
-.gl .gwho{justify-content:flex-end}
+.gl .gwho{justify-content:flex-start;flex-basis:72px;width:72px} /* 担当は左揃え、チェックとの間を詰める */
 .gl .check.wck,.gl .fck{margin:0 0 0 2px}
