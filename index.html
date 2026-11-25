@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = 'cf801eeaa7', FILE = 'index.ver';
+  var VER = 'f06aa5a97d', FILE = 'index.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -755,7 +755,12 @@ function memberExtras(v) {
       var js = D.clubEvents().filter(function (e) { return (e.tbd || e.end >= today) && D.mine(e.id, 'join'); });
       return { label: '参加予定', n: String(js.length), note: js.length ? '次 ' + (js[0].tbd ? '' : md(js[0].start || js[0].end) + ' ') + js[0].title : '予定タブから参加登録', go: function () { self.setState({ tab: 'cal', sub: null }); } };
     })(),
-    weekCount: String(weekEv.length), boardNew: { n: String(recent.length), inis: inis.map(function (i) { return { i: i }; }), note: '募集・意見 ' + nr + ' · ペイン ' + np },
+    weekCount: String(weekEv.length),
+    week: (function () { // 今週の予定：いちばん近いものの名前（なければ —）
+      var L = weekEv.slice().sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; }), e0 = L[0];
+      if (!e0) return { has: false, none: true, title: '', sub: '予定なし' };
+      return { has: true, none: false, title: e0.title, sub: md(e0.date) + ' ' + wd(e0.date) + (e0.time ? ' ' + e0.time : '') + (L.length > 1 ? '・ほか ' + (L.length - 1) + '件' : '') };
+    })(), boardNew: { n: String(recent.length), inis: inis.map(function (i) { return { i: i }; }), note: '募集・意見 ' + nr + ' · ペイン ' + np },
     hasNews: false, notifs: notifs, hasNotifs: notifs.length > 0, notifsAll: notifsAll, noNotifs: !notifsAll.length, bellDot: D.notifs().some(function (n) { return !n.read; }) ? 'block' : 'none',
     nPop: !!s.nPop, closeNotifs: function () { self.setState({ nPop: false }); },
     goNotifs: function () { var o = !s.nPop; self.setState({ nPop: o }); if (o) setTimeout(function () { D.readAll(); }, 1500); }, delAllNotifs: function () { D.delNotif('all'); },
@@ -1072,8 +1077,8 @@ setInterval(window.__chrome, 400);
 <button onClick="{{ goCal }}" class="card" style="width: 100%; min-height: 148px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between; gap: 12px; text-align: left; color: var(--fg)">
 <span style="display: flex; justify-content: space-between; align-items: center; width: 100%"><span style="font-size: 13px; font-weight: 700; color: var(--n66)">今週の予定</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--n37)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M7 17 17 7"></path><path d="M9 7h8v8"></path></svg></span>
 <span style="display: flex; flex-direction: column; gap: 10px; width: 100%">
-<span style="display: flex; align-items: baseline; gap: 4px"><span class="big" style="font-size: 46px; font-weight: 700; line-height: 0.9">{{ weekCount }}</span><span style="font-size: 14px; color: var(--n66)">件</span></span>
-<span style="display: flex; width: 100%"><span style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px"><span style="font-size: 10px; color: var(--n37)">日</span><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--n16)"></span></span><span style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px"><span style="font-size: 10px; color: var(--n37)">月</span><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--n16)"></span></span><span style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px"><span style="font-size: 10px; color: var(--n37)">火</span><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--n16)"></span></span><span style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px"><span style="font-size: 10px; color: var(--fg)">水</span><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--fg)"></span></span><span style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px"><span style="font-size: 10px; color: var(--n37)">木</span><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--n16)"></span></span><span style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px"><span style="font-size: 10px; color: var(--fg)">金</span><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--fg)"></span></span><span style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px"><span style="font-size: 10px; color: var(--fg)">土</span><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--fg)"></span></span></span>
+<sc-if value="{{ week.has }}"><span style="font-size: 19px; font-weight: 700; line-height: 1.3; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere">{{ week.title }}</span></sc-if><sc-if value="{{ week.none }}"><span class="big" style="font-size: 46px; font-weight: 700; line-height: 0.9">—</span></sc-if>
+<span style="font-size: 13px; color: var(--n76); overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ week.sub }}</span>
 </span>
 </button>
 

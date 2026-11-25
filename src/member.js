@@ -330,7 +330,12 @@ function memberExtras(v) {
       var js = D.clubEvents().filter(function (e) { return (e.tbd || e.end >= today) && D.mine(e.id, 'join'); });
       return { label: '参加予定', n: String(js.length), note: js.length ? '次 ' + (js[0].tbd ? '' : md(js[0].start || js[0].end) + ' ') + js[0].title : '予定タブから参加登録', go: function () { self.setState({ tab: 'cal', sub: null }); } };
     })(),
-    weekCount: String(weekEv.length), boardNew: { n: String(recent.length), inis: inis.map(function (i) { return { i: i }; }), note: '募集・意見 ' + nr + ' · ペイン ' + np },
+    weekCount: String(weekEv.length),
+    week: (function () { // 今週の予定：いちばん近いものの名前（なければ —）
+      var L = weekEv.slice().sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; }), e0 = L[0];
+      if (!e0) return { has: false, none: true, title: '', sub: '予定なし' };
+      return { has: true, none: false, title: e0.title, sub: md(e0.date) + ' ' + wd(e0.date) + (e0.time ? ' ' + e0.time : '') + (L.length > 1 ? '・ほか ' + (L.length - 1) + '件' : '') };
+    })(), boardNew: { n: String(recent.length), inis: inis.map(function (i) { return { i: i }; }), note: '募集・意見 ' + nr + ' · ペイン ' + np },
     hasNews: false, notifs: notifs, hasNotifs: notifs.length > 0, notifsAll: notifsAll, noNotifs: !notifsAll.length, bellDot: D.notifs().some(function (n) { return !n.read; }) ? 'block' : 'none',
     nPop: !!s.nPop, closeNotifs: function () { self.setState({ nPop: false }); },
     goNotifs: function () { var o = !s.nPop; self.setState({ nPop: o }); if (o) setTimeout(function () { D.readAll(); }, 1500); }, delAllNotifs: function () { D.delNotif('all'); },
