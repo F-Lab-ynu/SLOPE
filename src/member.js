@@ -315,9 +315,9 @@ function memberExtras(v) {
       var used = (window.__progSummary ? 'y' : 'n') + (window.__PROG ? window.__PROG.key + '|' + window.__PROG.jkey : '');
       setTimeout(function () { var now = (window.__progSummary ? 'y' : 'n') + (window.__PROG ? window.__PROG.key + '|' + window.__PROG.jkey : ''); if (now !== used && window.__comp) window.__comp.forceUpdate(); }, 0); // 学ぶのデータが新しくなったら描き直す
       var P = window.__progSummary && window.__PROG ? window.__progSummary(window.__PROG) : null;
-      if (!P) return { lk: 'none', op: '1', n: rN ? rD + '/' + rN : '—', dash: (ring * pct).toFixed(1) + ' ' + ring.toFixed(1), track: myRole || 'ロール未設定', next: nextU ? nextU.code + '\n' + nextU.title : (roleT ? '全単元修了' : 'マイページでロールを選ぶ') };
+      if (!P) return { lk: 'none', nfs: '13px', op: '1', code: nextU ? nextU.code : '', title: nextU ? nextU.title : (roleT ? '全単元修了' : 'マイページでロールを選ぶ'), n: rN ? rD + '/' + rN : '—', dash: (ring * pct).toFixed(1) + ' ' + ring.toFixed(1), track: myRole || 'ロール未設定', next: nextU ? nextU.code + '\n' + nextU.title : (roleT ? '全単元修了' : 'マイページでロールを選ぶ') };
       var p = P.n ? P.d / P.n : 0;
-      return { n: P.n ? P.d + '/' + P.n : '—', dash: (ring * p).toFixed(1) + ' ' + ring.toFixed(1), track: myRole || 'プログラム', next: P.next ? P.next.code + '\n' + P.next.title : (P.n ? 'すべて修了' : 'まだありません'), lk: P.next && P.next.locked ? 'inline-block' : 'none', op: P.next && P.next.locked ? '0.55' : '1' };
+      return { n: P.n ? P.d + '/' + P.n : '—', dash: (ring * p).toFixed(1) + ' ' + ring.toFixed(1), track: myRole || 'プログラム', code: P.next ? P.next.code : '', title: P.next ? P.next.title : (P.n ? 'すべて修了' : 'まだありません'), lk: P.next && P.next.locked ? 'block' : 'none', nfs: P.next && P.next.locked ? '11px' : '13px', op: P.next && P.next.locked ? '0.55' : '1' };
     })(),
     clubEvents: D.clubEvents().filter(function (e) { return e.tbd || e.end >= today; }).map(function (e) { var on = D.mine(e.id, 'join'), p = e.start.split('-');
       return { id: e.id, mon: e.tbd ? '日程' : ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][+p[1] - 1], d: e.tbd ? '未定' : String(+p[2]), dfs: e.tbd ? '15px' : '22px', title: e.title, sub: [e.end !== e.start ? '〜' + md(e.end) : '', e.sub].filter(Boolean).join(' · '),
