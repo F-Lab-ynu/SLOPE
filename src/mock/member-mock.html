@@ -2780,6 +2780,9 @@ html.light{color-scheme:light}
 .nsph{display:flex;align-items:center;gap:6px;height:calc(56px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 12px 0 6px;border-bottom:1px solid #232322;flex:none}
 .nsph button{width:44px;height:44px;border:0;background:transparent;color:#F3F1EC;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .nsph b{font-size:16px}
+/* 丸い枠の中の文字を上下の真ん中に（この書体は少し下に寄るため） */
+.bxpost,.bxgo,.bxrp button,.bxshh button,.evpj,.anok,.chip,.bxc,.bxpk>span,.bxl,.bxtabs button{text-box:trim-both cap alphabetic}
+button[style*="height"]:not([class]){padding-bottom:2px !important}
 /* 掲示板（X のような一覧） */
 .bdx{padding-bottom:calc(120px + env(safe-area-inset-bottom))}
 .bxtabs{position:sticky;top:0;z-index:10;display:flex;padding:0 12px;background:#070707;border-bottom:1px solid #232322;overflow-x:auto;scrollbar-width:none}
@@ -2830,7 +2833,7 @@ html.light{color-scheme:light}
 .bxfab{position:fixed;right:20px;bottom:calc(92px + env(safe-area-inset-bottom));z-index:30;width:56px;height:56px;border:0;border-radius:50%;background:#F2A93B;color:#070707;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(0,0,0,.45);cursor:pointer}
 .bxfab svg{width:24px;height:24px;stroke-width:2.4}
 body.wide .bxfab{bottom:32px;right:32px}
-#bxth,#bxnew{position:fixed;inset:0;z-index:2147481000;display:flex;flex-direction:column;background:#070707;color:#F3F1EC;font-family:'Zen Kaku Gothic New','Noto Sans JP','Hiragino Sans','Yu Gothic UI','Meiryo',sans-serif;animation:invin .22s ease}
+#bxth,#bxnew{position:fixed;inset:0;box-sizing:border-box;overscroll-behavior:contain;z-index:2147481000;display:flex;flex-direction:column;background:#070707;color:#F3F1EC;font-family:'Zen Kaku Gothic New','Noto Sans JP','Hiragino Sans','Yu Gothic UI','Meiryo',sans-serif;animation:invin .22s ease}
 .bxthb{padding:0 0 24px !important}
 .bx.rep{cursor:default}
 .bx.fx{flex-wrap:wrap;cursor:default}
@@ -2866,7 +2869,7 @@ body.wide .bxfab{bottom:32px;right:32px}
 .bxpk{height:40px;padding:0 16px 0 12px;display:inline-flex;align-items:center;gap:8px;color:#F3F1EC;border:1px solid #383836;border-radius:20px;font-size:14px;font-weight:600;cursor:pointer}
 .bxpk svg{width:22px !important;height:22px !important;color:#F2A93B}
 .bxpk.off{opacity:.35;cursor:default}
-.bxnt{overflow-x:auto;scrollbar-width:none;gap:8px !important}.bxnt::-webkit-scrollbar{display:none}
+.bxnt{overflow-x:auto;scrollbar-width:none;gap:8px !important;justify-content:space-between}.bxnt::-webkit-scrollbar{display:none}
 .bxpk.ico{width:40px;padding:0 !important;justify-content:center;border-radius:50%}
 .bxpk.ico span{display:none}.bxpk.ico:has(span){width:auto;padding:0 12px 0 10px !important;border-radius:20px}.bxpk.ico:has(span) span{display:inline}
 .kb .bxnt,.kb .bxrp{padding-bottom:6px !important;padding-top:6px !important}

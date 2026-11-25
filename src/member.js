@@ -682,9 +682,9 @@ function annPop(a) {
     });
   }
   // キーボードが出ても、下の帯と返信欄はその上に
-  function fit() {
-    var vv = window.visualViewport, kb = !!vv && window.innerHeight - vv.height > 120; // キーボードが出ている
-    ['bxnew', 'bxth'].forEach(function (id) { var w = document.getElementById(id); if (!w) return; w.classList.toggle('kb', kb); if (!vv) { w.style.height = ''; return; } w.style.top = vv.offsetTop + 'px'; w.style.height = vv.height + 'px'; w.style.bottom = 'auto'; });
+  function fit() { // 画面全体は覆ったまま、下の帯と返信欄だけをキーボードの高さぶん上げる
+    var vv = window.visualViewport, kb = vv ? Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)) : 0;
+    ['bxnew', 'bxth'].forEach(function (id) { var w = document.getElementById(id); if (!w) return; w.classList.toggle('kb', kb > 120); w.style.paddingBottom = kb > 120 ? kb + 'px' : ''; w.style.top = ''; w.style.height = ''; w.style.bottom = ''; });
   }
   if (window.visualViewport) { window.visualViewport.addEventListener('resize', fit); window.visualViewport.addEventListener('scroll', fit); }
   function shrink(file) { // 端末で縮めてから送る（長い辺 1600px・JPEG）
