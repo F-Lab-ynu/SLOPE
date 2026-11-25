@@ -247,6 +247,15 @@ def stamp(s, page, verfile):
     open(verfile, 'w').write(v + '\n')
     return s
 
+
+# ---------- 掲示板：X のような一覧に作り替え（中身は member.js が描く） ----------
+_i = s.index('<sc-if value="{{ show.board }}" hint-placeholder-val="{{ false }}">')
+_j = _i; _depth = 0
+import re as _re
+for _m in _re.finditer(r'<sc-if\b|</sc-if>', s[_i:]):
+    _depth += 1 if _m.group(0) != '</sc-if>' else -1
+    if _depth == 0: _j = _i + _m.end(); break
+s = s[:_i] + '<sc-if value="{{ show.board }}" hint-placeholder-val="{{ false }}">\n<div id="bdx" class="bdx"></div>\n</sc-if>' + s[_j:]
 import theme; s, _tm = theme.apply(s)  # 色をテーマ（CSS変数）で変えられるように
 s = stamp(s, 'index.html', 'index.ver')
 s = s.replace('</head>', '<script>if ("serviceWorker" in navigator) window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); });</script>\n</head>', 1)

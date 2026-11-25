@@ -242,6 +242,7 @@
 
 // ---------- 画面に追加で渡す値（ホーム・学習・予定・マイページ・投稿フォーム） ----------
 function memberExtras(v) {
+  if (v && v.show) v.show.fab = false; // 掲示板の＋は掲示板の中に
   var D = window.DB, s = this.state, self = this, A = '#F3F1EC', RT = '#F2A93B', INK = '#070707';
   var val = function (id) { var e = document.getElementById(id); return e ? e.value.trim() : ''; };
   var WDJ = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'], now = new Date();
@@ -531,4 +532,183 @@ function annPop(a) {
     var c = t.closest('[data-evid]'); if (!c || t.closest('button, a')) return;
     page(c.dataset.evid);
   });
+})();
+
+// ---------- 掲示板（X のような一覧。タブで種類を分け、左右スワイプでも切り替え。写真つきで気軽に投稿） ----------
+(function () {
+  var TABS = [['recruit', '募集'], ['idea', 'アイデア'], ['pain', 'ペイン'], ['event', 'イベント'], ['other', 'フリー']];
+  var ROLES = ['Strategist', 'Negotiator', 'Advertiser', 'Engineer', 'Innovator'];
+  var e = function (t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var link = function (t) { return e(t).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g, '<br>'); };
+  var IC = {
+    rep: '<svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg>',
+    heart: '<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/></svg>',
+    me2: '<svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg>',
+    more: '<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></svg>',
+    plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+    photo: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-9 8"/></svg>',
+    back: '<svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>',
+    x: '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+    cal: '<svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>',
+    out: '<svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5H5V6h5"/></svg>'
+  };
+  var cur = function () { var c = window.__comp; var s = c ? c.state.seg : 'recruit'; return TABS.some(function (t) { return t[0] === s; }) ? s : 'recruit'; };
+  // 写真：非公開の置き場から、見るための一時URLをまとめて取る
+  var URLS = {}, asked = {};
+  function want(paths) {
+    var need = paths.filter(function (p) { return !URLS[p] && !asked[p]; }); if (!need.length || !window.sb || !window.sb.storage) return;
+    need.forEach(function (p) { asked[p] = 1; });
+    window.sb.storage.from('board').createSignedUrls(need, 86400).then(function (r) { (r.data || []).forEach(function (x) { if (x.signedUrl) URLS[x.path] = x.signedUrl; }); paint(true); }).catch(function () {});
+  }
+  function pics(d) {
+    var ps = (d.imgs || []).slice(0, 4); if (!ps.length) return ''; want(ps);
+    return '<div class="bxp n' + ps.length + '">' + ps.map(function (p) { return URLS[p] ? '<img src="' + e(URLS[p]) + '" alt="" loading="lazy" data-bxi="' + e(p) + '">' : '<span class="bxph"></span>'; }).join('') + '</div>';
+  }
+  function cm(id) { return window.DB.items('comment').filter(function (c) { return c.parent_id === id; }).length; }
+  function act(kind, id, n, on, label) { return '<button class="bxa' + (on ? ' on' : '') + '" data-bxr="' + kind + '" data-id="' + e(id) + '" aria-pressed="' + !!on + '">' + (label === 'me2' ? IC.me2 : kind === 'rep' ? IC.rep : IC.heart) + (n ? '<span>' + n + '</span>' : '') + (label === 'me2' ? '<span class="bxl">自分も</span>' : '') + '</button>'; }
+  function row(x, tab) {
+    var D = window.DB, d = x.data || {}, mine = x.author === D.me, title = '', body = '', foot = '', acts = '';
+    if (tab === 'recruit') {
+      title = d.title || ''; body = d.purpose || '';
+      var roles = (d.roles || []).map(function (r) { var w = D.reactors(x.id, 'slot:' + r); return '<span class="bxc' + (w.length ? ' full' : '') + '">' + e(r) + (w.length ? ' ✓' : '') + '</span>'; }).join('');
+      foot = roles ? '<div class="bxcs">' + roles + '</div>' : '';
+      acts = act('rep', x.id, cm(x.id)) + '<button class="bxgo" data-bxo="' + e(x.id) + '">応募する</button>';
+    } else if (tab === 'idea') { title = d.title || ''; body = d.summary || ''; acts = act('rep', x.id, cm(x.id)) + act('vote', x.id, D.count(x.id, 'vote'), D.mine(x.id, 'vote')); }
+    else if (tab === 'pain') { body = d.text || ''; acts = act('rep', x.id, cm(x.id)) + act('emp', x.id, D.count(x.id, 'emp'), D.mine(x.id, 'emp'), 'me2'); }
+    else { body = d.text || ''; if (d.book) foot = '<div class="bxbk">📖 ' + e(d.book) + (d.bookAuthor ? ' · ' + e(d.bookAuthor) : '') + '</div>'; acts = act('rep', x.id, cm(x.id)) + act('like', x.id, D.count(x.id, 'like'), D.mine(x.id, 'like')); }
+    return '<article class="bx" data-bxid="' + e(x.id) + '" data-k="' + tab + '"><span class="bxav">' + e(D.ini(x.author)) + '</span><div class="bxm">' +
+      '<div class="bxh"><b>' + e(D.name(x.author)) + '</b><span>' + e(((D.who(x.author) || '').split(' · ')[1] || '')) + (D.who(x.author).indexOf(' · ') > 0 ? ' · ' : '') + e(D.ago(x.created_at)) + '</span><button class="bxmore" data-bxm="' + e(x.id) + '" data-mine="' + mine + '" aria-label="その他">' + IC.more + '</button></div>' +
+      (title ? '<div class="bxt">' + e(title) + '</div>' : '') + (body ? '<div class="bxb">' + link(body) + '</div>' : '') + pics(d) + foot +
+      '<div class="bxas">' + acts + '</div></div></article>';
+  }
+  function evRow(x) {
+    var D = window.DB, d = x.data || {}, on = D.mine(x.id, 'plan'), off = x.kind === 'notice';
+    var p = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d.due || ''), due = p ? (+p[2]) + '.' + (+p[3]) + ' 締切' : '';
+    return '<article class="bx" data-bxev="' + e(x.id) + '"><span class="bxav' + (off ? ' off' : '') + '">' + (off ? 'F' : e(D.ini(x.author))) + '</span><div class="bxm">' +
+      '<div class="bxh"><b>' + (off ? '起業部 公式' : e(D.name(x.author))) + '</b><span>' + e(d.type || '') + (due ? ' · ' + e(due) : '') + '</span></div>' +
+      '<div class="bxt">' + e(d.title || '') + '</div>' + (d.host && d.host !== '—' ? '<div class="bxs">' + e(d.host) + '</div>' : '') + (d.memo ? '<div class="bxb">' + link(d.memo) + '</div>' : '') +
+      '<div class="bxas"><button class="bxa' + (on ? ' on' : '') + '" data-bxr="plan" data-id="' + e(x.id) + '" aria-pressed="' + on + '">' + IC.cal + '<span class="bxl">' + (on ? '予定に追加済み' : '予定に追加') + '</span></button>' +
+      (/^https?:\/\//.test(d.url || '') ? '<a class="bxa" href="' + e(d.url) + '" target="_blank" rel="noopener">' + IC.out + '<span class="bxl">詳細</span></a>' : '') + '</div></div></article>';
+  }
+  function list(tab) {
+    var D = window.DB; if (!D) return [];
+    if (tab === 'event') return D.items('notice').concat(D.items('offer').filter(function (x) { return (x.data || {}).state === 'wait'; }));
+    return D.items(tab).slice().sort(function (a, b) { return a.created_at < b.created_at ? 1 : -1; });
+  }
+  var lastKey = '';
+  function paint(force) {
+    var root = document.getElementById('bdx'); if (!root || !window.DB) return;
+    var tab = cur(), L = list(tab), D = window.DB;
+    var key = tab + '|' + L.map(function (x) { return x.id + ':' + JSON.stringify(x.data).length + ':' + cm(x.id) + ':' + ['vote', 'emp', 'like', 'plan'].map(function (k) { return D.count(x.id, k) + (D.mine(x.id, k) ? 'm' : ''); }).join(',') + ':' + (x.data && x.data.roles ? x.data.roles.map(function (r) { return D.count(x.id, 'slot:' + r); }).join('') : ''); }).join(';') + '|' + Object.keys(URLS).length;
+    if (!force && key === lastKey && root.firstChild) return; lastKey = key;
+    var y = root.querySelector('.bxl0') ? root.querySelector('.bxl0').scrollLeft : 0;
+    root.innerHTML = '<div class="bxtabs" role="tablist">' + TABS.map(function (t) { return '<button role="tab" aria-selected="' + (t[0] === tab) + '" data-bxt="' + t[0] + '">' + t[1] + '</button>'; }).join('') + '</div>' +
+      '<div class="bxlist">' + (L.length ? L.map(function (x) { return tab === 'event' ? evRow(x) : row(x, tab); }).join('') : '<div class="bxempty">まだ投稿はありません</div>') + '</div>' +
+      '<button class="bxfab" data-bxnew="1" aria-label="投稿する">' + IC.plus + '</button>';
+  }
+  window.__bxPaint = paint;
+  setInterval(function () { if (document.getElementById('bdx')) paint(false); }, 400);
+
+  function setTab(t, dir) { var c = window.__comp; if (!c || t === cur()) return; c.setState({ seg: t }); setTimeout(function () { paint(true); var l = document.querySelector('.bxlist'); if (l && dir) { l.classList.add(dir < 0 ? 'inl' : 'inr'); } window.scrollTo(0, 0); }, 0); }
+
+  // ---- スレッド（投稿＋返信） ----
+  function thread(id) {
+    var D = window.DB, x = D.items('recruit').concat(D.items('idea'), D.items('pain'), D.items('other')).filter(function (y) { return y.id === id; })[0]; if (!x) return;
+    var reps = D.items('comment').filter(function (c) { return c.parent_id === id; }).slice().sort(function (a, b) { return a.created_at < b.created_at ? -1 : 1; });
+    var old = document.getElementById('bxth'), w = old || document.createElement('div'); w.id = 'bxth'; w.dataset.id = id;
+    w.innerHTML = '<div class="nsph"><button data-bxth-x aria-label="戻る">' + IC.back + '</button><b>投稿</b></div><div class="nspb bxthb">' + row(x, x.kind) +
+      (reps.length ? reps.map(function (c) { return '<div class="bx rep"><span class="bxav">' + e(D.ini(c.author)) + '</span><div class="bxm"><div class="bxh"><b>' + e(D.name(c.author)) + '</b><span>' + e(D.ago(c.created_at)) + '</span></div><div class="bxb">' + link((c.data || {}).text || '') + '</div></div></div>'; }).join('') : '') +
+      '</div><div class="bxrp"><textarea id="bxrep" rows="1" placeholder="返信する"></textarea><button data-bxsend="' + e(id) + '">返信</button></div>';
+    if (!old) { document.body.appendChild(w); document.documentElement.classList.add('invon'); try { history.pushState({ bxth: 1 }, ''); } catch (er) {} }
+  }
+  function closeTh(pop) { var w = document.getElementById('bxth'); if (!w) return; w.remove(); document.documentElement.classList.remove('invon'); if (!pop) try { if (history.state && history.state.bxth) history.back(); } catch (er) {} }
+  window.addEventListener('popstate', function () { closeTh(true); closeNew(true); });
+
+  // ---- 投稿（本文と写真。募集だけロールを選ぶ） ----
+  var NEW = null;
+  function openNew() {
+    var tab = cur(); if (tab === 'event') { window.__comp.setState({ sub: 'eventNew' }); return; }
+    NEW = { tab: tab, files: [], roles: [] }; drawNew(); try { history.pushState({ bxnew: 1 }, ''); } catch (er) {}
+    setTimeout(function () { var t = document.getElementById('bxtx'); if (t) t.focus(); }, 60);
+  }
+  var PH = { recruit: '何をつくる？ 1行目がタイトルになります', idea: 'アイデアを書く（1行目がタイトル）', pain: '困っていること', other: 'いまどうしてる？' };
+  function drawNew() {
+    var w = document.getElementById('bxnew'), first = !w; if (first) { w = document.createElement('div'); w.id = 'bxnew'; document.body.appendChild(w); document.documentElement.classList.add('invon'); }
+    var t = document.getElementById('bxtx'), val = t ? t.value : '';
+    w.innerHTML = '<div class="bxnh"><button data-bxnew-x aria-label="閉じる">' + IC.x + '</button><span>' + (TABS.filter(function (z) { return z[0] === NEW.tab; })[0] || [])[1] + '</span><button class="bxpost" data-bxpost="1">投稿する</button></div>' +
+      '<div class="bxnb"><textarea id="bxtx" placeholder="' + PH[NEW.tab] + '">' + e(val) + '</textarea>' +
+      (NEW.files.length ? '<div class="bxp n' + NEW.files.length + ' edit">' + NEW.files.map(function (f, i) { return '<span class="bxpe"><img src="' + f.url + '" alt=""><button data-bxrm="' + i + '" aria-label="写真を外す">' + IC.x + '</button></span>'; }).join('') + '</div>' : '') +
+      (NEW.tab === 'recruit' ? '<div class="bxrl"><span>募集するロール</span><div>' + ROLES.map(function (r) { return '<button data-bxrole="' + r + '" aria-pressed="' + (NEW.roles.indexOf(r) >= 0) + '">' + r + '</button>'; }).join('') + '</div></div>' : '') +
+      '</div><div class="bxnt"><label class="bxpk' + (NEW.files.length >= 4 ? ' off' : '') + '">' + IC.photo + '<input type="file" accept="image/*" multiple id="bxfile"' + (NEW.files.length >= 4 ? ' disabled' : '') + '></label><span>' + (NEW.files.length ? NEW.files.length + ' / 4' : '') + '</span></div>';
+    var tx = document.getElementById('bxtx'); if (tx && !first) { tx.focus(); tx.setSelectionRange(tx.value.length, tx.value.length); }
+  }
+  function closeNew(pop) { var w = document.getElementById('bxnew'); if (!w) return; w.remove(); NEW = null; document.documentElement.classList.remove('invon'); if (!pop) try { if (history.state && history.state.bxnew) history.back(); } catch (er) {} }
+  function shrink(file) { // 端末で縮めてから送る（長い辺 1600px・JPEG）
+    return new Promise(function (ok, ng) {
+      var img = new Image(), u = URL.createObjectURL(file);
+      img.onload = function () { var k = Math.min(1, 1600 / Math.max(img.width, img.height)), c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(u); c.toBlob(function (b) { b ? ok(b) : ng(); }, 'image/jpeg', 0.82); };
+      img.onerror = function () { URL.revokeObjectURL(u); ng(); }; img.src = u;
+    });
+  }
+  async function post() {
+    var D = window.DB, tx = (document.getElementById('bxtx') || {}).value || '', v = tx.trim(); if (!v && !NEW.files.length) { D.flash('本文を書いてください'); return; }
+    if (NEW.tab === 'recruit' && !NEW.roles.length) { D.flash('募集するロールを選んでください'); return; }
+    var btn = document.querySelector('[data-bxpost]'); if (btn) { btn.disabled = true; btn.textContent = '送信中…'; }
+    var imgs = [];
+    try {
+      for (var i = 0; i < NEW.files.length; i++) {
+        var b = await shrink(NEW.files[i].file), path = D.me + '/' + Date.now() + '_' + i + '.jpg';
+        var r = await window.sb.storage.from('board').upload(path, b, { contentType: 'image/jpeg' }); if (r.error) throw r.error; imgs.push(path); URLS[path] = NEW.files[i].url;
+      }
+    } catch (er) { D.flash('写真を送れませんでした'); if (btn) { btn.disabled = false; btn.textContent = '投稿する'; } return; }
+    var lines = v.split('\n'), head = lines[0].slice(0, 80), rest = lines.slice(1).join('\n').trim(), data;
+    if (NEW.tab === 'recruit') data = { title: head, purpose: rest, roles: NEW.roles.slice(), frame: '実プロジェクト枠' };
+    else if (NEW.tab === 'idea') data = { title: head, summary: rest };
+    else data = { text: v };
+    if (imgs.length) data.imgs = imgs;
+    var res = await D.add(NEW.tab, data); if (!res) { if (btn) { btn.disabled = false; btn.textContent = '投稿する'; } return; }
+    closeNew(); paint(true);
+  }
+
+  // ---- 操作 ----
+  document.addEventListener('click', function (ev) {
+    var t = ev.target; if (!t.closest) return; var b, D = window.DB;
+    if ((b = t.closest('[data-bxt]'))) { var i0 = TABS.map(function (z) { return z[0]; }), a0 = i0.indexOf(cur()), a1 = i0.indexOf(b.dataset.bxt); setTab(b.dataset.bxt, a1 - a0); return; }
+    if ((b = t.closest('[data-bxnew]'))) { openNew(); return; }
+    if (t.closest('[data-bxnew-x]')) { closeNew(); return; }
+    if (t.closest('[data-bxpost]')) { post(); return; }
+    if ((b = t.closest('[data-bxrole]'))) { var r = b.dataset.bxrole, k = NEW.roles.indexOf(r); if (k >= 0) NEW.roles.splice(k, 1); else NEW.roles.push(r); b.setAttribute('aria-pressed', String(k < 0)); return; }
+    if ((b = t.closest('[data-bxrm]'))) { NEW.files.splice(+b.dataset.bxrm, 1); drawNew(); return; }
+    if (t.closest('[data-bxth-x]')) { closeTh(); return; }
+    if ((b = t.closest('[data-bxsend]'))) { var ta = document.getElementById('bxrep'), v = ta ? ta.value.trim() : '', id = b.dataset.bxsend; if (!v) return; b.disabled = true; D.add('comment', { text: v }, id).then(function () { thread(id); }); return; }
+    if ((b = t.closest('[data-bxr]'))) { var kd = b.dataset.bxr, iid = b.dataset.id; if (kd === 'rep') { thread(iid); return; } Promise.resolve(D.toggle(iid, kd)).then(function () { setTimeout(function () { paint(true); if (document.getElementById('bxth')) thread(document.getElementById('bxth').dataset.id); }, 30); }); return; }
+    if ((b = t.closest('[data-bxo]'))) { window.__comp.setState({ sub: 'post', post: b.dataset.bxo }); return; }
+    if ((b = t.closest('[data-bxm]'))) { menu(b.dataset.bxm, b.dataset.mine === 'true'); return; }
+    if (t.closest('a, button, textarea, input, label')) return;
+    var art = t.closest('#bdx [data-bxid]'); if (art) { if (art.dataset.k === 'recruit') window.__comp.setState({ sub: 'post', post: art.dataset.bxid }); else thread(art.dataset.bxid); }
+  });
+  document.addEventListener('change', function (ev) {
+    if (ev.target.id !== 'bxfile' || !NEW) return; var fs = [].slice.call(ev.target.files || []).slice(0, 4 - NEW.files.length);
+    fs.forEach(function (f) { if (/^image\//.test(f.type)) NEW.files.push({ file: f, url: URL.createObjectURL(f) }); }); drawNew();
+  });
+  document.addEventListener('input', function (ev) { if (ev.target.id === 'bxrep' || ev.target.id === 'bxtx') { ev.target.style.height = 'auto'; ev.target.style.height = Math.min(ev.target.scrollHeight, 320) + 'px'; } });
+  function menu(id, mine) {
+    var D = window.DB, w = document.createElement('div'); w.id = 'bxmn';
+    w.innerHTML = '<div class="anbg" data-bxmn-x></div><div class="bxmnc">' + (mine ? '<button data-bxdel="' + e(id) + '" class="bad">削除する</button>' : '<button data-bxrep2="' + e(id) + '">通報する</button>') + '<button data-bxmn-x>やめる</button></div>';
+    document.body.appendChild(w);
+    w.addEventListener('click', function (ev) {
+      var b = ev.target.closest('button, .anbg'); if (!b) return;
+      if (b.dataset.bxdel) { if (b.dataset.sure) { D.remove(b.dataset.bxdel); w.remove(); closeTh(); return; } b.dataset.sure = '1'; b.textContent = 'もう一度押すと削除'; return; }
+      if (b.dataset.bxrep2) D.report(b.dataset.bxrep2, 'その他');
+      w.remove();
+    });
+  }
+  // 左右スワイプでタブを切り替え
+  var sw = null;
+  document.addEventListener('touchstart', function (ev) { if (!ev.target.closest || !ev.target.closest('#bdx .bxlist') || ev.touches.length !== 1) return; sw = { x: ev.touches[0].clientX, y: ev.touches[0].clientY, t: Date.now() }; }, { passive: true });
+  document.addEventListener('touchend', function (ev) {
+    if (!sw) return; var c = ev.changedTouches[0], dx = c.clientX - sw.x, dy = c.clientY - sw.y, s0 = sw; sw = null;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5 || Date.now() - s0.t > 600) return;
+    var ids = TABS.map(function (z) { return z[0]; }), i = ids.indexOf(cur()) + (dx < 0 ? 1 : -1); if (i < 0 || i >= ids.length) return; setTab(ids[i], dx < 0 ? 1 : -1);
+  }, { passive: true });
 })();
