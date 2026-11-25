@@ -318,7 +318,7 @@ function decorateGantt() {
     var ed = (editSelf(n) || n.who === S.me) ? '<button class="gedit" data-act="edit" data-id="' + n.id + '" title="編集" aria-label="編集"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/></svg></button>' : '<span class="gedit ph"></span>';
     var lwh = gl.querySelector('.lwh');
     var pl = isFolder(n) && manages(n) ? '<button class="gedit gplus" data-act="gaddIn" data-id="' + n.id + '" title="中に追加" aria-label="中に追加"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>' : '<span class="gedit ph"></span>';
-    gl.insertAdjacentHTML('beforeend', who + pl + ed);
+    gl.insertAdjacentHTML('beforeend', ed + pl + who);
     if (lwh) gl.appendChild(lwh);
   });
   if (UI.gedit && S.fmode === 'gantt') { // 行内で編集中の行
