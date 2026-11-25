@@ -5,7 +5,7 @@
 var SB_URL = 'https://addvjcwwlklwmkwhhsjv.supabase.co';
 var SB_KEY = 'sb_publishable_L8VP_h67F3FupHwqC_3pTw_YRbBVghw';
 var sb = window.supabase.createClient(SB_URL, SB_KEY);
-var PREF_KEYS = ['view', 'wtab', 'depth', 'fold', 'view2', 'zoom', 'gz', 'lw', 'lwN', 'showEnded', 'mtab', 'fmode', 'fcur', 'sideC', 'ftreeC', 'tkC', 'cur'];
+var PREF_KEYS = ['view', 'wtab', 'depth', 'fold', 'view2', 'zoom', 'lw', 'lwN', 'showEnded', 'mtab', 'fmode', 'fcur', 'sideC', 'ftreeC', 'tkC', 'cur'];
 var SYNC = { nodes: {}, profiles: {}, busy: Promise.resolve(), ready: false, pendingRemote: false };
 S.pending = [];
 

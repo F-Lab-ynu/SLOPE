@@ -111,9 +111,8 @@ function decorateWork() {
   if (S.view !== 'projects' || S.wtab === 'stats') return;
   var tb = document.querySelector('.tbar'); if (tb && !tb.querySelector('.vbtn')) {
     Array.prototype.slice.call(tb.children).forEach(function (c) { if (c.classList.contains('seg') || c.classList.contains('chk') || (c.classList.contains('muted') && c.textContent === '表示')) c.remove(); });
-    var on = HLS.filter(function (h) { return vs().hl[h[0]]; });
-    tb.insertAdjacentHTML('afterbegin', '<button class="btn sm vbtn" data-act="vpanel" aria-haspopup="dialog" aria-expanded="' + !!UI.vp + '"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>表示<span class="vsum">' + esc(vSummary()) + '</span>' +
-      (on.length ? '<span class="vdots">' + on.map(function (h) { return '<i style="background:' + h[2] + '"></i>'; }).join('') + '</span>' : '') + '</button>');
+    var fn = vfOn().length;
+    tb.insertAdjacentHTML('afterbegin', '<button class="btn sm vbtn' + (fn ? ' von' : '') + '" data-act="vpanel" aria-haspopup="dialog" aria-expanded="' + !!UI.vp + '"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16l-6 7.5V19l-4 1.5v-7z"/></svg>表示' + (fn ? '<span class="vcnt">' + fn + '</span>' : '') + '</button>');
   }
   var v = vs();
   document.querySelectorAll('.wcards .wr[data-row], .gg .gr[data-row]').forEach(function (row) {

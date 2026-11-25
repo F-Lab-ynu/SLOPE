@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '776c14d026', FILE = 'admin.ver';
+  var VER = 'fc72b1b0d0', FILE = 'admin.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -1703,65 +1703,6 @@ input[type=time]::-webkit-calendar-picker-indicator{display:none}
 .ftn.ftarm{background:rgba(37,99,235,.10);border-radius:6px;box-shadow:inset 0 0 0 1.5px var(--accent)}
 .ftl .ftn{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 
-/* ---------- ux58 ガント v2：白地・細い罫線・俯瞰しやすいバー ---------- */
-.gs2 .gr{height:36px;border-bottom:1px solid #F1F2F4}
-.gs2 .gr .gl,.gs2 .gr.g0 .gl,.gs2 .gr.gz .gl,.gs2 .gr[data-d] .gl{background:#fff !important;background-image:none !important;box-shadow:none !important}
-.gs2 .gr[data-row]:hover .gl,.gs2 .gr[data-row]:hover .gt{background:#F8FAFC !important}
-.gs2 .gr.gtop{border-top:1px solid #E5E7EB}
-.gs2 .gr.gediting .gl{background:#EFF6FF !important}
-.gs2 .gl{gap:4px;border-right:1px solid #E5E7EB}
-.gs2 .lvb{display:none !important}
-.gs2 .gl .cx{width:22px;height:22px;flex:none;color:var(--muted)}
-.gs2 .gl svg.fi{width:15px;height:15px;flex:none;color:#9CA3AF !important}
-.gs2 .gname{font-size:13px;padding:3px 6px;color:var(--text)}
-.gs2 .gr.isf .gname{font-weight:600}
-.gs2 .gr[data-d="0"].isf .gname{font-size:13.5px}
-.gs2 .gr.gdone .gname,.gs2 .gr.fdone .gname{text-decoration:none;color:var(--dim)}
-.gs2 .gwho{flex:0 0 88px;width:88px;color:var(--sub)}
-.gs2 .gwho:hover{background:#EEF2F7}
-.gs2 .hldot{width:7px;height:7px;box-shadow:none}
-.gs2 .wck.check{width:15px;height:15px}
-/* 見出し */
-.gs2 .ghead{height:48px;border-bottom:1px solid #E5E7EB}
-.gs2 .ghead .gl{align-items:flex-end;padding-bottom:8px;gap:8px}
-.ghsub{font-size:11px;color:var(--dim);font-weight:400;font-variant-numeric:tabular-nums}
-.gs2 .gm{top:7px;font-size:12px;font-weight:600;color:var(--text);padding-left:6px}
-.gs2 .gmo{border-left:1px solid #E5E7EB}
-.gwk{position:absolute;top:28px;font-size:10.5px;color:var(--dim);padding-left:3px;font-variant-numeric:tabular-nums;white-space:nowrap}
-.gwl{position:absolute;top:0;bottom:0;border-left:1px dashed #F1F2F4}
-.gs2 .gd.day{top:20px}
-.gs2 .gd.day.now{color:var(--accent);font-weight:700}
-.gs2 .gwe{background:#FAFBFC}
-.gs2 .gband{background:transparent;border-left:1px dashed #D1D5DB;border-right:1px dashed #D1D5DB}
-.gs2 .gnow{border-left:1.5px solid #2563EB}
-.gs2 .gnowl{background:#2563EB}
-.gs2 .gnowl{bottom:auto;top:28px;font-size:10px;line-height:15px}
-/* バー */
-.gs2 .gr .bar{top:11px;height:14px;border-radius:4px;background:#3B82F6;box-shadow:none !important;overflow:hidden}
-.gs2 .gr .bar .lb{display:none}
-.gs2 .gr .bar.none{background:#fff;box-shadow:inset 0 0 0 1.5px #93C5FD !important}
-.gs2 .gr .bar.done{background:#D1D5DB}
-.gs2 .gr .bar.late:not(.done){background:#EF4444}
-.gs2 .gr .bar.sum,.gs2 .gr.g0 .bar.sum{top:14px;height:8px;border-radius:4px;background:#CBD5E1}
-.gs2 .gr .bar.sum.root,.gs2 .gr[data-d="0"] .bar.sum{top:13px;height:10px;border-radius:5px}
-.gs2 .gr .bar.sum .bp{position:absolute;left:0;top:0;bottom:0;background:#334155;border-radius:inherit;pointer-events:none}
-.gs2 .gr .bar.sum.done .bp,.gs2 .gr.fdone .bar .bp{background:#94A3B8}
-.gs2 .gr.fdone .bar{background:#E2E8F0}
-.gs2 .gr .bar.bsel{outline:2px solid var(--accent);outline-offset:2px}
-.gs2 .gr .bar.nod{top:9px;height:18px}
-.gs2 .bar.hlb-late,.gs2 .bar.hlb-over{box-shadow:none !important}
-.gs2 .ovr{top:14px;height:8px;border-radius:0 4px 4px 0}
-.bl{position:absolute;top:0;height:100%;display:flex;align-items:center;gap:8px;white-space:nowrap;pointer-events:none;font-size:12px;color:var(--sub);z-index:1}
-.bl b{font-weight:500}
-.bl.f b{font-weight:600;color:var(--text)}
-.bl small{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
-.gr:has(.bar.drag) .bl,.gr:has(.bar.nod) .bl{display:none}
-.gr.gdone .bl b{color:var(--dim)}
-/* 全体ボタン */
-.gfitb{border:0;border-left:1px solid var(--line2);background:#fff;font:inherit;font-size:12px;font-weight:600;color:var(--sub);padding:0 10px;cursor:pointer}
-.gfitb[aria-pressed="true"]{background:#F3F4F6;color:var(--text)}
-.gfitb:hover{color:var(--text)}
-
 /* ---------- ux59 通知の設定 ---------- */
 #nsdlg{position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center}
 .nsbg{position:absolute;inset:0;background:rgba(17,24,39,.35)}
@@ -1789,6 +1730,25 @@ input[type=time]::-webkit-calendar-picker-indicator{display:none}
 .nr2[data-nid]{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 .cm .cmh span{white-space:normal;max-width:280px;display:block;font-size:12px;color:var(--muted);line-height:1.5}
 @media (max-width:760px){ #nsdlg{align-items:flex-end} .nsd{width:100vw;border-radius:14px 14px 0 0;max-height:88vh} .nsb{padding-bottom:calc(20px + env(safe-area-inset-bottom))} }
+
+/* ---------- ux60 ガントの「表示」：絞り込みのチップ ---------- */
+.vp{width:320px}
+.vph{padding:10px 8px 8px 16px}
+.vrst{border:0;background:transparent;font:inherit;font-size:12px;color:var(--muted);padding:4px 8px;border-radius:6px;cursor:pointer}
+.vrst:hover{color:var(--text);background:var(--hover)}
+.vsec{padding:8px 16px 12px}
+.vsec .vt{padding:0 0 8px}
+.vsec .seg{display:inline-flex}
+.vsec.voff .seg{opacity:.4}
+.vsec .vopt{padding:4px 0;margin:-2px 0}
+.vsec .vopt:hover{background:transparent}
+.vchips{display:flex;flex-wrap:wrap;gap:6px}
+.vchip{display:inline-flex;align-items:center;gap:4px;height:28px;padding:0 11px;border:1px solid var(--line2);border-radius:14px;background:#fff;font:inherit;font-size:12.5px;color:var(--sub);cursor:pointer}
+.vchip:hover{border-color:#9CA3AF;color:var(--text)}
+.vchip[aria-pressed="true"]{background:#111827;border-color:#111827;color:#fff}
+.vchip svg.i{width:13px;height:13px;margin-left:-3px}
+.vbtn .vcnt{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#111827;color:#fff;font-size:11px;font-weight:600;margin-left:2px}
+.vbtn.von{border-color:#111827}
 
 /* ===== 本番 ===== */
 [data-act="reset"]{display:none !important}
@@ -2081,7 +2041,7 @@ function viewWork() {
 }
 function workGantt() {
   var tbar = '<div class="tbar"><span class="muted" style="font-size:12px">表示</span><span class="seg" role="group" aria-label="表示する細かさ">' + LEVELS.map(function (l) {
-      return '<button data-act="depth" data-v="' + l[0] + '" aria-pressed="' + (String(S.depth || 2) === l[0] && !Object.keys(S.fold || {}).length) + '"><i class="lvd" style="background:' + LVC[LEVELS.indexOf(l)] + '"></i>' + l[1] + '</button>'; }).join('') + '</span>' + (S.wtab === 'gantt' ? '<span class="zoom"><button class="ib" data-act="zoom" data-v="-1" aria-label="縮小" title="縮小（Ctrl＋ホイール・ピンチでも可）">−</button><button class="ib" data-act="zoom" data-v="1" aria-label="拡大" title="拡大">＋</button><button class="gfitb" data-act="gfit" aria-pressed="' + !S.gz + '" title="フォルダーの期間全体を表示">全体</button></span>' : '') +
+      return '<button data-act="depth" data-v="' + l[0] + '" aria-pressed="' + (String(S.depth || 2) === l[0] && !Object.keys(S.fold || {}).length) + '"><i class="lvd" style="background:' + LVC[LEVELS.indexOf(l)] + '"></i>' + l[1] + '</button>'; }).join('') + '</span>' + (S.wtab === 'gantt' ? '<span class="zoom"><button class="ib" data-act="zoom" data-v="-1" aria-label="縮小">−</button><button class="ib" data-act="zoom" data-v="1" aria-label="拡大">＋</button></span>' : '') +
     '<label class="chk"><input type="checkbox" class="check" data-act="showEnded"' + (S.showEnded ? ' checked' : '') + '>終了したイベント</label>' + (S.wtab === 'list' ? '<details class="keys hide-sm"><summary aria-label="キーボード操作">?</summary><div class="kpop"><b>キーボード操作</b><span><kbd>Enter</kbd> 下に追加</span><span><kbd>Tab</kbd> 一段下げる</span><span><kbd>Shift</kbd>+<kbd>Tab</kbd> 一段上げる</span><span><kbd>Alt</kbd>+<kbd>↑↓</kbd> 並べ替え</span></div></details>' : '') + '</div>';
   return tbar + '<div class="body flush">' + ganttOf(rowsOf(false, true)) + '</div>';
 }
@@ -2337,9 +2297,7 @@ function renderMain() {
   v.innerHTML = ({ dash: viewDash, tracks: viewTracks, notices: viewNotices, board: viewBoard, projects: viewWork, perms: viewPerms }[S.view])();
   if (S.view === 'projects' && S.wtab === 'gantt') {
     var gs = document.getElementById('gs'), now = document.querySelector('.gnow');
-    var gfit = document.querySelector('.gg[data-fit="1"]');
-    if (gfit && UI.sp !== 'g') { UI.sp = 'g'; UI.sl = 0; UI.st = 0; } // 全体表示は左端から
-    if (UI.sp === 'g') { gs.scrollLeft = gfit ? 0 : UI.sl; gs.scrollTop = UI.st; }
+    if (UI.sp === 'g') { gs.scrollLeft = UI.sl; gs.scrollTop = UI.st; }
     else { UI.sp = 'g'; UI.sl = now ? Math.max(0, parseFloat(now.style.left) - (window.innerWidth < 760 ? 60 : 240)) : 0; UI.st = 0; gs.scrollLeft = UI.sl; }
     gs.addEventListener('scroll', function () { UI.sl = gs.scrollLeft; UI.st = gs.scrollTop; });
   } else UI.sp = null;
@@ -2643,9 +2601,8 @@ function decorateWork() {
   if (S.view !== 'projects' || S.wtab === 'stats') return;
   var tb = document.querySelector('.tbar'); if (tb && !tb.querySelector('.vbtn')) {
     Array.prototype.slice.call(tb.children).forEach(function (c) { if (c.classList.contains('seg') || c.classList.contains('chk') || (c.classList.contains('muted') && c.textContent === '表示')) c.remove(); });
-    var on = HLS.filter(function (h) { return vs().hl[h[0]]; });
-    tb.insertAdjacentHTML('afterbegin', '<button class="btn sm vbtn" data-act="vpanel" aria-haspopup="dialog" aria-expanded="' + !!UI.vp + '"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>表示<span class="vsum">' + esc(vSummary()) + '</span>' +
-      (on.length ? '<span class="vdots">' + on.map(function (h) { return '<i style="background:' + h[2] + '"></i>'; }).join('') + '</span>' : '') + '</button>');
+    var fn = vfOn().length;
+    tb.insertAdjacentHTML('afterbegin', '<button class="btn sm vbtn' + (fn ? ' von' : '') + '" data-act="vpanel" aria-haspopup="dialog" aria-expanded="' + !!UI.vp + '"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16l-6 7.5V19l-4 1.5v-7z"/></svg>表示' + (fn ? '<span class="vcnt">' + fn + '</span>' : '') + '</button>');
   }
   var v = vs();
   document.querySelectorAll('.wcards .wr[data-row], .gg .gr[data-row]').forEach(function (row) {
@@ -5343,96 +5300,49 @@ document.addEventListener('pointerup', function (e) {
 document.addEventListener('pointercancel', function () { if (TREE_LP) { clearTimeout(TREE_LP.t); TREE_LP = null; } document.querySelectorAll('.ftarm').forEach(function (x) { x.classList.remove('ftarm'); }); }, true);
 // タッチの長押しで出るブラウザのメニューは止める（自分で出す）
 window.addEventListener('contextmenu', function (e) { if ((mv && mv.touch) || TREE_LP) { e.preventDefault(); e.stopImmediatePropagation(); } }, true);
-// ---------- ux58 ガントの描き直し：開いたフォルダーの期間を画面いっぱいに俯瞰。
-//   フォルダー＝進み具合つきの細いバー、ファイル＝担当の色のバー、バーの右に名前（イベントは告知と参加登録）。拡大したら週・日の目盛り ----------
-function ganttRange(rows) {
-  var lo = Infinity, hi = -Infinity, cf = S.view === 'projects' && typeof curFolder === 'function' ? curFolder() : null;
-  if (cf && cf.start && cf.end) { lo = dayOf(cf.start); hi = dayOf(cf.end); }
-  rows.forEach(function (r) { if (r.ghost || r.n.nodate) return; lo = Math.min(lo, dayOf(r.n.start)); hi = Math.max(hi, dayOf(r.n.end)); });
-  if (!isFinite(lo)) { lo = TODAY; hi = TODAY + 60 * DAY; }
-  var a = new Date(lo), b = new Date(hi);
-  lo = Date.UTC(a.getUTCFullYear(), a.getUTCMonth(), 1);
-  hi = Date.UTC(b.getUTCFullYear(), b.getUTCMonth() + 1, 1) - DAY; // 月の頭から月末まで
-  if (hi - lo < 40 * DAY) hi = lo + 40 * DAY;
-  return { lo: lo, hi: hi };
+// ---------- ux60 ガントの「表示」＝絞り込み。説明は出さず、押すだけ ----------
+//  絞り込み（どれかに当てはまる業務と、その上のフォルダーだけ）／開く深さ／完了したもの／フォルダーだけ
+var VF = [['mine', '自分の担当'], ['nobody', '担当未定'], ['late', '期限切れ'], ['soon', '期限が近い'], ['active', '進行中']];
+function vs() {
+  if (!S.view2) S.view2 = {};
+  var v = S.view2; if (!v.f) v.f = {}; if (!v.done) v.done = v.dimDone ? 'dim' : 'show';
+  v.exp = 'depth'; v.focus = false; v.days = 7; v.hl = { late: true, soon: true, over: true }; // 期限の点はいつも出す
+  return v;
 }
-function gBarInfo(n) {
-  if (isFolder(n)) {
-    var g = progress(n), t = g.n ? g.d + '/' + g.n : '';
-    if (isEvent(n)) t = [n.announce === 'done' ? '告知済み' : '告知前', n.announce === 'done' ? evCount(n) + '/' + (S.club || 150) + '名' : '', t ? '業務 ' + t : ''].filter(Boolean).join(' · ');
-    return t;
-  }
-  return n.done ? '完了' : '';
-}
-// バーの右に名前を置く。右端からはみ出すときはバーの左に置く
-function txtW(s, px) { var w = 0; String(s || '').split('').forEach(function (c) { w += /[ -~]/.test(c) ? px * 0.6 : px; }); return w; }
-function blPos(n, info, bl, bw, TW) {
-  var w = txtW(ttl(n), 12.5) + (info ? 8 + txtW(info, 11) : 0) + 4;
-  if (bl + bw + 8 + w <= TW || bl - 8 - w < 0) return 'left:' + Math.round(bl + bw + 8) + 'px';
-  return 'right:' + Math.round(TW - bl + 8) + 'px';
-}
-function ganttOf(rows) {
-  var narrow = window.innerWidth < 760, LW = Math.max(150, Math.min(window.innerWidth - 120, (narrow ? S.lwN : S.lw) || (narrow ? 200 : 400)));
-  var rg = ganttRange(rows), lo = rg.lo, hi = rg.hi;
-  var avail = Math.max(320, (UI.gw ? UI.gw - LW : window.innerWidth - (narrow ? 0 : 220) - LW - 4) - 2);
-  var fitPX = Math.max(1.2, Math.min(48, avail / (Math.round((hi - lo) / DAY) + 1)));
-  var PX = S.gz ? Math.max(1.2, Math.min(48, S.gz)) : fitPX;
-  hi = Math.max(hi, lo + (Math.ceil(avail / PX) - 1) * DAY); // 縮めても右端まで日付のマスで埋める
-  var days = Math.round((hi - lo) / DAY) + 1;
-  var TW = Math.max(Math.round(days * PX), Math.round(avail)), DAYS = PX >= 26, WEEKS = !DAYS && PX >= 3.2, WK = ['日', '月', '火', '水', '木', '金', '土'];
-  var X = function (t) { return Math.round(Math.round((t - lo) / DAY) * PX); }, x = function (iso) { return X(dayOf(iso)); };
-  var hd = '', ln = '', GML = [];
-  for (var i = 0; i < days; i++) {
-    var t = lo + i * DAY, d = new Date(t), wd = d.getUTCDay(), first = d.getUTCDate() === 1, gx = X(t);
-    if (first || i === 0) GML.push({ x: gx, y: d.getUTCFullYear(), m: d.getUTCMonth() + 1 });
-    if (first && i) ln += '<div class="gmo" style="left:' + gx + 'px"></div>';
-    if (DAYS) {
-      hd += '<div class="gd day' + (wd === 0 ? ' sun' : wd === 6 ? ' sat' : '') + (t === TODAY ? ' now' : '') + '" style="left:' + gx + 'px;width:' + Math.round(PX) + 'px">' + d.getUTCDate() + '<small>' + WK[wd] + '</small></div>';
-      if (wd === 0 || wd === 6) ln += '<div class="gwe" style="left:' + gx + 'px;width:' + (X(t + DAY) - gx) + 'px"></div>';
-    } else if (WEEKS && wd === 1) {
-      hd += '<div class="gwk" style="left:' + gx + 'px">' + d.getUTCDate() + '</div>';
-      ln += '<div class="gwl" style="left:' + gx + 'px"></div>';
-    }
-  }
-  (function () { var end = -1e9, py = null, wOf = function (s) { return 8 + s.replace(/[0-9]/g, '').length * 12 + s.replace(/[^0-9]/g, '').length * 7.5 + 6; };
-    var mw = 30 * PX; // 月の幅が狭いときは「年」を最初だけ
-    GML.forEach(function (g) { var s = (py !== g.y ? (mw < 44 && py !== null ? "'" + String(g.y).slice(2) + ' ' : g.y + '年') : '') + g.m + (mw < 30 ? '' : '月'), w = wOf(s); if (g.x < end) return; hd += '<div class="gm" style="left:' + g.x + 'px">' + s + '</div>'; end = g.x + w; py = g.y; }); })();
-  var cf = S.view === 'projects' && typeof curFolder === 'function' ? curFolder() : null;
-  if (cf && cf.start) { var bx = x(cf.start), bw = x(cf.end) + PX - bx; ln += '<div class="gband" style="left:' + bx + 'px;width:' + Math.round(bw) + 'px"></div>'; }
-  var tx = X(TODAY) + Math.round(PX / 2);
-  if (TODAY >= lo && TODAY <= hi) { ln += '<div class="gnow" style="left:' + tx + 'px"></div>'; hd += '<div class="gnowl" style="left:' + tx + 'px">今日</div>'; }
-  var cols = 'grid-template-columns:' + LW + 'px ' + TW + 'px';
-  var gghost = function (pid, dd, ph, L) { return '<div data-d="' + (L || 0) + '" class="gr gghost" style="' + cols + ';--lc:' + LVC[lv(L || 0)] + '"><div class="gl" style="padding-left:' + (narrow ? 2 + dd * 8 : 8 + dd * 16) + 'px"><span class="dh ph"></span><span class="cx"></span><span class="wck ckph"></span><i class="lvb ghost"></i><span class="gico"></span><input class="cell ct" data-c="new" data-parent="' + pid + '" placeholder="' + ph + '" aria-label="' + ph + '" autocomplete="off"></div><div class="gt"></div></div>'; };
-  var body = '', GZ = 0;
-  rows.forEach(function (r) {
-    if (!r.ghost && r.d === 0) GZ++;
-    if (r.ghost) return;
-    var n = r.n, parent = isFolder(n), w = member(n.who), dn = isDone(n);
-    var cls = parent ? ' sum' + (r.d === 0 ? ' root' : '') + (dn ? ' done' : '') : (n.done ? ' done' : (!fileWho(n).length ? ' none' : ''));
-    var bl = x(n.start), bw = Math.max(Math.max(PX, 4), x(n.end) - x(n.start) + PX), g = parent ? progress(n) : null;
-    var info = gBarInfo(n), tip = ttl(n) + '  ' + fmtDate(n.start) + '–' + fmtDate(n.end) + (info ? '  ' + info : '') + (!parent && w ? '  ' + w.name : '');
-    var bar = '<div class="bar' + cls + (late(n) ? ' late' : '') + (editSelf(n) ? '' : ' lock') + '" data-bar="' + n.id + '" style="left:' + bl + 'px;width:' + Math.round(bw) + 'px" title="' + esc(tip) + '">' +
-      (parent && g.n ? '<i class="bp" style="width:' + Math.round(g.d / g.n * 100) + '%"></i>' : '') + '<span class="lb"></span>' + (editSelf(n) ? '<span class="hd" data-hd="1"></span>' : '') + '</div>' +
-      '<span class="bl' + (parent ? ' f' : '') + '" style="' + blPos(n, info, bl, bw, TW) + '"><b>' + esc(ttl(n)) + '</b>' + (info ? '<small>' + esc(info) + '</small>' : '') + '</span>';
-    var ed = editSelf(n) ? '' : ' disabled';
-    body += '<div data-d="' + r.d + '" class="gr lv' + lv(r.d) + (r.d === 0 && isFolder(n) ? ' g0' : '') + (r.d === 0 && GZ > 1 ? ' gtop' : '') + (r.ctx ? ' gctx' : '') + (dn && !parent ? ' gdone' : '') + '" data-row="' + n.id + '" style="' + cols + ';--lc:' + LVC[lv(r.d)] + '"><div class="gl" style="padding-left:' + (narrow ? 2 + r.d * 8 : 8 + r.d * 16) + 'px">' + (canMove(n) ? '<span class="dh" data-drag="' + n.id + '" title="ドラッグで移動（Alt+↑↓でも可）" aria-label="移動"><svg viewBox="0 0 10 16" aria-hidden="true"><circle cx="3" cy="3" r="1.3"/><circle cx="7" cy="3" r="1.3"/><circle cx="3" cy="8" r="1.3"/><circle cx="7" cy="8" r="1.3"/><circle cx="3" cy="13" r="1.3"/><circle cx="7" cy="13" r="1.3"/></svg></span>' : '<span class="dh ph"></span>') + caret(r) +
-        (r.d === 0 && isFolder(n) ? '<span class="wck ckph"></span>' : !parent ? '<input type="checkbox" class="check wck" data-c="done" data-id="' + n.id + '"' + (n.done ? ' checked' : '') + (editSelf(n) || fileWho(n).indexOf(S.me) >= 0 ? '' : ' disabled') + ' aria-label="完了">' : '<span class="wck ckph"></span>') +
-        '<i class="lvb"></i><input class="cell ct" data-c="t" data-id="' + n.id + '" value="' + esc(ttl(n)) + '" title="' + esc(ttl(n)) + '"' + ed + ' aria-label="業務名" autocomplete="off">' +
-        (isFolder(n) ? teamBtn(n, canAssign(n) ? '' : ' disabled', true) : '<select class="cell gsel" data-c="w" data-id="' + n.id + '"' + (canAssign(n) ? '' : ' disabled') + ' aria-label="担当">' + whoOpts(n) + '</select>') +
-        '</div><div class="gt">' + bar + '</div></div>';
+function vfOn() { var f = vs().f; return VF.filter(function (x) { return f[x[0]]; }).map(function (x) { return x[0]; }); }
+function vfMatch(n) {
+  var on = vfOn(); if (!on.length) return true;
+  var dn = isDone(n) || (n.nodate && !isFolder(n)), who = isFolder(n) ? teamOf(n) : fileWho(n);
+  return on.some(function (k) {
+    if (k === 'mine') return who.indexOf(S.me) >= 0;
+    if (k === 'nobody') return !dn && !who.length;
+    if (k === 'late') return !dn && dayOf(n.end) < TODAY && (!isFolder(n) || kids(n).some(function (c) { return !isDone(c); }));
+    if (k === 'soon') return !dn && dayOf(n.end) >= TODAY && dayOf(n.end) <= TODAY + 7 * DAY;
+    if (k === 'active') return !dn && isActiveN(n);
+    return false;
   });
-  var addRow = cf && manages(cf) ? gghost(cf.id, 0, '＋ 追加', 0) : '';
-  var nf = Math.max(3, Math.ceil((window.innerHeight - 52 - 41 - 49 - 56 - (rows.length + 1) * 36) / 36) + 1), fill = '';
-  for (var j = 0; j < nf; j++) fill += '<div class="gr gfill" style="' + cols + '"><div class="gl"></div><div class="gt"></div></div>';
-  var LWH = '<i class="lwh" title="ドラッグで幅を変更（ダブルクリックで元に戻す）"></i>';
-  return ('<div class="gs gs2" id="gs"><div class="gg" data-px="' + PX + '" data-lo="' + lo + '" data-lw="' + LW + '" data-tw="' + TW + '" data-fit="' + (S.gz ? 0 : 1) + '" style="width:' + (LW + TW) + 'px">' +
-    '<div class="glines" style="left:' + LW + 'px;width:' + TW + 'px">' + ln + '</div>' +
-    '<div class="gr ghead" style="' + cols + '"><div class="gl">業務<span class="ghsub">' + (cf ? esc(shortDate(cf.start) + ' – ' + shortDate(cf.end)) : '') + '</span></div><div class="gt">' + hd + '</div></div>' + body + addRow + fill + '</div></div>').replace(/(<div class="gl"[^>]*>)/g, '$1' + LWH);
 }
-// 「全体」：開いているフォルダーの期間に合わせ直す
+function vBase(n) { var v = vs(); if (v.done === 'hide' && isDone(n) && (!isFolder(n) || progress(n).n)) return false; if (v.foldersOnly && !isFolder(n)) return false; return true; }
+function vShow(n) { if (!vBase(n)) return false; if (!vfOn().length) return true; return vfMatch(n) || hasBelow(n, function (k) { return vBase(k) && vfMatch(k); }); }
+function isOpen(n, d) {
+  if (S.fold && S.fold[n.id] != null) return !S.fold[n.id];
+  if (vfOn().length) return hasBelow(n, function (k) { return vBase(k) && vfMatch(k); }); // 絞り込み中は当てはまる所まで開く
+  return d + 1 < (S.depth || 2);
+}
+function vSummary() { return ''; }
+function vPanelHTML() {
+  var v = vs(), dsel = String(S.depth || 2), on = vfOn();
+  var seg = function (act, list, cur, label) { return '<span class="seg" role="group" aria-label="' + label + '">' + list.map(function (x) { return '<button data-act="' + act + '" data-v="' + x[0] + '" aria-pressed="' + (cur === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</span>'; };
+  return '<div class="vph"><b>表示</b>' + (on.length || v.done !== 'show' || v.foldersOnly || dsel !== '2' ? '<button class="vrst" data-act="vreset">リセット</button>' : '') + '<button class="ib vclose" data-act="vclose" aria-label="閉じる">' + ic('x') + '</button></div>' +
+    '<div class="vsec"><div class="vt">絞り込み</div><div class="vchips">' + VF.map(function (x) { var p = !!v.f[x[0]]; return '<button class="vchip" data-act="vf" data-v="' + x[0] + '" aria-pressed="' + p + '">' + (p ? '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>' : '') + x[1] + '</button>'; }).join('') + '</div></div>' +
+    '<div class="vsec' + (on.length ? ' voff' : '') + '"' + (on.length ? ' title="絞り込み中は、当てはまる所まで自動で開きます"' : '') + '><div class="vt">開く深さ</div>' + seg('vdepth', LEVELS, dsel, '開く深さ') + '</div>' +
+    '<div class="vsec"><div class="vt">完了したもの</div>' + seg('vdone', [['show', '表示'], ['dim', '薄く'], ['hide', '隠す']], v.done, '完了したもの') + '</div>' +
+    '<div class="vsec"><label class="vopt"><input type="checkbox" data-vopt="foldersOnly"' + (v.foldersOnly ? ' checked' : '') + '><span><b>フォルダーだけ</b></span></label></div>';
+}
 document.addEventListener('click', function (e) {
-  var b = e.target.closest && e.target.closest('[data-act="gfit"]'); if (!b) return;
-  e.stopImmediatePropagation(); e.preventDefault(); S.gz = null; UI.sl = 0; save(); render();
+  var b = e.target.closest && e.target.closest('[data-act="vf"]'); if (!b) return;
+  e.stopImmediatePropagation(); e.preventDefault();
+  var f = vs().f; f[b.dataset.v] = !f[b.dataset.v]; vApply();
 }, true);
 // ---------- ux59 通知の設定：受け取る種類を選ぶ・長押し（右クリック）でその通知を止める ----------
 var NK = [['assign', '担当・メンバーになったとき', '業務の担当やフォルダーのメンバーに入ったとき'], ['done', '業務が完了したとき', '自分がまとめている業務を誰かが完了したとき'], ['event', '参加するイベントのお知らせ', '前日のお知らせ・日時の変更・中止'], ['reply', 'お問い合わせへの返信', '運営からの返信']];
@@ -5627,11 +5537,11 @@ document.addEventListener('click', function (e) {
 // ---------------- gantt zoom: pinch (touch / trackpad / Safari gesture) and ctrl+wheel ----------------
 function zoomTo(px, cx) {
   var gs = document.getElementById('gs'), gg = document.querySelector('.gg'); if (!gs || !gg) return;
-  px = Math.max(1.2, Math.min(48, px)); var old = +gg.dataset.px, LW = +gg.dataset.lw, lo = +gg.dataset.lo;
+  px = Math.max(2, Math.min(48, px)); var old = +gg.dataset.px, LW = +gg.dataset.lw, lo = +gg.dataset.lo;
   if (Math.abs(px - old) < 0.05) return;
   var r = gs.getBoundingClientRect(), xr = cx == null ? (r.width + LW) / 2 : Math.max(LW, cx - r.left);
   var at = lo + ((gs.scrollLeft + xr - LW) / old) * DAY;
-  S.gz = px; save(); render();
+  S.zoom = px; save(); render();
   gs = document.getElementById('gs'); gg = document.querySelector('.gg'); if (!gs || !gg) return;
   gs.scrollLeft = LW + ((at - +gg.dataset.lo) / DAY) * px - xr; UI.sl = gs.scrollLeft;
 }
@@ -5667,7 +5577,7 @@ document.addEventListener('gestureend', function () { GST = null; });
 var SB_URL = 'https://addvjcwwlklwmkwhhsjv.supabase.co';
 var SB_KEY = 'sb_publishable_L8VP_h67F3FupHwqC_3pTw_YRbBVghw';
 var sb = window.supabase.createClient(SB_URL, SB_KEY);
-var PREF_KEYS = ['view', 'wtab', 'depth', 'fold', 'view2', 'zoom', 'gz', 'lw', 'lwN', 'showEnded', 'mtab', 'fmode', 'fcur', 'sideC', 'ftreeC', 'tkC', 'cur'];
+var PREF_KEYS = ['view', 'wtab', 'depth', 'fold', 'view2', 'zoom', 'lw', 'lwN', 'showEnded', 'mtab', 'fmode', 'fcur', 'sideC', 'ftreeC', 'tkC', 'cur'];
 var SYNC = { nodes: {}, profiles: {}, busy: Promise.resolve(), ready: false, pendingRemote: false };
 S.pending = [];
 

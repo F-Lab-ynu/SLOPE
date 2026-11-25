@@ -243,7 +243,7 @@ function viewWork() {
 }
 function workGantt() {
   var tbar = '<div class="tbar"><span class="muted" style="font-size:12px">表示</span><span class="seg" role="group" aria-label="表示する細かさ">' + LEVELS.map(function (l) {
-      return '<button data-act="depth" data-v="' + l[0] + '" aria-pressed="' + (String(S.depth || 2) === l[0] && !Object.keys(S.fold || {}).length) + '"><i class="lvd" style="background:' + LVC[LEVELS.indexOf(l)] + '"></i>' + l[1] + '</button>'; }).join('') + '</span>' + (S.wtab === 'gantt' ? '<span class="zoom"><button class="ib" data-act="zoom" data-v="-1" aria-label="縮小" title="縮小（Ctrl＋ホイール・ピンチでも可）">−</button><button class="ib" data-act="zoom" data-v="1" aria-label="拡大" title="拡大">＋</button><button class="gfitb" data-act="gfit" aria-pressed="' + !S.gz + '" title="フォルダーの期間全体を表示">全体</button></span>' : '') +
+      return '<button data-act="depth" data-v="' + l[0] + '" aria-pressed="' + (String(S.depth || 2) === l[0] && !Object.keys(S.fold || {}).length) + '"><i class="lvd" style="background:' + LVC[LEVELS.indexOf(l)] + '"></i>' + l[1] + '</button>'; }).join('') + '</span>' + (S.wtab === 'gantt' ? '<span class="zoom"><button class="ib" data-act="zoom" data-v="-1" aria-label="縮小">−</button><button class="ib" data-act="zoom" data-v="1" aria-label="拡大">＋</button></span>' : '') +
     '<label class="chk"><input type="checkbox" class="check" data-act="showEnded"' + (S.showEnded ? ' checked' : '') + '>終了したイベント</label>' + (S.wtab === 'list' ? '<details class="keys hide-sm"><summary aria-label="キーボード操作">?</summary><div class="kpop"><b>キーボード操作</b><span><kbd>Enter</kbd> 下に追加</span><span><kbd>Tab</kbd> 一段下げる</span><span><kbd>Shift</kbd>+<kbd>Tab</kbd> 一段上げる</span><span><kbd>Alt</kbd>+<kbd>↑↓</kbd> 並べ替え</span></div></details>' : '') + '</div>';
   return tbar + '<div class="body flush">' + ganttOf(rowsOf(false, true)) + '</div>';
 }
@@ -499,9 +499,7 @@ function renderMain() {
   v.innerHTML = ({ dash: viewDash, tracks: viewTracks, notices: viewNotices, board: viewBoard, projects: viewWork, perms: viewPerms }[S.view])();
   if (S.view === 'projects' && S.wtab === 'gantt') {
     var gs = document.getElementById('gs'), now = document.querySelector('.gnow');
-    var gfit = document.querySelector('.gg[data-fit="1"]');
-    if (gfit && UI.sp !== 'g') { UI.sp = 'g'; UI.sl = 0; UI.st = 0; } // 全体表示は左端から
-    if (UI.sp === 'g') { gs.scrollLeft = gfit ? 0 : UI.sl; gs.scrollTop = UI.st; }
+    if (UI.sp === 'g') { gs.scrollLeft = UI.sl; gs.scrollTop = UI.st; }
     else { UI.sp = 'g'; UI.sl = now ? Math.max(0, parseFloat(now.style.left) - (window.innerWidth < 760 ? 60 : 240)) : 0; UI.st = 0; gs.scrollLeft = UI.sl; }
     gs.addEventListener('scroll', function () { UI.sl = gs.scrollLeft; UI.st = gs.scrollTop; });
   } else UI.sp = null;
