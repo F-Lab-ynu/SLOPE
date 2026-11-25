@@ -260,6 +260,7 @@ async function getSessionSure() {
 }
 async function boot() {
   try { var p = JSON.parse(localStorage.getItem(KEY + '-prefs')) || {}; Object.keys(p).forEach(function (k) { S[k] = p[k]; }); } catch (e) {}
+  S.fcur = ''; S.fmode = 'card'; // 業務は開くたびに「すべて」のカードから
   S.manualOrder = true;
   gate('loading');
   var session = await getSessionSure();

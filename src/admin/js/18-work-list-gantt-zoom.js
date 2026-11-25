@@ -153,5 +153,6 @@ document.addEventListener('gesturestart', function (e) { if (!inGantt(e.target))
 document.addEventListener('gesturechange', function (e) { if (!GST) return; e.preventDefault(); if (!PINCH) zoomSoon(GST.px * Math.pow(e.scale, ZK), GST.cx); });
 document.addEventListener('gestureend', function () { GST = null; });
 
+S.fcur = ''; S.fmode = 'card'; // 業務は開くたびに「すべて」のカードから
 render();
 })();

@@ -289,9 +289,9 @@ function decorateDone() {
 }
 // ---------- ux12: 畳む・戻る・ガントは見るだけ＋編集ボタン・右クリック ----------
 function backBtn() {
-  var h = (UI.fhist || []).length;
+  var cur = S.fcur && S.fcur !== 'mine' ? task(S.fcur) : null, h = !!cur; // 一つ上の段へ（いちばん上は「すべて」）
   return (S.ftreeC ? '<button class="ib fhb" data-act="ftreeTog" title="フォルダー一覧を開く" aria-label="フォルダー一覧を開く"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg></button>' : '') +
-    (h ? '<button class="ib fhb fback" data-act="fback" title="戻る" aria-label="戻る">' + ic('back') + '</button>' : '');
+    (h ? '<button class="ib fhb fback" data-act="fback" title="一つ上へ" aria-label="一つ上へ">' + ic('back') + '</button>' : '');
 }
 function applyChrome12() {
   document.body.classList.toggle('sidec', !!S.sideC);
@@ -404,7 +404,7 @@ document.addEventListener('click', function (e) {
   var a = b.dataset.act;
   if (a === 'sideTog') { S.sideC = !S.sideC; save(); render(); applyChrome12(); }
   else if (a === 'ftreeTog') { S.ftreeC = !S.ftreeC; save(); render(); }
-  else if (a === 'fback') { var h = UI.fhist || []; if (!h.length) return; S.fcur = h.pop(); UI.fopen = {}; UI.sp = null; save(); render(); }
+  else if (a === 'fback') { var c0 = S.fcur && task(S.fcur); if (!c0) return; var up = parentOf(c0); S.fcur = up ? up.id : ''; UI.fopen = {}; UI.sp = null; save(); render(); }
   else if (a === 'gname') { var n = task(b.dataset.id); if (!n) return; closePop(); goFolder(n.id); }
   else if (a === 'gwho') { var n2 = task(b.dataset.id); if (!n2) return; closePop(); if (canAssign(n2)) { if (UI.tp === n2.id) closeTeam(); else openTeam(n2.id); } else popAt(b, whoPop(n2)); }
 }, true);

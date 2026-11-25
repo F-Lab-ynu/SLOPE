@@ -51,6 +51,7 @@ async def main():
             print(w, 'picker:', names[:3], '| placed:', await pg.evaluate("[...document.querySelectorAll('.p2r')].some(r=>/演習会/.test(r.textContent))"))
             # 業務のフォルダーをイベントに
             await pg.evaluate("document.querySelector('[data-act=go][data-view=projects]').click()"); await pg.wait_for_timeout(300)
+            await pg.evaluate("[...document.querySelectorAll('.fcard.isfc')].find(c=>/2026起業部/.test(c.textContent)).click()"); await pg.wait_for_timeout(300)
             await pg.evaluate("[...document.querySelectorAll('.fcard.isfc')].find(c=>/教育コンテンツ/.test(c.textContent)).dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,cancelable:true,clientX:300,clientY:300}))"); await pg.wait_for_timeout(300)
             await pg.click('#cm [data-cm=evt]'); await pg.wait_for_timeout(300)
             await pg.click('.evpk.new'); await pg.wait_for_timeout(400)

@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = 'f4b1c8763f', FILE = 'admin.ver';
+  var VER = '0dda33f82e', FILE = 'admin.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -90,7 +90,8 @@ textarea.input{height:auto;min-height:76px;padding:8px 10px;resize:vertical}
 .input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
 .input::placeholder,textarea::placeholder{color:var(--dim)}
 .tag{display:inline-flex;align-items:center;height:20px;padding:0 6px;border-radius:4px;background:var(--hover);color:var(--sub);font-size:11px;font-weight:500;white-space:nowrap}
-.utabs{display:flex;gap:20px;border-bottom:1px solid var(--line);padding:0 20px;flex:none;overflow-x:auto}
+.utabs{display:flex;gap:20px;border-bottom:1px solid var(--line);padding:0 20px;flex:none;overflow-x:auto;overflow-y:hidden;overscroll-behavior:contain;touch-action:pan-x;scrollbar-width:none}
+.utabs::-webkit-scrollbar{display:none}
 .utabs button{height:40px;border:0;background:transparent;color:var(--muted);font-weight:500;border-bottom:2px solid transparent;margin-bottom:-1px;padding:0 2px;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
 .utabs button[aria-pressed="true"]{color:var(--text);border-bottom-color:var(--text);font-weight:600}
 .utabs .n{font-size:12px;color:var(--muted)}
@@ -3302,9 +3303,9 @@ function decorateDone() {
 }
 // ---------- ux12: 畳む・戻る・ガントは見るだけ＋編集ボタン・右クリック ----------
 function backBtn() {
-  var h = (UI.fhist || []).length;
+  var cur = S.fcur && S.fcur !== 'mine' ? task(S.fcur) : null, h = !!cur; // 一つ上の段へ（いちばん上は「すべて」）
   return (S.ftreeC ? '<button class="ib fhb" data-act="ftreeTog" title="フォルダー一覧を開く" aria-label="フォルダー一覧を開く"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg></button>' : '') +
-    (h ? '<button class="ib fhb fback" data-act="fback" title="戻る" aria-label="戻る">' + ic('back') + '</button>' : '');
+    (h ? '<button class="ib fhb fback" data-act="fback" title="一つ上へ" aria-label="一つ上へ">' + ic('back') + '</button>' : '');
 }
 function applyChrome12() {
   document.body.classList.toggle('sidec', !!S.sideC);
@@ -3417,7 +3418,7 @@ document.addEventListener('click', function (e) {
   var a = b.dataset.act;
   if (a === 'sideTog') { S.sideC = !S.sideC; save(); render(); applyChrome12(); }
   else if (a === 'ftreeTog') { S.ftreeC = !S.ftreeC; save(); render(); }
-  else if (a === 'fback') { var h = UI.fhist || []; if (!h.length) return; S.fcur = h.pop(); UI.fopen = {}; UI.sp = null; save(); render(); }
+  else if (a === 'fback') { var c0 = S.fcur && task(S.fcur); if (!c0) return; var up = parentOf(c0); S.fcur = up ? up.id : ''; UI.fopen = {}; UI.sp = null; save(); render(); }
   else if (a === 'gname') { var n = task(b.dataset.id); if (!n) return; closePop(); goFolder(n.id); }
   else if (a === 'gwho') { var n2 = task(b.dataset.id); if (!n2) return; closePop(); if (canAssign(n2)) { if (UI.tp === n2.id) closeTeam(); else openTeam(n2.id); } else popAt(b, whoPop(n2)); }
 }, true);
@@ -5871,6 +5872,7 @@ document.addEventListener('gesturestart', function (e) { if (!inGantt(e.target))
 document.addEventListener('gesturechange', function (e) { if (!GST) return; e.preventDefault(); if (!PINCH) zoomSoon(GST.px * Math.pow(e.scale, ZK), GST.cx); });
 document.addEventListener('gestureend', function () { GST = null; });
 
+S.fcur = ''; S.fmode = 'card'; // 業務は開くたびに「すべて」のカードから
 
 // =====================================================================
 // 本番：Supabase 接続（ログイン・承認・業務の同期・リアルタイム・通知）
@@ -6133,6 +6135,7 @@ async function getSessionSure() {
 }
 async function boot() {
   try { var p = JSON.parse(localStorage.getItem(KEY + '-prefs')) || {}; Object.keys(p).forEach(function (k) { S[k] = p[k]; }); } catch (e) {}
+  S.fcur = ''; S.fmode = 'card'; // 業務は開くたびに「すべて」のカードから
   S.manualOrder = true;
   gate('loading');
   var session = await getSessionSure();
