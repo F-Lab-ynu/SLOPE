@@ -42,7 +42,7 @@ rep('line-height: 0.85">8</span>', 'line-height: 0.85">{{ next.left }}</span>')
 rep('stroke-dasharray="39.5 138.2"', 'stroke-dasharray="{{ learnCard.dash }}"')
 rep('font-size: 13px; font-weight: 700">2/7</span>', 'font-size: 13px; font-weight: 700">{{ learnCard.n }}</span>')
 rep('<span class="en" style="font-size: 12px; color: #A3A19B">Strategist</span><span style="font-size: 14px; font-weight: 700; line-height: 1.35">ST2<br>戦略理論</span>',
-    '<span class="en" style="font-size: 12px; color: #A3A19B">{{ learnCard.track }}</span><span style="font-size: 14px; font-weight: 700; line-height: 1.35; white-space: pre-line; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; overflow-wrap: anywhere">{{ learnCard.next }}</span>')
+    '<span class="en" style="font-size: 12px; color: #A3A19B; display: inline-flex; align-items: center; gap: 4px"><svg style="display: {{ learnCard.lk }}" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-label="まだ開いていません"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>{{ learnCard.track }}</span><span style="opacity: {{ learnCard.op }}; font-size: 14px; font-weight: 700; line-height: 1.35; white-space: pre-line; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; overflow-wrap: anywhere">{{ learnCard.next }}</span>')
 rep('<button onClick="{{ goJoin }}" class="card"', '<button onClick="{{ card2.go }}" class="card"')
 rep('color: #A3A19B">参加予定</span>', 'color: #A3A19B">{{ card2.label }}</span>')
 rep('line-height: 0.9; color: #F2A93B">2</span>', 'line-height: 0.9; color: #F2A93B">{{ card2.n }}</span>')

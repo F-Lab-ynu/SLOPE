@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '321077fd30', FILE = 'index.ver';
+  var VER = '77deda41ab', FILE = 'index.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -740,9 +740,9 @@ function memberExtras(v) {
       var used = (window.__progSummary ? 'y' : 'n') + (window.__PROG ? window.__PROG.key + '|' + window.__PROG.jkey : '');
       setTimeout(function () { var now = (window.__progSummary ? 'y' : 'n') + (window.__PROG ? window.__PROG.key + '|' + window.__PROG.jkey : ''); if (now !== used && window.__comp) window.__comp.forceUpdate(); }, 0); // 学ぶのデータが新しくなったら描き直す
       var P = window.__progSummary && window.__PROG ? window.__progSummary(window.__PROG) : null;
-      if (!P) return { n: rN ? rD + '/' + rN : '—', dash: (ring * pct).toFixed(1) + ' ' + ring.toFixed(1), track: myRole || 'ロール未設定', next: nextU ? nextU.code + '\n' + nextU.title : (roleT ? '全単元修了' : 'マイページでロールを選ぶ') };
+      if (!P) return { lk: 'none', op: '1', n: rN ? rD + '/' + rN : '—', dash: (ring * pct).toFixed(1) + ' ' + ring.toFixed(1), track: myRole || 'ロール未設定', next: nextU ? nextU.code + '\n' + nextU.title : (roleT ? '全単元修了' : 'マイページでロールを選ぶ') };
       var p = P.n ? P.d / P.n : 0;
-      return { n: P.n ? P.d + '/' + P.n : '—', dash: (ring * p).toFixed(1) + ' ' + ring.toFixed(1), track: myRole || 'プログラム', next: P.next ? P.next.code + '\n' + P.next.title : (P.n ? 'すべて修了' : 'まだありません') };
+      return { n: P.n ? P.d + '/' + P.n : '—', dash: (ring * p).toFixed(1) + ' ' + ring.toFixed(1), track: myRole || 'プログラム', next: P.next ? P.next.code + '\n' + P.next.title : (P.n ? 'すべて修了' : 'まだありません'), lk: P.next && P.next.locked ? 'inline-block' : 'none', op: P.next && P.next.locked ? '0.55' : '1' };
     })(),
     clubEvents: D.clubEvents().filter(function (e) { return e.tbd || e.end >= today; }).map(function (e) { var on = D.mine(e.id, 'join'), p = e.start.split('-');
       return { id: e.id, mon: e.tbd ? '日程' : ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][+p[1] - 1], d: e.tbd ? '未定' : String(+p[2]), dfs: e.tbd ? '15px' : '22px', title: e.title, sub: [e.end !== e.start ? '〜' + md(e.end) : '', e.sub].filter(Boolean).join(' · '),
@@ -1057,7 +1057,7 @@ setInterval(window.__chrome, 400);
 <svg width="52" height="52" viewBox="0 0 52 52" aria-hidden="true" style="transform: rotate(-90deg)"><circle cx="26" cy="26" r="22" fill="none" stroke="var(--n16)" stroke-width="5"></circle><circle cx="26" cy="26" r="22" fill="none" stroke="var(--fg)" stroke-width="5" stroke-linecap="round" stroke-dasharray="{{ learnCard.dash }}"></circle></svg>
 <span class="en" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700">{{ learnCard.n }}</span>
 </span>
-<span style="display: flex; flex-direction: column; min-width: 0"><span class="en" style="font-size: 12px; color: var(--n66)">{{ learnCard.track }}</span><span style="font-size: 14px; font-weight: 700; line-height: 1.35; white-space: pre-line; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; overflow-wrap: anywhere">{{ learnCard.next }}</span></span>
+<span style="display: flex; flex-direction: column; min-width: 0"><span class="en" style="font-size: 12px; color: var(--n66); display: inline-flex; align-items: center; gap: 4px"><svg style="display: {{ learnCard.lk }}" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-label="まだ開いていません"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>{{ learnCard.track }}</span><span style="opacity: {{ learnCard.op }}; font-size: 14px; font-weight: 700; line-height: 1.35; white-space: pre-line; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; overflow-wrap: anywhere">{{ learnCard.next }}</span></span>
 </span>
 </button>
 
@@ -2871,9 +2871,10 @@ document.addEventListener('click',function(e){
   // ホームの「学習」：運営のプログラム（いまの形）どおりの進み具合と、次にやるもの
   window.__progSummary = function (P) {
     if (!P) return null; var T = JSON.parse(JSON.stringify(P.v2 || fromOld(P))).filter(function (n) { return !n.out; });
-    var r = mark(P, T, false), c = firstCur(T), nx = null;
-    if (c) nx = c.k === 'u' ? { code: c.c, title: (tById(P, c.t).units[c.c] || {}).title || '' } : { code: md(c.from), title: c.name || 'イベント' };
-    return { d: r.d, n: r.n, next: nx };
+    mark(P, T, false); var d = 0, n = 0, c = null; // 学習（単元）だけを数える。イベントは飛ばす
+    (function w(a) { a.forEach(function (x) { if (x._hide) return; if (x.k === 'f') return w(x.items || []); if (x.k !== 'u' || !leafOK(P, x)) return; n++; if (x._done) d++; else if (!c) c = x; }); })(T);
+    var nx = c ? { code: c.c, title: (tById(P, c.t).units[c.c] || {}).title || '', locked: !!c._lk } : null;
+    return { d: d, n: n, next: nx };
   };
   function progHTML(P) {
     var T = v2Of(P).filter(function (n) { return !n.out; }); mark(P, T, false); var cur = firstCur(T);

@@ -2525,9 +2525,10 @@ document.addEventListener('click',function(e){
   // ホームの「学習」：運営のプログラム（いまの形）どおりの進み具合と、次にやるもの
   window.__progSummary = function (P) {
     if (!P) return null; var T = JSON.parse(JSON.stringify(P.v2 || fromOld(P))).filter(function (n) { return !n.out; });
-    var r = mark(P, T, false), c = firstCur(T), nx = null;
-    if (c) nx = c.k === 'u' ? { code: c.c, title: (tById(P, c.t).units[c.c] || {}).title || '' } : { code: md(c.from), title: c.name || 'イベント' };
-    return { d: r.d, n: r.n, next: nx };
+    mark(P, T, false); var d = 0, n = 0, c = null; // 学習（単元）だけを数える。イベントは飛ばす
+    (function w(a) { a.forEach(function (x) { if (x._hide) return; if (x.k === 'f') return w(x.items || []); if (x.k !== 'u' || !leafOK(P, x)) return; n++; if (x._done) d++; else if (!c) c = x; }); })(T);
+    var nx = c ? { code: c.c, title: (tById(P, c.t).units[c.c] || {}).title || '', locked: !!c._lk } : null;
+    return { d: d, n: n, next: nx };
   };
   function progHTML(P) {
     var T = v2Of(P).filter(function (n) { return !n.out; }); mark(P, T, false); var cur = firstCur(T);
