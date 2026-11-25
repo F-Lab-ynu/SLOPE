@@ -59,15 +59,13 @@ async def main():
         items = await db(pg, 'items'); print('idea posted:', [(i['kind'], i['data'].get('title'), i['data'].get('summary')) for i in items if i['kind'] == 'idea'])
         await pg.screenshot(path='/tmp/m2.png')
         # メンバー募集（ロールを選ぶ）
-        await pg.click('[data-bxt=recruit]'); await pg.wait_for_timeout(200)
         await pg.click('[data-bxnew]'); await pg.wait_for_timeout(200)
-        await pg.fill('#bxtx', '空きコマバイト\n時間割から提案'); await pg.click('[data-bxpost]'); await pg.wait_for_timeout(200)
-        print('toast:', await pg.evaluate("(document.getElementById('mtoast')||{}).textContent"))
-        await pg.click('[data-bxrole=Engineer]'); await pg.click('[data-bxpost]'); await pg.wait_for_timeout(500)
+        await pg.fill('#bxtx', '空きコマバイト\n時間割から提案'); await pg.click('[data-bxrole=Engineer]'); await pg.click('[data-bxpost]'); await pg.wait_for_timeout(500)
+        print('in idea tab:', await pg.locator('#bdx .bx[data-k=recruit]').count(), await pg.locator('#bdx .bx[data-k=idea]').count())
         rec = [i for i in await db(pg, 'items') if i['kind'] == 'recruit']; print('recruit:', [(r['data']['title'], r['data']['roles']) for r in rec])
         # スレッドで返信
         await pg.click('[data-bxt=idea]'); await pg.wait_for_timeout(200)
-        await pg.click('#bdx .bx .bxt'); await pg.wait_for_timeout(300)
+        await pg.click('#bdx .bx[data-k=idea] .bxt'); await pg.wait_for_timeout(300)
         await pg.fill('#bxrep', 'まずアンケートを取るといい'); await pg.click('[data-bxsend]'); await pg.wait_for_timeout(500)
         print('comment:', [(i['kind'], i['parent_id'] is not None) for i in await db(pg, 'items') if i['kind'] == 'comment'])
         await pg.screenshot(path='/tmp/m3.png', full_page=True)
