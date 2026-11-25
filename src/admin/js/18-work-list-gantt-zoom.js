@@ -118,11 +118,11 @@ document.addEventListener('click', function (e) {
 // ---------------- gantt zoom: pinch (touch / trackpad / Safari gesture) and ctrl+wheel ----------------
 function zoomTo(px, cx) {
   var gs = document.getElementById('gs'), gg = document.querySelector('.gg'); if (!gs || !gg) return;
-  px = Math.max(2, Math.min(48, px)); var old = +gg.dataset.px, LW = +gg.dataset.lw, lo = +gg.dataset.lo;
+  px = Math.max(1.2, Math.min(48, px)); var old = +gg.dataset.px, LW = +gg.dataset.lw, lo = +gg.dataset.lo;
   if (Math.abs(px - old) < 0.05) return;
   var r = gs.getBoundingClientRect(), xr = cx == null ? (r.width + LW) / 2 : Math.max(LW, cx - r.left);
   var at = lo + ((gs.scrollLeft + xr - LW) / old) * DAY;
-  S.zoom = px; save(); render();
+  S.gz = px; save(); render();
   gs = document.getElementById('gs'); gg = document.querySelector('.gg'); if (!gs || !gg) return;
   gs.scrollLeft = LW + ((at - +gg.dataset.lo) / DAY) * px - xr; UI.sl = gs.scrollLeft;
 }

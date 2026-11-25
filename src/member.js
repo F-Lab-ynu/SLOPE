@@ -150,6 +150,12 @@
     },
     readAll: function () { if (!NOTIFS.some(function (n) { return !n.read; })) return; NOTIFS.forEach(function (n) { n.read = true; }); bump(); sb.from('notifications').update({ read: true }).eq('to_id', DB.me).eq('read', false).then(function () {}); },
     readNotif: function (id) { NOTIFS.forEach(function (n) { if (n.id === id) n.read = true; }); bump(); sb.from('notifications').update({ read: true }).eq('id', id).then(function () {}); },
+    // 通知の設定（受け取る種類・止めているイベント／フォルダー）。止めた通知はデータベースで作られなくなる
+    nPrefs: function () { var p = DB.self || {}; return { off: (p.notif_off || []).slice(), mute: (p.notif_mute || []).slice() }; },
+    nSet: function (off, mute) {
+      if (!DB.self) return; DB.self.notif_off = off; DB.self.notif_mute = mute; bump();
+      return sb.from('profiles').update({ notif_off: off, notif_mute: mute }).eq('id', DB.me).then(function (r) { if (r.error) DB.flash('通知の設定を保存できませんでした'); });
+    },
     saveProfile: function (patch) { Object.assign(DB.self, patch); bump(); return sb.from('profiles').update(patch).eq('id', DB.me).then(function (r) { if (r.error) DB.flash('保存できませんでした'); else DB.flash('保存しました'); reload(); }); },
     inqs: null,
     loadInq: function () { sb.from('inquiries').select('*').eq('user_id', DB.me).order('created_at', { ascending: false }).then(function (r) { DB.inqs = r.data || []; bump(); }); },
@@ -254,7 +260,7 @@ function memberExtras(v) {
   var recent = D.items('recruit').concat(D.items('idea'), D.items('pain')).filter(function (x) { return Date.now() - new Date(x.created_at) < 7 * 86400000; });
   var nr = recent.filter(function (x) { return x.kind !== 'pain'; }).length, np = recent.length - nr;
   var inis = []; recent.forEach(function (x) { var i = D.ini(x.author); if (inis.indexOf(i) < 0 && inis.length < 3) inis.push(i); });
-  var nmap = function (n, i, arr) { return { text: n.text, sub: n.sub, at: D.ago(n.created_at), unread: !n.read, dot: n.read ? 'transparent' : RT, sep: i < arr.length - 1 ? '1px solid #252524' : '0', read: function () { D.readNotif(n.id); }, del: function () { D.delNotif(n.id); } }; };
+  var nmap = function (n, i, arr) { return { nid: String(n.id), text: n.text, sub: n.sub, at: D.ago(n.created_at), unread: !n.read, dot: n.read ? 'transparent' : RT, sep: i < arr.length - 1 ? '1px solid #252524' : '0', read: function () { D.readNotif(n.id); }, del: function () { D.delNotif(n.id); } }; };
   var notifsAll = D.notifs().map(nmap);
   var notifs = D.notifs().slice(0, 6).map(function (n, i, arr) { return { text: n.text, sub: n.sub, at: D.ago(n.created_at), unread: !n.read, dot: n.read ? 'transparent' : RT, sep: i < arr.length - 1 ? '1px solid #252524' : '0', read: function () { D.readNotif(n.id); }, del: function () { D.delNotif(n.id); } }; });
 
@@ -398,3 +404,15 @@ function __trackMk(sb, app) {
   };
 }
 window.__track = function (tab) { if (/[?&]embed=1/.test(location.search)) return; (window.__trk = window.__trk || __trackMk(window.sb, 'member'))(tab); };
+
+// 通知の種類（運営画面・データベースと同じ決め方）
+window.__NK = [['assign', '担当・メンバーになったとき', '業務の担当やフォルダーのメンバーに入ったとき'], ['done', '業務が完了したとき', '自分がまとめている業務を誰かが完了したとき'], ['event', '参加するイベントのお知らせ', '前日のお知らせ・日時の変更・中止'], ['reply', 'お問い合わせへの返信', '運営からの返信']];
+window.__nKind = function (t) { t = String(t || ''); if (/」の(担当|メンバー|リーダー)になりました$/.test(t)) return 'assign'; if (/(を完了しました|がすべて完了しました)$/.test(t)) return 'done'; if (/^お問い合わせに返信/.test(t)) return 'reply'; if (/^「.*」(は中止になりました|の日時・場所が変わりました)$/.test(t) || /^明日：/.test(t)) return 'event'; return 'system'; };
+window.__nSrc = function (t, s, k) { if (k === 'event') { var m = /^「(.*)」/.exec(t) || /^明日：(.*)$/.exec(t); return m ? m[1] : ''; } return s || ''; };
+window.__np = {
+  get: function () { return window.DB ? window.DB.nPrefs() : { off: [], mute: [] }; },
+  set: function (off, mute) { if (window.DB) window.DB.nSet(off, mute); },
+  find: function (id) { var D = window.DB; return D ? D.notifs().filter(function (n) { return String(n.id) === String(id); })[0] : null; },
+  del: function (id) { if (window.DB) window.DB.delNotif(id); },
+  flash: function (m) { if (window.DB) window.DB.flash(m); }
+};

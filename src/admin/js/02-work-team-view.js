@@ -30,7 +30,8 @@ function openTeam(id, keep) {
   if (pk) { // フォルダのメンバー以外は出さない（今いる人は外すだけできる）
     var has = isFolder(n) ? teamOf(n) : fileWho(n); Array.prototype.forEach.call(tp.querySelectorAll('.tpi'), function (r) { var c = r.querySelector('[data-tm]'); if (c && pk.indexOf(c.dataset.tm) < 0 && has.indexOf(c.dataset.tm) < 0) r.remove(); });
     Array.prototype.forEach.call(tp.querySelectorAll('.tph'), function (h) { if (/その他/.test(h.textContent)) { var nx = h.nextElementSibling; if (!nx || !nx.classList.contains('tpi')) h.remove(); else h.innerHTML = '<span>フォルダのメンバー外（外すだけできます）</span>'; } });
-    tp.querySelector('.tpl').insertAdjacentHTML('beforeend', '<div class="tpnote">' + (pf ? '「' + esc(ttl(pf)) + '」のメンバーから選べます' : 'いちばん上の業務のメンバーは、代表が決めます') + '</div>');
+    tp.querySelector('.tpl').insertAdjacentHTML('beforeend', '<div class="tpnote' + (pf && !pk.length ? ' tpwarn' : '') + '">' + (pf ? (pk.length ? '「' + esc(ttl(pf)) + '」のメンバーから選べます' : '「' + esc(ttl(pf)) + '」の担当が未定なので、まだ選べません。先に「' + esc(ttl(pf)) + '」の担当を決めてください') : 'いちばん上の業務のメンバーは、代表が決めます') + '</div>');
+    if (!pk.length) { var qq = tp.querySelector('.tpq'); if (qq) qq.remove(); }
   }
   if (!isFolder(n)) { // ファイル：リーダーはなし。今の担当にチェック
     var cur = fileWho(n);
@@ -51,7 +52,8 @@ function teamChanged(n, added) {
 document.addEventListener('change', function (e) {
   var el = e.target; if (!el.dataset || !el.dataset.tm) return; e.stopImmediatePropagation();
   var n = task(el.dataset.id), m = el.dataset.tm; if (!n) return;
-  var t = teamOf(n);
+  var t = teamOf(n), pk0 = pickable(n);
+  if (el.checked && pk0 && pk0.indexOf(m) < 0) { el.checked = false; toast(pickFrom(n) ? '「' + ttl(pickFrom(n)) + '」のメンバーから選んでください' : '選べません'); return; }
   if (el.checked) { if (t.indexOf(m) < 0) t.push(m); n.team = t; if (!leadsOf(n).length) setLeads(n, [m]); teamChanged(n, [m]); toast(member(m).name + 'に通知しました'); }
   else { n.team = t.filter(function (x) { return x !== m; }); if (isLead(n, m)) setLeads(n, leadsOf(n).filter(function (x) { return x !== m; })); teamChanged(n, []); }
 }, true);

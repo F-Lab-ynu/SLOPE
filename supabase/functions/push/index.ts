@@ -32,7 +32,12 @@ Deno.serve(async (req) => {
     let n = 0;
     for (const c of (cals || []).filter((x: any) => x.data && x.data.state === 'pub' && x.data.date === t)) {
       const { data: js } = await sb.from('reactions').select('user_id').eq('kind', 'join').eq('item_id', c.id);
-      for (const j of js || []) n += await sendTo(j.user_id, '明日：' + c.data.title, [c.data.time, c.data.place].filter(Boolean).join(' · ') || '参加登録しているイベントです');
+      for (const j of js || []) {
+        // 通知の設定でイベントの知らせ・このイベントを止めている人には送らない
+        const { data: pf } = await sb.from('profiles').select('notif_off,notif_mute').eq('id', j.user_id).maybeSingle();
+        if (pf && ((pf.notif_off || []).includes('event') || (pf.notif_mute || []).includes(c.data.title))) continue;
+        n += await sendTo(j.user_id, '明日：' + c.data.title, [c.data.time, c.data.place].filter(Boolean).join(' · ') || '参加登録しているイベントです');
+      }
     }
     return Response.json({ sent: n });
   }

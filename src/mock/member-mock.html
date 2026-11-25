@@ -403,7 +403,7 @@ body.wide .iqsheet{bottom:auto;top:50%;transform:translate(-50%,-50%);border-bot
 <div class="nphead"><span>通知</span><sc-if value="{{ hasNotifs }}"><button onClick="{{ delAllNotifs }}">すべて削除</button></sc-if></div>
 <div class="nplist">
 <sc-for list="{{ notifsAll }}" as="n">
-<div class="npi" style="border-bottom: {{ n.sep }}">
+<div class="npi" data-nid="{{ n.nid }}" style="border-bottom: {{ n.sep }}">
 <span class="npdot" style="background: {{ n.dot }}"></span>
 <span class="npt"><span>{{ n.text }}</span><small>{{ n.sub }} · {{ n.at }}</small></span>
 <button onClick="{{ n.del }}" aria-label="このお知らせを削除"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
@@ -411,6 +411,7 @@ body.wide .iqsheet{bottom:auto;top:50%;transform:translate(-50%,-50%);border-bot
 </sc-for>
 <sc-if value="{{ noNotifs }}"><div class="npempty">お知らせはありません</div></sc-if>
 </div>
+<button class="npset" data-nset-open="1">通知の設定<span>長押しでその通知を止められます</span></button>
 </div>
 </sc-if>
 <sc-if value="{{ iq.pop }}" hint-placeholder-val="{{ false }}">
@@ -1422,6 +1423,7 @@ body.wide .iqsheet{bottom:auto;top:50%;transform:translate(-50%,-50%);border-bot
 <div class="mplist">
 <button class="mprow" data-theme-open="1"><span class="mpl">テーマ</span><span class="thdot" aria-hidden="true"><i style="background:var(--bg)"></i><i style="background:var(--fg)"></i><i style="background:var(--ac)"></i></span><svg class="mpch" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
 <button class="mprow" onClick="{{ push.toggle }}" role="switch" aria-checked="{{ push.on }}"><span class="mpl">通知を受け取る<small>{{ push.note }}</small></span><span class="mpsw" style="background: {{ push.bg }}"><i style="left: {{ push.x }}; background: {{ push.knob }}"></i></span></button>
+<button class="mprow" data-nset-open="1"><span class="mpl">通知の種類<small>受け取る通知を選べます</small></span><svg class="mpch" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
 <a class="mprow" href="{{ calSub.ios }}"><span class="mpl">iPhone・Mac のカレンダーに追加</span><svg class="mpch" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
 <a class="mprow" href="{{ calSub.google }}"><span class="mpl">Google カレンダーに追加</span><svg class="mpch" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
 <button class="mprow" onClick="{{ calSub.copy }}"><span class="mpl">カレンダーの URL をコピー</span><span class="mpnote">{{ calSub.note }}</span></button>
@@ -2672,6 +2674,73 @@ html.light{color-scheme:light}
 .thc{height:56px;border:2px solid transparent;border-radius:12px;background:var(--n8);display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer}
 .thc i{width:14px;height:14px;border-radius:4px;display:block;box-shadow:inset 0 0 0 1px var(--n28)}
 .thsheet .lbl{display:block;margin:0}
+</style>
+<script>
+// 通知の設定（種類を選ぶ・止めたイベント／フォルダーを戻す）と、通知の長押しメニュー
+(function () {
+  var X = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function close() { var w = document.getElementById('nspop'); if (w) w.remove(); }
+  function sheet(title, body) { close(); var w = document.createElement('div'); w.id = 'nspop'; w.innerHTML = '<div class="npbg" data-ns-x></div><div class="iqsheet nssheet" role="dialog" aria-label="' + esc(title) + '"><div class="iqtop"><b>' + esc(title) + '</b><button data-ns-x aria-label="閉じる">' + X + '</button></div><div class="iqbody">' + body + '</div></div>'; document.body.appendChild(w); }
+  function openSet() {
+    var np = window.__np; if (!np) return; var p = np.get(), sc = document.querySelector('#nspop .iqbody'), y = sc ? sc.scrollTop : 0;
+    var h = '<div class="nsl">' + window.__NK.map(function (k) { var on = p.off.indexOf(k[0]) < 0;
+      return '<button class="nsr" data-ns-k="' + k[0] + '" role="switch" aria-checked="' + on + '"><span class="mpl">' + esc(k[1]) + '<small>' + esc(k[2]) + '</small></span><span class="mpsw" style="background:' + (on ? '#F3F1EC' : '#383836') + '"><i style="left:' + (on ? '21px' : '3px') + ';background:' + (on ? '#070707' : '#D2CFC8') + '"></i></span></button>'; }).join('') + '</div>' +
+      '<p class="nsn">運営からの大事な連絡は止められません。</p>' +
+      '<span class="lbl">止めているイベント・フォルダー</span>' + (p.mute.length ? '<div class="nsm">' + p.mute.map(function (m) { return '<button class="nsc" data-ns-un="' + esc(m) + '" aria-label="「' + esc(m) + '」の通知を戻す">' + esc(m) + X + '</button>'; }).join('') + '</div>' : '<p class="nsn">ありません。通知を長押しすると、そのイベント・フォルダーの通知を止められます。</p>');
+    sheet('通知の設定', h); sc = document.querySelector('#nspop .iqbody'); if (sc) sc.scrollTop = y;
+  }
+  function openMenu(id) {
+    var np = window.__np, n = np && np.find(id); if (!n) return;
+    var k = window.__nKind(n.text), src = window.__nSrc(n.text, n.sub, k), kn = (window.__NK.filter(function (x) { return x[0] === k; })[0] || [])[1];
+    var h = '<p class="nsq">' + esc(n.text) + '</p><div class="nsl">' +
+      (kn ? '<button class="nsa" data-ns-off="' + k + '">「' + esc(kn) + '」の通知をオフ</button>' : '') +
+      (src && k !== 'system' ? '<button class="nsa" data-ns-mute="' + esc(src) + '">「' + esc(src) + '」の通知をオフ</button>' : '') +
+      '<button class="nsa" data-ns-del="' + esc(id) + '">この通知を削除</button><button class="nsa" data-nset-open="1">通知の設定</button></div>' +
+      (k === 'system' ? '<p class="nsn">運営からの大事な連絡は止められません。</p>' : '');
+    sheet('この通知', h);
+  }
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest ? e.target : null; if (!t) return;
+    if (t.closest('[data-nset-open]')) { e.preventDefault(); e.stopPropagation(); openSet(); return; }
+    if (t.closest('[data-ns-x]')) { close(); return; }
+    var np = window.__np; if (!np) return; var p = np.get(), b;
+    if ((b = t.closest('[data-ns-k]'))) { var k = b.dataset.nsK, i = p.off.indexOf(k); if (i >= 0) p.off.splice(i, 1); else p.off.push(k); np.set(p.off, p.mute); openSet(); return; }
+    if ((b = t.closest('[data-ns-un]'))) { np.set(p.off, p.mute.filter(function (m) { return m !== b.dataset.nsUn; })); openSet(); return; }
+    if ((b = t.closest('[data-ns-off]'))) { if (p.off.indexOf(b.dataset.nsOff) < 0) p.off.push(b.dataset.nsOff); np.set(p.off, p.mute); close(); np.flash('オフにしました。通知の設定から戻せます'); return; }
+    if ((b = t.closest('[data-ns-mute]'))) { if (p.mute.indexOf(b.dataset.nsMute) < 0) p.mute.push(b.dataset.nsMute); np.set(p.off, p.mute); close(); np.flash('オフにしました。通知の設定から戻せます'); return; }
+    if ((b = t.closest('[data-ns-del]'))) { np.del(b.dataset.nsDel); close(); return; }
+  }, true);
+  // 長押し（タッチ）・右クリック（マウス）で、その通知のメニュー
+  var lp = null, just = 0;
+  document.addEventListener('pointerdown', function (e) {
+    var it = e.target.closest && e.target.closest('.npi[data-nid]'); if (!it || e.target.closest('button')) return;
+    clearTimeout(lp && lp.t); lp = { x: e.clientX, y: e.clientY, t: setTimeout(function () { lp = null; just = Date.now(); if (navigator.vibrate) try { navigator.vibrate(12); } catch (er) {} openMenu(it.dataset.nid); }, 480) };
+  });
+  document.addEventListener('pointermove', function (e) { if (lp && (Math.abs(e.clientX - lp.x) > 8 || Math.abs(e.clientY - lp.y) > 8)) { clearTimeout(lp.t); lp = null; } });
+  ['pointerup', 'pointercancel'].forEach(function (ev) { document.addEventListener(ev, function () { if (lp) { clearTimeout(lp.t); lp = null; } }); });
+  document.addEventListener('contextmenu', function (e) { var it = e.target.closest && e.target.closest('.npi[data-nid]'); if (!it) return; e.preventDefault(); if (Date.now() - just > 600) openMenu(it.dataset.nid); });
+  document.addEventListener('click', function (e) { if (Date.now() - just < 600 && e.target.closest && e.target.closest('.npi')) { e.stopPropagation(); e.preventDefault(); } }, true);
+})();
+</script>
+<style>
+.npi[data-nid]{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.npset{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;padding:12px 16px;border:0;border-top:1px solid #2C2C2A;background:transparent;color:#F3F1EC;font:inherit;font-size:13px;font-weight:700;text-align:left;cursor:pointer}
+.npset span{font-size:11px;font-weight:400;color:#7D7B76}
+.nssheet .iqbody{padding-bottom:calc(20px + env(safe-area-inset-bottom))}
+.nsl{display:flex;flex-direction:column;border:1px solid #2C2C2A;border-radius:12px;overflow:hidden;margin-bottom:10px}
+.nsr,.nsa{display:flex;align-items:center;gap:12px;width:100%;min-height:52px;padding:10px 16px;border:0;border-top:1px solid #232322;background:transparent;color:#F3F1EC;font:inherit;font-size:15px;text-align:left;cursor:pointer}
+.nsr:first-child,.nsa:first-child{border-top:0}
+.nsr .mpl{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.nsr .mpl small{font-size:12px;color:#7D7B76}
+.nsr .mpsw{flex:none;position:relative;width:44px;height:26px;border-radius:13px}
+.nsr .mpsw i{position:absolute;top:3px;width:20px;height:20px;border-radius:50%}
+.nsn{margin:0 0 14px;font-size:12px;color:#7D7B76;line-height:1.6}
+.nsq{margin:0 0 12px;font-size:14px;color:#D2CFC8;line-height:1.6}
+.nsm{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 14px}
+.nsc{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 8px 0 12px;border:1px solid #2C2C2A;border-radius:17px;background:transparent;color:#F3F1EC;font:inherit;font-size:13px;cursor:pointer}
+.nsc svg{width:14px;height:14px;color:#7D7B76}
+.nssheet .lbl{display:block;margin:6px 0 0}
 </style>
 </body>
 </html>

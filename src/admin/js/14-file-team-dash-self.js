@@ -1,6 +1,6 @@
 // ---------- ux54 ファイルも担当を複数に。下の段の担当は、上のフォルダのメンバーからだけ選べる ----------
-function pickFrom(n) { for (var a = parentOf(n); a; a = parentOf(a)) { if (teamOf(a).length) return a; } return null; }
-function pickable(n) { var a = pickFrom(n); if (a) return teamOf(a); return isAdmin() ? null : []; } // null＝制限なし（いちばん上の段を代表が決めるときだけ）。それ以外は代表も含め、上のフォルダで与えられたメンバーからだけ選べる
+function pickFrom(n) { return parentOf(n) || null; } // 担当の候補を決める、すぐ上のフォルダー
+function pickable(n) { var a = pickFrom(n); if (a) return teamOf(a); return isAdmin() ? null : []; } // null＝制限なし（いちばん上の段を代表が決めるときだけ）。それ以外は代表も含め、すぐ上のフォルダーのメンバーからだけ選べる（未定なら誰も選べない）
 function fwNames(n) { return fileWho(n).map(function (id) { var m = member(id); return m ? m.name : ''; }).join('・'); }
 function fileWho(n) { var t = (n.team || []).slice(); if (n.who && t.indexOf(n.who) < 0) t.unshift(n.who); return t; }
 function setFileWho(n, list) { n.team = list.slice(); n.who = list[0] || ''; delete n.leads; }
@@ -48,7 +48,7 @@ function dashSelf() {
   }).join('') : '<div class="empty sm">担当している業務はありません</div>';
   var alerts = open.filter(function (o) { return !late(o.k) && !o.k.nodate && !isFolder(o.k) && dayOf(o.k.end) - TODAY <= 3 * DAY; });
   var nrows = alerts.map(function (o) { var d = Math.round((dayOf(o.k.end) - TODAY) / DAY); return '<div class="nr2 al"><span class="ndot ndw"></span><span class="mt"><b>「' + esc(ttl(o.k)) + '」の期限が' + (d ? 'あと' + d + '日' : '今日') + 'です</b><span class="ms"><span class="dp">' + esc(ttl(o.p)) + '</span></span></span></div>'; }).join('') +
-    ns.map(function (n) { return '<div class="nr2"><span class="ndot"></span><span class="mt"><b>' + esc(n.text) + '</b><span class="ms">' + (n.sub ? '<span class="dp">' + esc(n.sub) + '</span>' : '') + '<span class="dp num">' + esc(n.at || '') + '</span></span></span><button class="ib nx" data-act="ndel" data-id="' + n.id + '" title="削除" aria-label="この通知を削除">' + ic('x') + '</button></div>'; }).join('');
+    ns.map(function (n) { return '<div class="nr2" data-nid="' + esc(String(n.id)) + '" title="長押し・右クリックでこの通知を止められます"><span class="ndot"></span><span class="mt"><b>' + esc(n.text) + '</b><span class="ms">' + (n.sub ? '<span class="dp">' + esc(n.sub) + '</span>' : '') + '<span class="dp num">' + esc(n.at || '') + '</span></span></span><button class="ib nx" data-act="ndel" data-id="' + n.id + '" title="削除" aria-label="この通知を削除">' + ic('x') + '</button></div>'; }).join('');
   var cnt = function (n, bad) { return n ? '<span class="cc' + (bad ? ' bad' : '') + '">' + n + '</span>' : ''; };
   return '<section class="dsec"><h2>' + av(m.id) + esc(m.name) + '</h2><div class="dg2 dself">' +
     '<div class="card"><div class="ch"><span class="cht">自分の担当' + cnt(open.length) + cnt(lateN && '遅れ ' + lateN, true) + '</span><button data-act="fgo2" aria-label="業務の自分の担当を開く" title="開く">' + GO + '</button></div><div class="cb mlist">' + rows + '</div></div>' +

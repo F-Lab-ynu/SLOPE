@@ -243,7 +243,7 @@ function viewWork() {
 }
 function workGantt() {
   var tbar = '<div class="tbar"><span class="muted" style="font-size:12px">表示</span><span class="seg" role="group" aria-label="表示する細かさ">' + LEVELS.map(function (l) {
-      return '<button data-act="depth" data-v="' + l[0] + '" aria-pressed="' + (String(S.depth || 2) === l[0] && !Object.keys(S.fold || {}).length) + '"><i class="lvd" style="background:' + LVC[LEVELS.indexOf(l)] + '"></i>' + l[1] + '</button>'; }).join('') + '</span>' + (S.wtab === 'gantt' ? '<span class="zoom"><button class="ib" data-act="zoom" data-v="-1" aria-label="縮小">−</button><button class="ib" data-act="zoom" data-v="1" aria-label="拡大">＋</button></span>' : '') +
+      return '<button data-act="depth" data-v="' + l[0] + '" aria-pressed="' + (String(S.depth || 2) === l[0] && !Object.keys(S.fold || {}).length) + '"><i class="lvd" style="background:' + LVC[LEVELS.indexOf(l)] + '"></i>' + l[1] + '</button>'; }).join('') + '</span>' + (S.wtab === 'gantt' ? '<span class="zoom"><button class="ib" data-act="zoom" data-v="-1" aria-label="縮小" title="縮小（Ctrl＋ホイール・ピンチでも可）">−</button><button class="ib" data-act="zoom" data-v="1" aria-label="拡大" title="拡大">＋</button><button class="gfitb" data-act="gfit" aria-pressed="' + !S.gz + '" title="フォルダーの期間全体を表示">全体</button></span>' : '') +
     '<label class="chk"><input type="checkbox" class="check" data-act="showEnded"' + (S.showEnded ? ' checked' : '') + '>終了したイベント</label>' + (S.wtab === 'list' ? '<details class="keys hide-sm"><summary aria-label="キーボード操作">?</summary><div class="kpop"><b>キーボード操作</b><span><kbd>Enter</kbd> 下に追加</span><span><kbd>Tab</kbd> 一段下げる</span><span><kbd>Shift</kbd>+<kbd>Tab</kbd> 一段上げる</span><span><kbd>Alt</kbd>+<kbd>↑↓</kbd> 並べ替え</span></div></details>' : '') + '</div>';
   return tbar + '<div class="body flush">' + ganttOf(rowsOf(false, true)) + '</div>';
 }
@@ -381,7 +381,7 @@ var ICON = {
   perms: '<circle cx="9" cy="8" r="3"/><path d="M3 19c.8-3 3-4.5 6-4.5s5.2 1.5 6 4.5"/><path d="M16 5.5a3 3 0 0 1 0 5M18 14.5c1.5.6 2.5 2 3 4.5"/>',
   plus: '<path d="M12 5v14M5 12h14"/>', back: '<path d="M15 6l-6 6 6 6"/>', more: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
   x: '<path d="M6 6l12 12M18 6L6 18"/>', users: '<circle cx="9" cy="8" r="3"/><path d="M3 19c.8-3 3-4.5 6-4.5s5.2 1.5 6 4.5"/><path d="M16 5.5a3 3 0 0 1 0 5M18 14.5c1.5.6 2.5 2 3 4.5"/>',
-  chev: '<path d="M8 10l4 4 4-4"/>', ext: '<path d="M14 5h5v5M19 5l-8 8M17 14v5H5V7h5"/>'
+  chev: '<path d="M8 10l4 4 4-4"/>', bell: '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>', ext: '<path d="M14 5h5v5M19 5l-8 8M17 14v5H5V7h5"/>'
 };
 function ic(n) { return '<svg class="i" viewBox="0 0 24 24" aria-hidden="true">' + ICON[n] + '</svg>'; }
 function top(title, right, lead) { return '<div class="top">' + (lead || '') + '<h1>' + title + '</h1><span class="sp"></span>' + (right || '') + '</div>'; }
@@ -406,7 +406,7 @@ function renderChrome() {
     return '<button data-act="go" data-view="' + v.id + '"' + (S.view === v.id ? ' aria-current="page"' : '') + '>' + ic(v.id) + '<span class="full">' + v.name + '</span><span class="short">' + (SH[v.id] || v.name) + '</span>' + (c[v.id] ? '<span class="n" title="' + (BADGE[v.id] || '') + ' ' + c[v.id] + '件">' + c[v.id] + '</span>' : '') + '</button>';
   }).join('');
   document.getElementById('acct').innerHTML = '<div class="mode"><span>運営</span><button class="msw on" data-to="./" role="switch" aria-checked="true" aria-label="部員画面に切り替える"><i></i></button></div>' + '<button data-act="acct" aria-haspopup="true" aria-expanded="' + UI.acct + '">' + av(m.id, 'lg') + '<span class="who"><b>' + esc(m.name) + '</b><span>' + esc(m.unit === '—' ? '部員' : m.unit) + '</span></span>' + ic('chev') + '</button>' +
-    (UI.acct ? '<div class="menu" role="menu"><div class="msm">' + (isAdmin() ? '<button role="menuitem" data-act="go" data-view="perms">' + ic('perms') + '<span>メンバー</span></button>' : '') + '</div><div class="mh">アカウントを切り替え（モック）</div>' + S.members.map(function (x) {
+    (UI.acct ? '<div class="menu" role="menu"><div class="msm">' + (isAdmin() ? '<button role="menuitem" data-act="go" data-view="perms">' + ic('perms') + '<span>メンバー</span></button>' : '') + '<button role="menuitem" data-act="nset">' + ic('bell') + '<span>通知の設定</span></button></div><div class="mh">アカウントを切り替え（モック）</div>' + S.members.map(function (x) {
       return '<button role="menuitem" data-act="switch" data-id="' + x.id + '">' + av(x.id) + '<span>' + esc(x.name) + '</span><span class="r">' + permLabel(x) + '</span></button>'; }).join('') + '<div class="msep"></div><button role="menuitem" class="mdanger" data-act="resetAsk"><span>サンプルデータに戻す…</span></button></div>' : '');
 }
 
@@ -499,7 +499,9 @@ function renderMain() {
   v.innerHTML = ({ dash: viewDash, tracks: viewTracks, notices: viewNotices, board: viewBoard, projects: viewWork, perms: viewPerms }[S.view])();
   if (S.view === 'projects' && S.wtab === 'gantt') {
     var gs = document.getElementById('gs'), now = document.querySelector('.gnow');
-    if (UI.sp === 'g') { gs.scrollLeft = UI.sl; gs.scrollTop = UI.st; }
+    var gfit = document.querySelector('.gg[data-fit="1"]');
+    if (gfit && UI.sp !== 'g') { UI.sp = 'g'; UI.sl = 0; UI.st = 0; } // 全体表示は左端から
+    if (UI.sp === 'g') { gs.scrollLeft = gfit ? 0 : UI.sl; gs.scrollTop = UI.st; }
     else { UI.sp = 'g'; UI.sl = now ? Math.max(0, parseFloat(now.style.left) - (window.innerWidth < 760 ? 60 : 240)) : 0; UI.st = 0; gs.scrollLeft = UI.sl; }
     gs.addEventListener('scroll', function () { UI.sl = gs.scrollLeft; UI.st = gs.scrollTop; });
   } else UI.sp = null;

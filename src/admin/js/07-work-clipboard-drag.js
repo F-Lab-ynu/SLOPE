@@ -48,7 +48,7 @@ document.addEventListener('click', function (e) {
   closeCM();
   if (c.dataset.cm2) {
     if (!n) return;
-    if (a === 'me') { snap(); n.who = S.me; save(); render(); toast('担当になりました'); }
+    if (a === 'me') { var pkm = pickable(n); if (pkm && pkm.indexOf(S.me) < 0) { toast(pickFrom(n) ? '「' + ttl(pickFrom(n)) + '」のメンバーではないので担当になれません' : '担当になれません'); return; } snap(); n.who = S.me; save(); render(); toast('担当になりました'); }
     else if (a === 'toFile') { snap(); delete n.folder; n.kids = undefined; delete n.kids; n.done = false; save(); render(); toast('ファイルに変えました'); }
     else if (a === 'cut') { UI.clip = { mode: 'cut', id: n.id }; render(); toast('切り取りました。貼り付け先のフォルダーで右クリック'); }
     else if (a === 'copy') { UI.clip = { mode: 'copy', id: n.id }; toast('コピーしました'); }
@@ -103,6 +103,7 @@ document.addEventListener('click', function (e) {
 // ---------- ux34 ドラッグ：どの段の行の間にも置ける（線の位置＝入る段）。フォルダーの真ん中＝中へ ----------
 function mvPlan (e) {
   mvClear();
+  if (mv.scope === '.ftl') return treePlan(e); // 左のツリーからつかんだとき
   var src = mv.n, el = document.elementFromPoint(e.clientX, e.clientY); if (!el) return null;
   var T = el.closest('.ftn[data-id]') || el.closest('.crumb button[data-act="fgo"][data-id]:not([data-id=""])');
   var into = function (t, R) {

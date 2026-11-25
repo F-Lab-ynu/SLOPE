@@ -5,7 +5,7 @@
 var SB_URL = 'https://addvjcwwlklwmkwhhsjv.supabase.co';
 var SB_KEY = 'sb_publishable_L8VP_h67F3FupHwqC_3pTw_YRbBVghw';
 var sb = window.supabase.createClient(SB_URL, SB_KEY);
-var PREF_KEYS = ['view', 'wtab', 'depth', 'fold', 'view2', 'zoom', 'lw', 'lwN', 'showEnded', 'mtab', 'fmode', 'fcur', 'sideC', 'ftreeC', 'tkC', 'cur'];
+var PREF_KEYS = ['view', 'wtab', 'depth', 'fold', 'view2', 'zoom', 'gz', 'lw', 'lwN', 'showEnded', 'mtab', 'fmode', 'fcur', 'sideC', 'ftreeC', 'tkC', 'cur'];
 var SYNC = { nodes: {}, profiles: {}, busy: Promise.resolve(), ready: false, pendingRemote: false };
 S.pending = [];
 
@@ -124,7 +124,7 @@ window.__inqUpdate = function (id, patch) { sb.from('inquiries').update(patch).e
 window.__inqDelete = function (id) { sb.from('inquiries').delete().eq('id', id).then(function (r) { if (r.error) toast('削除できませんでした'); }); };
 window.notify = function (to, text, sub) {
   if (!to) return;
-  if (to === S.me) S.notifs.unshift({ to: to, text: text, sub: sub, at: nowLabel() });
+  if (to === S.me && !(window.__nBlocked && window.__nBlocked(to, text, sub))) S.notifs.unshift({ to: to, text: text, sub: sub, at: nowLabel() });
   sb.from('notifications').insert({ to_id: to, text: text, sub: sub || '' }).then(function (r) { if (r.error) console.warn(r.error); });
 };
 
@@ -171,7 +171,7 @@ function renderChrome() {
     return '<button data-act="go" data-view="' + v.id + '"' + (S.view === v.id ? ' aria-current="page"' : '') + '>' + ic(v.id) + '<span class="full">' + v.name + '</span><span class="short">' + (SH[v.id] || v.name) + '</span>' + (c[v.id] ? '<span class="n" title="' + ((typeof BADGE !== 'undefined' && BADGE[v.id]) || (v.id === 'perms' ? '承認待ち' : '')) + ' ' + c[v.id] + '件">' + c[v.id] + '</span>' : '') + '</button>';
   }).join('');
   document.getElementById('acct').innerHTML = '<div class="mode"><span>運営</span><button class="msw on" data-to="./" role="switch" aria-checked="true" aria-label="部員画面に切り替える"><i></i></button></div>' + '<button data-act="acct" aria-haspopup="true" aria-expanded="' + UI.acct + '">' + av(m.id, 'lg') + '<span class="who"><b>' + esc(m.name) + '</b><span>' + esc(m.unit === '—' ? '部員' : m.unit) + '</span></span>' + ic('chev') + '</button>' +
-    (UI.acct ? '<div class="menu" role="menu"><div class="msm">' + (isAdmin() ? '<button role="menuitem" data-act="go" data-view="perms">' + ic('perms') + '<span>メンバー</span></button>' : '') + '</div><div class="mh">' + esc(m.email || '') + '</div><button role="menuitem" data-act="logout"><span>ログアウト</span></button></div>' : '');
+    (UI.acct ? '<div class="menu" role="menu"><div class="msm">' + (isAdmin() ? '<button role="menuitem" data-act="go" data-view="perms">' + ic('perms') + '<span>メンバー</span></button>' : '') + '<button role="menuitem" data-act="nset">' + ic('bell') + '<span>通知の設定</span></button></div><div class="mh">' + esc(m.email || '') + '</div><button role="menuitem" data-act="logout"><span>ログアウト</span></button></div>' : '');
 }
 function counts() {
   return {
@@ -363,3 +363,28 @@ window.__delNotif = function (id) {
   var me0 = S.me; S.notifs = (S.notifs || []).filter(function (n) { return id === 'all' ? n.to !== me0 : n.id !== id; });
   var q = sb.from('notifications').delete(); (id === 'all' ? q.eq('to_id', me0) : q.eq('id', id)).then(function (r) { if (r.error) toast('削除できませんでした'); });
 };
+
+// ---------- 通知の設定（部員アプリと同じ profiles.notif_off / notif_mute）・この端末へのプッシュ ----------
+window.__nSave = function (off, mute) { sb.from('profiles').update({ notif_off: off, notif_mute: mute }).eq('id', S.me).then(function (r) { if (r.error) toast('通知の設定を保存できませんでした'); }); };
+window.__adminPush = (function () {
+  var VAPID = 'BNYuEXq2mMrHbNn06huazGpyd0PqDbp-CVXr2TJ7Ev-8Oy2OCjJzbW-DVeopb2BcvZHMoS5g98I5VUw4i8jXlgU', on = null;
+  function state() {
+    var ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1), app = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone;
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return ios && !app ? 'ios' : 'no';
+    if (Notification.permission === 'denied') return 'denied';
+    if (on === null) { on = false; navigator.serviceWorker.ready.then(function (r) { return r.pushManager.getSubscription(); }).then(function (x) { if (x) { on = true; if (document.getElementById('nsdlg') && window.__nsOpen) window.__nsOpen(); } }).catch(function () {}); }
+    return on ? 'on' : 'off';
+  }
+  function toggle(done) {
+    var st = state(); if (st !== 'on' && st !== 'off') return;
+    if (st === 'on') { navigator.serviceWorker.ready.then(function (r) { return r.pushManager.getSubscription(); }).then(function (x) { if (!x) return; sb.from('push_subs').delete().eq('endpoint', x.endpoint).then(function () {}); return x.unsubscribe(); }).then(function () { on = false; done && done(); }); return; }
+    var key = (function (b) { b = b.replace(/-/g, '+').replace(/_/g, '/'); b += '===='.slice(b.length % 4 || 4); var r = atob(b), a = new Uint8Array(r.length); for (var i = 0; i < r.length; i++) a[i] = r.charCodeAt(i); return a; })(VAPID);
+    Notification.requestPermission().then(function (p) {
+      if (p !== 'granted') { done && done(); return; }
+      return navigator.serviceWorker.ready.then(function (r) { return r.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key }); }).then(function (x) {
+        var j = x.toJSON(); return sb.from('push_subs').upsert({ user_id: S.me, endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth }, { onConflict: 'endpoint' });
+      }).then(function (r) { if (r && r.error) { toast('うまく登録できませんでした'); return; } on = true; toast('この端末で通知を受け取ります'); done && done(); });
+    }).catch(function () { toast('うまく登録できませんでした'); });
+  }
+  return { state: state, toggle: toggle };
+})();
