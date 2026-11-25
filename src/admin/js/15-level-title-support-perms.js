@@ -66,7 +66,8 @@ window.addEventListener('click', function (e) {
   var b = e.target.closest && e.target.closest('[data-iq]'); if (!b) return; e.preventDefault(); e.stopImmediatePropagation();
   var q = (S.inqs || []).filter(function (x) { return String(x.id) === b.dataset.id; })[0]; if (!q) return;
   var a = b.dataset.iq;
-  if (a === 'del') { if (!confirm('このお問い合わせを削除しますか？')) return; S.inqs = S.inqs.filter(function (x) { return x !== q; }); if (window.__inqDelete) window.__inqDelete(q.id); else save(); render(); return; }
+  if (a === 'del' && !b.dataset.sure) { askConfirm({ title: 'お問い合わせを削除', body: '', run: function () { b.dataset.sure = '1'; b.click(); } }); return; }
+  if (a === 'del') { S.inqs = S.inqs.filter(function (x) { return x !== q; }); if (window.__inqDelete) window.__inqDelete(q.id); else save(); render(); return; }
   if (a === 'reopen') { inqSave(q, { status: 'open' }); render(); return; }
   var ta = document.querySelector('[data-iqr="' + q.id + '"]'), txt = ta ? ta.value.trim() : '';
   if (a === 'reply' && !txt) { if (ta) ta.focus(); toast('返信を書いてください'); return; }

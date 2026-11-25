@@ -217,8 +217,11 @@ function p2New(k, where) {
   if (k === 'u') { var tid = p2TrackOf(n.id), t = p2Track(tid), u = { code: nextCode(t), title: '新しい単元', tags: [], deps: [] }; tl(t).push(u); serialize(t); n.t = tid; n.c = u.code; }
   UI.psel = n.id; UI.pren = n.id; p2Save();
 }
-function p2Del(id) {
-  var f = p2Get(id); if (!f || f.n.out) return; snap();
+function p2Del(id, sure) {
+  var f = p2Get(id); if (!f || f.n.out) return;
+  var cnt = 0; p2Walk(f.n.items || [], function () { cnt++; });
+  if (!sure && cnt) { askConfirm({ title: '「' + esc(p2Name(f.n) || '項目') + '」を削除', body: '中の ' + cnt + ' 件もまとめて削除されます。', run: function () { p2Del(id, true); } }); return; }
+  snap();
   var ecids = []; p2Walk([f.n], function (x) { if (x.k === 'e' && x.ref) ecids.push(x.ref); });
   if (f.n.k === 'e') { f.arr.splice(f.i, 1); if (UI.psel === id) UI.psel = null; p2Save(); toastUndo('「' + (f.n.name || 'イベント') + '」をプログラムから外しました（告知のイベントには残っています）'); evAskAfterDel(ecids); return; }
   p2Walk([f.n], function (x) { if (x.k === 'u') { var t = p2Track(x.t), i = t ? unitIdx(t, x.c) : -1; if (i >= 0) { tl(t).splice(i, 1); delete t.units[x.c]; serialize(t); } } if (x.k === 'f' && x.t) { var stillUsed = false; S.tracks = S.tracks.filter(function (t) { return t.id !== x.t || tl(t).length; }); } });

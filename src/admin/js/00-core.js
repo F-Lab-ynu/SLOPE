@@ -364,8 +364,10 @@ function assignModal() {
     '<button class="btn" data-act="close">キャンセル</button><button class="btn primary" data-act="aSave">保存</button>', true);
 }
 function expandTo(id) { reindex(); if (!S.fold) S.fold = {}; var x = IX[id]; while (x) { S.fold[x.n.id] = false; x = x.par ? IX[x.par.id] : null; } }
+function reportTo(k) { var par = parentOf(k); return par && par.who && par.who !== k.who ? [par.who] : S.members.filter(function (x) { return x.perms.indexOf('all') >= 0 && x.id !== k.who; }).map(function (x) { return x.id; }); }
+function reportUndo(k) { var w = member(S.me); reportTo(k).forEach(function (id) { if (id !== S.me) window.notify(id, (w ? w.name + 'さんが' : '') + '「' + ttl(k) + '」の完了を取り消しました', ttl(rootOf(k))); }); }
 function reportUp(k) {
-  var par = parentOf(k), w = member(k.who), to = par && par.who && par.who !== k.who ? [par.who] : S.members.filter(function (x) { return x.perms.indexOf('all') >= 0 && x.id !== k.who; }).map(function (x) { return x.id; });
+  var par = parentOf(k), w = member(k.who), to = reportTo(k);
   to.forEach(function (id) { window.notify(id, (w ? w.name + 'さんが' : '') + '「' + ttl(k) + '」を完了しました', ttl(rootOf(k))); });
   if (par && par.who && isDone(par)) window.notify(par.who, '「' + ttl(par) + '」の下の業務がすべて完了しました', ttl(rootOf(par)));
 }
@@ -450,6 +452,7 @@ function dlg(title, body, foot, wide) {
 function renderModal() {
   var el = document.getElementById('modal'), f;
   if (!M) { el.innerHTML = ''; return; }
+  if (M.m === 'cfm') { el.innerHTML = cfmDlg(); f = el.querySelector('.btn.danger, .btn.primary'); if (f) f.focus(); return; }
   if (M.m === 'ann') { el.innerHTML = annDlg(); f = document.getElementById('anT'); if (f) f.focus(); return; }
   if (M.m === 'pub') { el.innerHTML = evPubDlg(); f = el.querySelector('.btn.primary, .btn.danger'); if (f) f.focus(); return; }
   if (M.m === 'evpick') { el.innerHTML = evPickDlg(); f = el.querySelector('.evpk'); if (f) f.focus(); return; }

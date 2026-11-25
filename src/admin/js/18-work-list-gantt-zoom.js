@@ -96,22 +96,24 @@ document.addEventListener('change', function (e) {
   var el = e.target; if (!el.classList || !el.closest || !el.closest('.wcards, .gg')) return;
   var c = el.dataset.c; if (!c || c === 't' || c === 'new') return;
   var n = task(el.dataset.id); if (!n) return;
-  if (c === 'w') { var prev = n.who; n.who = el.value; if (el.value && el.value !== prev) { window.notify(el.value, '「' + ttl(n) + '」の担当になりました', ttl(rootOf(n))); toast(member(el.value).name + 'に通知しました'); } rerender({ id: n.id, c: 'w' }); return; }
+  if (c === 'w') { var prev = n.who; n.who = el.value; if (el.value && el.value !== prev) { notifyAssign(n, el.value); toast(member(el.value).name + 'に知らせます'); } rerender({ id: n.id, c: 'w' }); return; }
   if (c === 's' || c === 'e') {
     if (!el.value) { rerender(); return; }
     if (c === 's') { n.start = el.value; if (n.end < n.start) n.end = n.start; } else { n.end = el.value; if (n.end < n.start) n.start = n.end; }
     var p = parentOf(n); if (p && (n.start < p.start || n.end > p.end)) toast('「' + ttl(p) + '」の期間をはみ出しています');
     rerender({ id: n.id, c: c }); return;
   }
-  if (c === 'done') { n.done = el.checked; if (n.done) { S.justDone = n.id; reportUp(n); } rerender(); return; }
+  if (c === 'done') { n.done = el.checked; if (n.done) S.justDone = n.id; doneChanged(n); rerender(); return; }
 });
 document.addEventListener('click', function (e) {
   var b = e.target.closest && e.target.closest('[data-act="rowDel"],[data-act="undoAll"]'); if (!b) return;
   e.stopPropagation();
   if (b.dataset.act === 'undoAll') { undoNow(); return; }
   var n = task(b.dataset.id); if (!n) return;
-  snap(); var cnt = nodesOf(n).length - 1, cids = evCidsIn(n); removeNode(n); rerender();
-  toastUndo('「' + ttl(n) + '」' + (cnt ? 'と下の ' + cnt + ' 件' : '') + 'を削除しました'); evAskAfterDel(cids);
+  delWork(n, function () {
+    snap(); var cnt = nodesOf(n).length - 1, cids = evCidsIn(n); removeNode(n); rerender();
+    toastUndo('「' + ttl(n) + '」' + (cnt ? 'と下の ' + cnt + ' 件' : '') + 'を削除しました'); evAskAfterDel(cids);
+  });
 }, true);
 
 

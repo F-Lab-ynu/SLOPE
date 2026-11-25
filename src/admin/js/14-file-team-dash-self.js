@@ -9,7 +9,7 @@ window.addEventListener('change', function (e) {
   var n = task(el.dataset.id), m = el.dataset.tm; if (!n) return; if (!canAssign(n)) { el.checked = !el.checked; toast('担当を変えられるのは、このフォルダのリーダーです'); return; }
   snap(); var t = fileWho(n);
   var pk = pickable(n); if (el.checked && pk && pk.indexOf(m) < 0) { el.checked = false; toast('フォルダのメンバーから選んでください'); return; }
-  if (el.checked) { if (t.indexOf(m) < 0) t.push(m); window.notify(m, '「' + ttl(n) + '」の担当になりました', ttl(rootOf(n))); toast(member(m).name + 'に通知しました'); }
+  if (el.checked) { if (t.indexOf(m) < 0) t.push(m); notifyAssign(n, m); toast(member(m).name + 'に知らせます'); }
   else t = t.filter(function (x) { return x !== m; });
   setFileWho(n, t); save(); render(); openTeam(n.id, true);
 }, true);

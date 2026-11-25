@@ -46,11 +46,11 @@ document.addEventListener('click', function (e) {
       if (n0.tasks) n0.name = nt; else n0.title = nt;
       n0.start = nsd; n0.end = ned;
       if (n0.tasks) { n0.unit = val('wU'); var aa = val('wA'); n0.kind = aa ? 'event' : 'work'; if (aa) n0.announce = aa; }
-      var dc = document.getElementById('wD'); if (dc) n0.done = dc.checked;
+      var dc = document.getElementById('wD'); if (dc && !!n0.done !== dc.checked) { n0.done = dc.checked; doneChanged(n0); }
       var assigned = canAssign(n0) && nw !== n0.who; if (canAssign(n0)) n0.who = nw;
-      if (assigned && nw) window.notify(nw, '「' + nt + '」の担当になりました', ttl(rootOf(n0)));
+      if (assigned && nw) notifyAssign(n0, nw);
       var pp = parentOf(n0), over = pp && (nsd < pp.start || ned > pp.end);
-      M = null; save(); render(); toast(over ? '「' + ttl(pp) + '」の期間をはみ出しています' : assigned && nw ? member(nw).name + 'に通知しました' : '保存しました'); break;
+      M = null; save(); render(); toast(over ? '「' + ttl(pp) + '」の期間をはみ出しています' : assigned && nw ? member(nw).name + 'に知らせます' : '保存しました'); break;
     case 'wDel':
       if (!M.del) { M.del = true; renderModal(); return; }
       var dn = task(M.id), dp = parentOf(dn);
@@ -62,12 +62,12 @@ document.addEventListener('click', function (e) {
       Array.prototype.forEach.call(document.querySelectorAll('[data-assign]'), function (el) {
         var k = task(el.dataset.assign); if (!k || k.who === el.value) return;
         k.who = el.value; changed++;
-        if (el.value) { window.notify(el.value, '「' + ttl(k) + '」の担当になりました', ttl(rootOf(k))); people[el.value] = 1; }
+        if (el.value) { notifyAssign(k, el.value); people[el.value] = 1; }
       });
       M = null; save(); render(); toast(changed ? changed + '件を割り当てました' + (Object.keys(people).length ? '（' + Object.keys(people).length + '人に通知）' : '') : '変更はありません'); break;
-    case 'done': var kd = task(b.dataset.id); kd.done = true; S.justDone = kd.id; reportUp(kd); save(); render(); toast('完了を報告しました'); break;
-    case 'undo': task(b.dataset.id).done = false; S.justDone = null; save(); render(); break;
-    case 'resetAsk': UI.acct = false; if (confirm('サンプルデータに戻しますか？\n編集した内容はすべて消えます。')) { var kp = S.me, vw = S.view; S = migrateFolders(sample()); S.me = member(kp) ? kp : 'm1'; S.view = vw; M = null; save(); render(); toast('サンプルに戻しました'); } else renderChrome(); break;
+    case 'done': var kd = task(b.dataset.id); kd.done = true; S.justDone = kd.id; doneChanged(kd); save(); render(); toast('完了にしました'); break;
+    case 'undo': var ku = task(b.dataset.id); ku.done = false; doneChanged(ku); S.justDone = null; save(); render(); break;
+    case 'resetAsk': UI.acct = false; renderChrome(); askConfirm({ title: 'サンプルデータに戻す', body: '編集した内容はすべて消えます。', ok: '戻す', run: function () { var kp = S.me, vw = S.view; S = migrateFolders(sample()); S.me = member(kp) ? kp : 'm1'; S.view = vw; M = null; save(); render(); toast('サンプルに戻しました'); } }); break;
   }
 });
 document.addEventListener('keydown', function (e) {

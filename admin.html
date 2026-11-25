@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '25d6b56e8b', FILE = 'admin.ver';
+  var VER = 'f4b1c8763f', FILE = 'admin.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -2246,8 +2246,10 @@ function assignModal() {
     '<button class="btn" data-act="close">キャンセル</button><button class="btn primary" data-act="aSave">保存</button>', true);
 }
 function expandTo(id) { reindex(); if (!S.fold) S.fold = {}; var x = IX[id]; while (x) { S.fold[x.n.id] = false; x = x.par ? IX[x.par.id] : null; } }
+function reportTo(k) { var par = parentOf(k); return par && par.who && par.who !== k.who ? [par.who] : S.members.filter(function (x) { return x.perms.indexOf('all') >= 0 && x.id !== k.who; }).map(function (x) { return x.id; }); }
+function reportUndo(k) { var w = member(S.me); reportTo(k).forEach(function (id) { if (id !== S.me) window.notify(id, (w ? w.name + 'さんが' : '') + '「' + ttl(k) + '」の完了を取り消しました', ttl(rootOf(k))); }); }
 function reportUp(k) {
-  var par = parentOf(k), w = member(k.who), to = par && par.who && par.who !== k.who ? [par.who] : S.members.filter(function (x) { return x.perms.indexOf('all') >= 0 && x.id !== k.who; }).map(function (x) { return x.id; });
+  var par = parentOf(k), w = member(k.who), to = reportTo(k);
   to.forEach(function (id) { window.notify(id, (w ? w.name + 'さんが' : '') + '「' + ttl(k) + '」を完了しました', ttl(rootOf(k))); });
   if (par && par.who && isDone(par)) window.notify(par.who, '「' + ttl(par) + '」の下の業務がすべて完了しました', ttl(rootOf(par)));
 }
@@ -2332,6 +2334,7 @@ function dlg(title, body, foot, wide) {
 function renderModal() {
   var el = document.getElementById('modal'), f;
   if (!M) { el.innerHTML = ''; return; }
+  if (M.m === 'cfm') { el.innerHTML = cfmDlg(); f = el.querySelector('.btn.danger, .btn.primary'); if (f) f.focus(); return; }
   if (M.m === 'ann') { el.innerHTML = annDlg(); f = document.getElementById('anT'); if (f) f.focus(); return; }
   if (M.m === 'pub') { el.innerHTML = evPubDlg(); f = el.querySelector('.btn.primary, .btn.danger'); if (f) f.focus(); return; }
   if (M.m === 'evpick') { el.innerHTML = evPickDlg(); f = el.querySelector('.evpk'); if (f) f.focus(); return; }
@@ -2619,7 +2622,7 @@ function closeTeam() { var tp = document.getElementById('tp'); if (tp) tp.remove
 function teamChanged(n, added) {
   if (UI.gedit) UI.gfocus = false; // ガントの行内編集中は名前欄にフォーカスを戻さない
   save(); var id = n.id;
-  added.forEach(function (m) { window.notify(m, '「' + ttl(n) + '」のメンバーになりました', ttl(rootOf(n))); });
+  added.forEach(function (m) { notifyAssign(n, m, 'のメンバーになりました'); });
   var fq = document.activeElement && document.activeElement.classList.contains('tpq');
   if (M) { var ob = document.querySelector('.dlg .tbtn[data-id="' + id + '"]'); if (ob) ob.outerHTML = teamBtn(n, ''); } else render();
   openTeam(id, true); if (fq) { var qi = document.querySelector('#tp .tpq'); if (qi) { qi.focus(); qi.setSelectionRange(qi.value.length, qi.value.length); } }
@@ -2630,7 +2633,7 @@ document.addEventListener('change', function (e) {
   var n = task(el.dataset.id), m = el.dataset.tm; if (!n) return;
   var t = teamOf(n), pk0 = pickable(n);
   if (el.checked && pk0 && pk0.indexOf(m) < 0) { el.checked = false; toast(pickFrom(n) ? '「' + ttl(pickFrom(n)) + '」のメンバーから選んでください' : '選べません'); return; }
-  if (el.checked) { if (t.indexOf(m) < 0) t.push(m); n.team = t; if (!leadsOf(n).length) setLeads(n, [m]); teamChanged(n, [m]); toast(member(m).name + 'に通知しました'); }
+  if (el.checked) { if (t.indexOf(m) < 0) t.push(m); n.team = t; if (!leadsOf(n).length) setLeads(n, [m]); teamChanged(n, [m]); toast(member(m).name + 'に知らせます'); }
   else { n.team = t.filter(function (x) { return x !== m; }); if (isLead(n, m)) setLeads(n, leadsOf(n).filter(function (x) { return x !== m; })); teamChanged(n, []); }
 }, true);
 document.addEventListener('click', function (e) {
@@ -2642,7 +2645,7 @@ document.addEventListener('click', function (e) {
   var n = task(b.dataset.id); if (!n) return; var t = teamOf(n);
   if (t.indexOf(b.dataset.m) < 0) t.push(b.dataset.m); n.team = t;
   var lm = b.dataset.m, ls = leadsOf(n);
-  if (ls.indexOf(lm) < 0) { setLeads(n, ls.concat([lm])); window.notify(lm, '「' + ttl(n) + '」のリーダーになりました', ttl(rootOf(n))); }
+  if (ls.indexOf(lm) < 0) { setLeads(n, ls.concat([lm])); notifyAssign(n, lm, 'のリーダーになりました'); }
   else setLeads(n, ls.filter(function (x) { return x !== lm; }));
   teamChanged(n, []);
 }, true);
@@ -3133,7 +3136,7 @@ document.addEventListener('click', function (e) {
   var a = b.dataset.act;
   if (a === 'fmode') { S.fmode = b.dataset.v; UI.sp = null; save(); render(); }
   else if (a === 'fadd') { UI.fadd = true; render(); }
-  else if (a === 'tdone') { var n = task(b.dataset.id); if (!n || !(editSelf(n) || n.who === S.me)) return; n.done = !n.done; if (n.done) reportUp && reportUp(n); save(); render(); }
+  else if (a === 'tdone') { var n = task(b.dataset.id); if (!n || !(editSelf(n) || n.who === S.me)) return; n.done = !n.done; doneChanged(n); save(); render(); }
 }, true);
 document.addEventListener('keydown', function (e) { var c = e.target.classList && e.target.classList.contains('fcard') && e.target; if (c && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); c.click(); } });
 
@@ -3275,7 +3278,7 @@ document.addEventListener('focusout', function (e) { var t = e.target; if (t.dat
 document.addEventListener('change', function (e) {
   var el = e.target; if (!el.dataset || !el.dataset.fw) return; e.stopImmediatePropagation();
   var n = task(el.dataset.fw); if (!n || !canAssign(n)) return; var prev = n.who; n.who = el.value;
-  if (el.value && el.value !== prev) { window.notify(el.value, '「' + ttl(n) + '」の担当になりました', ttl(rootOf(n))); toast(member(el.value).name + 'に通知しました'); }
+  if (el.value && el.value !== prev) { notifyAssign(n, el.value); toast(member(el.value).name + 'に知らせます'); }
   save(); render();
 }, true);
 // 詳細画面にもメモ
@@ -3392,20 +3395,19 @@ document.addEventListener('click', function (e) {
   if (c) {
     e.stopImmediatePropagation(); e.preventDefault();
     var n = task(UI.cm), a = c.dataset.cm; if (!n) { closeCM(); return; }
-    if (a === 'del' && !c.classList.contains('sure')) { c.classList.add('sure'); c.textContent = 'もう一度押すと削除'; return; }
     closeCM();
     if (a === 'open') goFolder(n.id);
     else if (a === 'gantt') goFolder(n.id, 'gantt');
     else if (a === 'edit') { M = { m: 'edit', id: n.id }; renderModal(); }
     else if (a === 'newF' || a === 'newT') { var k = a === 'newF' ? addFolder(n, '新しいフォルダー') : addUnder(n, '新しいファイル'); save(); render(); editNew(k); }
-    else if (a === 'done') { n.done = !n.done; if (n.done) reportUp(n); save(); render(); }
+    else if (a === 'done') { n.done = !n.done; doneChanged(n); save(); render(); }
     else if (a === 'toF') { n.folder = true; n.kids = n.kids || []; delete n.done; if (n.who) setLeads(n, [n.who]); save(); render(); toast('フォルダーに変えました'); }
     else if (a === 'evt') { if (isEvent(n)) evUnlink(n); else evPickAsk('folder', n.id); }
     else if (a === 'dup') { UI.dupId = n.id; var ov = document.getElementById('cpov'); if (!ov) { ov = document.createElement('div'); ov.id = 'cpov'; document.body.appendChild(ov); } ov.innerHTML = dupModal(n); ov.querySelector('#cpN').focus(); }
-    else if (a === 'del') {
+    else if (a === 'del') delWork(n, function () {
       snap(); var par = parentOf(n), cur = curFolder(), gone = cur && (cur === n || ancestors(cur).indexOf(n) >= 0);
       var cids = evCidsIn(n); removeNode(n); if (gone) S.fcur = par ? par.id : ''; save(); render(); toastUndo('「' + ttl(n) + '」を削除しました'); evAskAfterDel(cids);
-    }
+    });
     return;
   }
   if (document.getElementById('cm') && !(e.target.closest && e.target.closest('#cm'))) closeCM();
@@ -3437,7 +3439,7 @@ function gEnd(saveIt) {
   if (!isFolder(n)) d.who = n.who || ''; // ファイルの担当は選んだ時点で保存済み
   if (saveIt) {
     var v = (d.name || '').replace(/\s+/g, ' ').trim(); if (v && v !== ttl(n)) setTitle(n, v);
-    if (!isFolder(n) && d.who !== (n.who || '') && canAssign(n)) { n.who = d.who; if (d.who) { window.notify(d.who, '「' + ttl(n) + '」の担当になりました', ttl(rootOf(n))); toast(member(d.who).name + 'に通知しました'); } }
+    if (!isFolder(n) && d.who !== (n.who || '') && canAssign(n)) { n.who = d.who; if (d.who) { notifyAssign(n, d.who); toast(member(d.who).name + 'に知らせます'); } }
   } // 担当は行の担当ボタンで直接変わるので、キャンセルしても戻さない
   closeTeam(); save(); render();
 }
@@ -4645,8 +4647,11 @@ function p2New(k, where) {
   if (k === 'u') { var tid = p2TrackOf(n.id), t = p2Track(tid), u = { code: nextCode(t), title: '新しい単元', tags: [], deps: [] }; tl(t).push(u); serialize(t); n.t = tid; n.c = u.code; }
   UI.psel = n.id; UI.pren = n.id; p2Save();
 }
-function p2Del(id) {
-  var f = p2Get(id); if (!f || f.n.out) return; snap();
+function p2Del(id, sure) {
+  var f = p2Get(id); if (!f || f.n.out) return;
+  var cnt = 0; p2Walk(f.n.items || [], function () { cnt++; });
+  if (!sure && cnt) { askConfirm({ title: '「' + esc(p2Name(f.n) || '項目') + '」を削除', body: '中の ' + cnt + ' 件もまとめて削除されます。', run: function () { p2Del(id, true); } }); return; }
+  snap();
   var ecids = []; p2Walk([f.n], function (x) { if (x.k === 'e' && x.ref) ecids.push(x.ref); });
   if (f.n.k === 'e') { f.arr.splice(f.i, 1); if (UI.psel === id) UI.psel = null; p2Save(); toastUndo('「' + (f.n.name || 'イベント') + '」をプログラムから外しました（告知のイベントには残っています）'); evAskAfterDel(ecids); return; }
   p2Walk([f.n], function (x) { if (x.k === 'u') { var t = p2Track(x.t), i = t ? unitIdx(t, x.c) : -1; if (i >= 0) { tl(t).splice(i, 1); delete t.units[x.c]; serialize(t); } } if (x.k === 'f' && x.t) { var stillUsed = false; S.tracks = S.tracks.filter(function (t) { return t.id !== x.t || tl(t).length; }); } });
@@ -5039,7 +5044,11 @@ window.addEventListener('contextmenu', function (e) {
     [c.state === 'pub' ? (evJoins(c) ? '中止する' : '非公開にする') : '部員に公開する', function () { evPubAsk(c.id); }, false, ok ? '' : '告知の権限が必要'],
     'sep', [pg ? '学ぶから外す' : '学ぶに出す', function () { if (pg) { snap(); evOutProg(c.id); evSync(); save(); render(); toast('学ぶから外しました'); } else evToProg(c.id); }, false, can('tracks') ? '' : '教材の権限が必要'],
     ['ほかのイベントとまとめる', function () { evPickAsk('merge', c.id); }, false, ok ? '' : '告知の権限が必要'],
-    'sep', ['削除', function () { snap(); evOutProg(c.id); var fo = evFolder(c.id); if (fo) evOff(fo); S.cals = S.cals.filter(function (x) { return x !== c; }); save(); render(); toastUndo('「' + c.title + '」を削除しました'); }, true, ok ? '' : '告知の権限が必要']], e.clientX, e.clientY);
+    'sep', ['削除', function () {
+      var go = function () { var jn = c.state === 'pub' && evJoins(c); if (jn) evTell(c, '「' + c.title + '」は中止になりました', 'カレンダーに追加していた場合は消してください'); snap(); evOutProg(c.id); var fo = evFolder(c.id); if (fo) evOff(fo); S.cals = S.cals.filter(function (x) { return x !== c; }); save(); render(); toastUndo('「' + c.title + '」を削除しました'); };
+      var jn0 = c.state === 'pub' ? evJoins(c) : 0;
+      if (jn0) askConfirm({ title: '「' + esc(c.title) + '」を削除', body: '参加登録した ' + jn0 + '人に中止を知らせます。', ok: '削除して知らせる', run: go }); else go();
+    }, true, ok ? '' : '告知の権限が必要']], e.clientX, e.clientY);
 }, true);
 
 // 公開の入力：開始日が入ったら「公開する」を押せるように
@@ -5111,6 +5120,41 @@ function evAskAfterDel(cids) {
   setTimeout(function () { M = { m: 'pub', id: c.id, del: 1 }; renderModal(); }, 0);
 }
 function evCidsIn(n) { return nodesOf(n).filter(function (x) { return isEvent(x) && x.ev; }).map(function (x) { return x.ev; }); }
+// ---------- 人に知らせる操作は10秒待ってから送る（その間に戻せば送らない・連打しても1回） ----------
+var NQ = {}, NQ_MS = 10000;
+function nqFlush(k) { var q = NQ[k]; if (!q) return; delete NQ[k]; clearTimeout(q.t); try { q.run(q.init); } catch (e) {} }
+function nqAll() { Object.keys(NQ).forEach(nqFlush); }
+function notifySoon(key, run, init) { var q = NQ[key] || (NQ[key] = { init: init }); clearTimeout(q.t); q.run = run; q.t = setTimeout(function () { nqFlush(key); }, NQ_MS); }
+function inPeople(n, to) { return n.who === to || (isFolder(n) ? teamOf(n) : fileWho(n)).indexOf(to) >= 0; }
+// 担当・メンバー・リーダーになった：10秒後もそのままなら知らせる
+function notifyAssign(n, to, what) {
+  if (!to) return; var id = n.id;
+  notifySoon('as:' + id + ':' + to + ':' + (what || ''), function () { var m = task(id); if (!m || !inPeople(m, to)) return; window.notify(to, '「' + ttl(m) + '」' + (what || 'の担当になりました'), ttl(rootOf(m))); });
+}
+// 完了・完了の取り消し：10秒後に、最初と違う状態なら知らせる
+function doneChanged(n) {
+  var id = n.id;
+  notifySoon('dn:' + id, function (init) { var m = task(id); if (!m || !!m.done === init) return; if (m.done) reportUp(m); else reportUndo(m); }, !n.done);
+}
+document.addEventListener('visibilitychange', function () { if (document.hidden) nqAll(); });
+window.addEventListener('pagehide', nqAll);
+
+// ---------- 確認（削除・人に知らせる重い操作）：どれも同じ形 ----------
+function askConfirm(o) { M = { m: 'cfm', o: o }; renderModal(); }
+function cfmDlg() {
+  var o = M.o; return dlg(o.title, (o.body ? '<p class="dlgp">' + o.body + '</p>' : ''), '<button class="btn" data-act="close">やめる</button><button class="btn ' + (o.danger === false ? 'primary' : 'danger') + '" data-act="cfmOk">' + esc(o.ok || '削除する') + '</button>');
+}
+document.addEventListener('click', function (e) {
+  var b = e.target.closest && e.target.closest('[data-act="cfmOk"]'); if (!b || !M || M.m !== 'cfm') return;
+  e.preventDefault(); e.stopImmediatePropagation(); var o = M.o; M = null; renderModal(); o.run();
+}, true);
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && M && M.m === 'cfm') { M = null; renderModal(); } });
+// 中身があるフォルダーなど、戻しても困るものだけ確認する
+function delWork(n, run) {
+  var cnt = nodesOf(n).length - 1, ev = isEvent(n) && n.ev && evCal(n.ev), jn = ev ? evJoins(ev) : 0;
+  if (!cnt && !jn) return run();
+  askConfirm({ title: '「' + esc(ttl(n)) + '」を削除', body: (cnt ? '中の ' + cnt + ' 件もまとめて削除されます。' : '') + (jn ? '参加登録した ' + jn + '人がいます。' : ''), run: run });
+}
 // ---------- ux54 ファイルも担当を複数に。下の段の担当は、上のフォルダのメンバーからだけ選べる ----------
 function pickFrom(n) { return parentOf(n) || null; } // 担当の候補を決める、すぐ上のフォルダー
 function pickable(n) { var a = pickFrom(n); if (a) return teamOf(a); return isAdmin() ? null : []; } // null＝制限なし（いちばん上の段を代表が決めるときだけ）。それ以外は代表も含め、すぐ上のフォルダーのメンバーからだけ選べる（未定なら誰も選べない）
@@ -5122,7 +5166,7 @@ window.addEventListener('change', function (e) {
   var n = task(el.dataset.id), m = el.dataset.tm; if (!n) return; if (!canAssign(n)) { el.checked = !el.checked; toast('担当を変えられるのは、このフォルダのリーダーです'); return; }
   snap(); var t = fileWho(n);
   var pk = pickable(n); if (el.checked && pk && pk.indexOf(m) < 0) { el.checked = false; toast('フォルダのメンバーから選んでください'); return; }
-  if (el.checked) { if (t.indexOf(m) < 0) t.push(m); window.notify(m, '「' + ttl(n) + '」の担当になりました', ttl(rootOf(n))); toast(member(m).name + 'に通知しました'); }
+  if (el.checked) { if (t.indexOf(m) < 0) t.push(m); notifyAssign(n, m); toast(member(m).name + 'に知らせます'); }
   else t = t.filter(function (x) { return x !== m; });
   setFileWho(n, t); save(); render(); openTeam(n.id, true);
 }, true);
@@ -5236,7 +5280,8 @@ window.addEventListener('click', function (e) {
   var b = e.target.closest && e.target.closest('[data-iq]'); if (!b) return; e.preventDefault(); e.stopImmediatePropagation();
   var q = (S.inqs || []).filter(function (x) { return String(x.id) === b.dataset.id; })[0]; if (!q) return;
   var a = b.dataset.iq;
-  if (a === 'del') { if (!confirm('このお問い合わせを削除しますか？')) return; S.inqs = S.inqs.filter(function (x) { return x !== q; }); if (window.__inqDelete) window.__inqDelete(q.id); else save(); render(); return; }
+  if (a === 'del' && !b.dataset.sure) { askConfirm({ title: 'お問い合わせを削除', body: '', run: function () { b.dataset.sure = '1'; b.click(); } }); return; }
+  if (a === 'del') { S.inqs = S.inqs.filter(function (x) { return x !== q; }); if (window.__inqDelete) window.__inqDelete(q.id); else save(); render(); return; }
   if (a === 'reopen') { inqSave(q, { status: 'open' }); render(); return; }
   var ta = document.querySelector('[data-iqr="' + q.id + '"]'), txt = ta ? ta.value.trim() : '';
   if (a === 'reply' && !txt) { if (ta) ta.focus(); toast('返信を書いてください'); return; }
@@ -5306,11 +5351,11 @@ document.addEventListener('click', function (e) {
       if (n0.tasks) n0.name = nt; else n0.title = nt;
       n0.start = nsd; n0.end = ned;
       if (n0.tasks) { n0.unit = val('wU'); var aa = val('wA'); n0.kind = aa ? 'event' : 'work'; if (aa) n0.announce = aa; }
-      var dc = document.getElementById('wD'); if (dc) n0.done = dc.checked;
+      var dc = document.getElementById('wD'); if (dc && !!n0.done !== dc.checked) { n0.done = dc.checked; doneChanged(n0); }
       var assigned = canAssign(n0) && nw !== n0.who; if (canAssign(n0)) n0.who = nw;
-      if (assigned && nw) window.notify(nw, '「' + nt + '」の担当になりました', ttl(rootOf(n0)));
+      if (assigned && nw) notifyAssign(n0, nw);
       var pp = parentOf(n0), over = pp && (nsd < pp.start || ned > pp.end);
-      M = null; save(); render(); toast(over ? '「' + ttl(pp) + '」の期間をはみ出しています' : assigned && nw ? member(nw).name + 'に通知しました' : '保存しました'); break;
+      M = null; save(); render(); toast(over ? '「' + ttl(pp) + '」の期間をはみ出しています' : assigned && nw ? member(nw).name + 'に知らせます' : '保存しました'); break;
     case 'wDel':
       if (!M.del) { M.del = true; renderModal(); return; }
       var dn = task(M.id), dp = parentOf(dn);
@@ -5322,12 +5367,12 @@ document.addEventListener('click', function (e) {
       Array.prototype.forEach.call(document.querySelectorAll('[data-assign]'), function (el) {
         var k = task(el.dataset.assign); if (!k || k.who === el.value) return;
         k.who = el.value; changed++;
-        if (el.value) { window.notify(el.value, '「' + ttl(k) + '」の担当になりました', ttl(rootOf(k))); people[el.value] = 1; }
+        if (el.value) { notifyAssign(k, el.value); people[el.value] = 1; }
       });
       M = null; save(); render(); toast(changed ? changed + '件を割り当てました' + (Object.keys(people).length ? '（' + Object.keys(people).length + '人に通知）' : '') : '変更はありません'); break;
-    case 'done': var kd = task(b.dataset.id); kd.done = true; S.justDone = kd.id; reportUp(kd); save(); render(); toast('完了を報告しました'); break;
-    case 'undo': task(b.dataset.id).done = false; S.justDone = null; save(); render(); break;
-    case 'resetAsk': UI.acct = false; if (confirm('サンプルデータに戻しますか？\n編集した内容はすべて消えます。')) { var kp = S.me, vw = S.view; S = migrateFolders(sample()); S.me = member(kp) ? kp : 'm1'; S.view = vw; M = null; save(); render(); toast('サンプルに戻しました'); } else renderChrome(); break;
+    case 'done': var kd = task(b.dataset.id); kd.done = true; S.justDone = kd.id; doneChanged(kd); save(); render(); toast('完了にしました'); break;
+    case 'undo': var ku = task(b.dataset.id); ku.done = false; doneChanged(ku); S.justDone = null; save(); render(); break;
+    case 'resetAsk': UI.acct = false; renderChrome(); askConfirm({ title: 'サンプルデータに戻す', body: '編集した内容はすべて消えます。', ok: '戻す', run: function () { var kp = S.me, vw = S.view; S = migrateFolders(sample()); S.me = member(kp) ? kp : 'm1'; S.view = vw; M = null; save(); render(); toast('サンプルに戻しました'); } }); break;
   }
 });
 document.addEventListener('keydown', function (e) {
@@ -5769,22 +5814,24 @@ document.addEventListener('change', function (e) {
   var el = e.target; if (!el.classList || !el.closest || !el.closest('.wcards, .gg')) return;
   var c = el.dataset.c; if (!c || c === 't' || c === 'new') return;
   var n = task(el.dataset.id); if (!n) return;
-  if (c === 'w') { var prev = n.who; n.who = el.value; if (el.value && el.value !== prev) { window.notify(el.value, '「' + ttl(n) + '」の担当になりました', ttl(rootOf(n))); toast(member(el.value).name + 'に通知しました'); } rerender({ id: n.id, c: 'w' }); return; }
+  if (c === 'w') { var prev = n.who; n.who = el.value; if (el.value && el.value !== prev) { notifyAssign(n, el.value); toast(member(el.value).name + 'に知らせます'); } rerender({ id: n.id, c: 'w' }); return; }
   if (c === 's' || c === 'e') {
     if (!el.value) { rerender(); return; }
     if (c === 's') { n.start = el.value; if (n.end < n.start) n.end = n.start; } else { n.end = el.value; if (n.end < n.start) n.start = n.end; }
     var p = parentOf(n); if (p && (n.start < p.start || n.end > p.end)) toast('「' + ttl(p) + '」の期間をはみ出しています');
     rerender({ id: n.id, c: c }); return;
   }
-  if (c === 'done') { n.done = el.checked; if (n.done) { S.justDone = n.id; reportUp(n); } rerender(); return; }
+  if (c === 'done') { n.done = el.checked; if (n.done) S.justDone = n.id; doneChanged(n); rerender(); return; }
 });
 document.addEventListener('click', function (e) {
   var b = e.target.closest && e.target.closest('[data-act="rowDel"],[data-act="undoAll"]'); if (!b) return;
   e.stopPropagation();
   if (b.dataset.act === 'undoAll') { undoNow(); return; }
   var n = task(b.dataset.id); if (!n) return;
-  snap(); var cnt = nodesOf(n).length - 1, cids = evCidsIn(n); removeNode(n); rerender();
-  toastUndo('「' + ttl(n) + '」' + (cnt ? 'と下の ' + cnt + ' 件' : '') + 'を削除しました'); evAskAfterDel(cids);
+  delWork(n, function () {
+    snap(); var cnt = nodesOf(n).length - 1, cids = evCidsIn(n); removeNode(n); rerender();
+    toastUndo('「' + ttl(n) + '」' + (cnt ? 'と下の ' + cnt + ' 件' : '') + 'を削除しました'); evAskAfterDel(cids);
+  });
 }, true);
 
 

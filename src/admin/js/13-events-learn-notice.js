@@ -192,7 +192,11 @@ window.addEventListener('contextmenu', function (e) {
     [c.state === 'pub' ? (evJoins(c) ? '中止する' : '非公開にする') : '部員に公開する', function () { evPubAsk(c.id); }, false, ok ? '' : '告知の権限が必要'],
     'sep', [pg ? '学ぶから外す' : '学ぶに出す', function () { if (pg) { snap(); evOutProg(c.id); evSync(); save(); render(); toast('学ぶから外しました'); } else evToProg(c.id); }, false, can('tracks') ? '' : '教材の権限が必要'],
     ['ほかのイベントとまとめる', function () { evPickAsk('merge', c.id); }, false, ok ? '' : '告知の権限が必要'],
-    'sep', ['削除', function () { snap(); evOutProg(c.id); var fo = evFolder(c.id); if (fo) evOff(fo); S.cals = S.cals.filter(function (x) { return x !== c; }); save(); render(); toastUndo('「' + c.title + '」を削除しました'); }, true, ok ? '' : '告知の権限が必要']], e.clientX, e.clientY);
+    'sep', ['削除', function () {
+      var go = function () { var jn = c.state === 'pub' && evJoins(c); if (jn) evTell(c, '「' + c.title + '」は中止になりました', 'カレンダーに追加していた場合は消してください'); snap(); evOutProg(c.id); var fo = evFolder(c.id); if (fo) evOff(fo); S.cals = S.cals.filter(function (x) { return x !== c; }); save(); render(); toastUndo('「' + c.title + '」を削除しました'); };
+      var jn0 = c.state === 'pub' ? evJoins(c) : 0;
+      if (jn0) askConfirm({ title: '「' + esc(c.title) + '」を削除', body: '参加登録した ' + jn0 + '人に中止を知らせます。', ok: '削除して知らせる', run: go }); else go();
+    }, true, ok ? '' : '告知の権限が必要']], e.clientX, e.clientY);
 }, true);
 
 // 公開の入力：開始日が入ったら「公開する」を押せるように

@@ -43,7 +43,7 @@ function closeTeam() { var tp = document.getElementById('tp'); if (tp) tp.remove
 function teamChanged(n, added) {
   if (UI.gedit) UI.gfocus = false; // ガントの行内編集中は名前欄にフォーカスを戻さない
   save(); var id = n.id;
-  added.forEach(function (m) { window.notify(m, '「' + ttl(n) + '」のメンバーになりました', ttl(rootOf(n))); });
+  added.forEach(function (m) { notifyAssign(n, m, 'のメンバーになりました'); });
   var fq = document.activeElement && document.activeElement.classList.contains('tpq');
   if (M) { var ob = document.querySelector('.dlg .tbtn[data-id="' + id + '"]'); if (ob) ob.outerHTML = teamBtn(n, ''); } else render();
   openTeam(id, true); if (fq) { var qi = document.querySelector('#tp .tpq'); if (qi) { qi.focus(); qi.setSelectionRange(qi.value.length, qi.value.length); } }
@@ -54,7 +54,7 @@ document.addEventListener('change', function (e) {
   var n = task(el.dataset.id), m = el.dataset.tm; if (!n) return;
   var t = teamOf(n), pk0 = pickable(n);
   if (el.checked && pk0 && pk0.indexOf(m) < 0) { el.checked = false; toast(pickFrom(n) ? '「' + ttl(pickFrom(n)) + '」のメンバーから選んでください' : '選べません'); return; }
-  if (el.checked) { if (t.indexOf(m) < 0) t.push(m); n.team = t; if (!leadsOf(n).length) setLeads(n, [m]); teamChanged(n, [m]); toast(member(m).name + 'に通知しました'); }
+  if (el.checked) { if (t.indexOf(m) < 0) t.push(m); n.team = t; if (!leadsOf(n).length) setLeads(n, [m]); teamChanged(n, [m]); toast(member(m).name + 'に知らせます'); }
   else { n.team = t.filter(function (x) { return x !== m; }); if (isLead(n, m)) setLeads(n, leadsOf(n).filter(function (x) { return x !== m; })); teamChanged(n, []); }
 }, true);
 document.addEventListener('click', function (e) {
@@ -66,7 +66,7 @@ document.addEventListener('click', function (e) {
   var n = task(b.dataset.id); if (!n) return; var t = teamOf(n);
   if (t.indexOf(b.dataset.m) < 0) t.push(b.dataset.m); n.team = t;
   var lm = b.dataset.m, ls = leadsOf(n);
-  if (ls.indexOf(lm) < 0) { setLeads(n, ls.concat([lm])); window.notify(lm, '「' + ttl(n) + '」のリーダーになりました', ttl(rootOf(n))); }
+  if (ls.indexOf(lm) < 0) { setLeads(n, ls.concat([lm])); notifyAssign(n, lm, 'のリーダーになりました'); }
   else setLeads(n, ls.filter(function (x) { return x !== lm; }));
   teamChanged(n, []);
 }, true);
