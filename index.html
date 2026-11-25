@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '19d43da2f9', FILE = 'index.ver';
+  var VER = '84cfc9289b', FILE = 'index.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -260,7 +260,8 @@ button.pgrail::before{content:"";position:absolute;inset:0 -10px}
 body.wide .pgpb{display:block;flex:none;width:160px;height:4px;border-radius:2px;background:var(--n16);overflow:hidden;margin-left:16px}
 body.wide .pgpb i{display:block;height:100%;background:var(--fg);border-radius:2px}
 body.wide .pgsc{width:36px;text-align:right}
-body:not(.wide) #progList,body:not(.wide) #progOut{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+body:not(.wide) #progList{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+#progOut:empty{display:none}
 
 .pgjoin{flex:none;height:32px;padding:0 12px;border-radius:6px;border:1px solid var(--fg);background:var(--fg);color:var(--bg);font:inherit;font-size:13px;font-weight:700;line-height:1;cursor:pointer}
 .pgjoin.on{background:transparent;color:var(--fg)}
@@ -737,7 +738,7 @@ function memberExtras(v) {
     next: nextEv ? { has: true, lc: 'var(--ac)', rd: 'flex', wc: 'en', tfs: '21px', go: goCalTop, aid: '', label: 'NEXT · 部内イベント', title: nextEv.title, when: md(nextEv.end) + ' ' + wd(nextEv.end), left: String(Math.max(0, daysTo(nextEv.end))) } : { has: false, lc: 'var(--ac)', rd: 'flex', wc: 'en', tfs: '21px', go: goCalTop, aid: '', label: 'NEXT', title: '予定されているイベントはありません', when: '', left: '—' },
     learnCard: { n: rN ? rD + '/' + rN : '—', dash: (ring * pct).toFixed(1) + ' ' + ring.toFixed(1), track: myRole || 'ロール未設定', next: nextU ? nextU.code + '\n' + nextU.title : (roleT ? '全単元修了' : 'マイページでロールを選ぶ') },
     clubEvents: D.clubEvents().filter(function (e) { return e.tbd || e.end >= today; }).map(function (e) { var on = D.mine(e.id, 'join'), p = e.start.split('-');
-      return { mon: e.tbd ? '日程' : ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][+p[1] - 1], d: e.tbd ? '未定' : String(+p[2]), dfs: e.tbd ? '15px' : '22px', title: e.title, sub: [e.end !== e.start ? '〜' + md(e.end) : '', e.sub].filter(Boolean).join(' · '),
+      return { id: e.id, mon: e.tbd ? '日程' : ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][+p[1] - 1], d: e.tbd ? '未定' : String(+p[2]), dfs: e.tbd ? '15px' : '22px', title: e.title, sub: [e.end !== e.start ? '〜' + md(e.end) : '', e.sub].filter(Boolean).join(' · '),
         jd: e.pub && !e.tbd ? 'inline-flex' : 'none', /* 日程未定は参加登録できない */ joinLabel: on ? '✓ 登録済み' : '参加登録', joinBd: on ? 'transparent' : 'var(--n27)', joinFg: on ? 'var(--n49)' : 'var(--n85)', toggle: function () { D.toggle(e.id, 'join'); } }; }),
     noClubEvents: !D.clubEvents().some(function (e) { return e.tbd || e.end >= today; }),
     tasks: tasks, hasTasks: tasks.length > 0,
@@ -908,6 +909,37 @@ function annPop(a) {
   document.addEventListener('pointerup', end, true); document.addEventListener('pointercancel', end, true);
   document.addEventListener('click', function (e) { if (eat && e.target.closest && e.target.closest('.tcar')) { e.preventDefault(); e.stopPropagation(); } }, true);
   document.addEventListener('click', function (e) { var d = e.target.closest && e.target.closest('.tdots i'); if (!d) return; var c = d.closest('.tcar'); show(c, [].indexOf.call(d.parentNode.children, d)); last = Date.now(); }, true);
+})();
+
+// 部内イベントの詳細（告知で入れた説明の全文・リンク・参加登録）
+(function () {
+  var e = function (t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var link = function (t) { return e(t).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g, '<br>'); };
+  var WD = ['日', '月', '火', '水', '木', '金', '土'];
+  var day = function (iso) { var p = iso.split('-'), d = new Date(+p[0], +p[1] - 1, +p[2]); return (+p[1]) + '月' + (+p[2]) + '日（' + WD[d.getDay()] + '）'; };
+  var BACK = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>';
+  function page(id) {
+    var D = window.DB; if (!D) return; var x = D.items('cal').filter(function (y) { return y.id === id; })[0]; if (!x) return;
+    var d = x.data || {}, ok = /^\d{4}-\d{2}-\d{2}$/.test(d.date || ''), on = D.mine(id, 'join'), old = document.getElementById('evpage');
+    var when = ok ? day(d.date) + (d.to && d.to !== d.date ? ' – ' + day(d.to) : '') : '日程未定';
+    var h = '<div class="nsph"><button data-evp-back aria-label="戻る">' + BACK + '</button><b>部内イベント</b></div><div class="nspb evpb">' +
+      '<h1>' + e(d.title) + '</h1>' +
+      '<dl class="evpm"><dt>日にち</dt><dd>' + e(when) + '</dd>' + (d.time ? '<dt>時間</dt><dd>' + e(d.time) + '</dd>' : '') + (d.place ? '<dt>場所</dt><dd>' + e(d.place) + '</dd>' : '') + '</dl>' +
+      (d.memo ? '<div class="evpd">' + link(d.memo) + '</div>' : '') +
+      (/^https?:\/\//.test(d.link || '') ? '<a class="evpl" href="' + e(d.link) + '" target="_blank" rel="noopener">リンクを開く ↗</a>' : '') + '</div>' +
+      (ok ? '<div class="evpf"><button class="evpj' + (on ? ' on' : '') + '" data-evp-join="' + e(id) + '">' + (on ? '✓ 参加登録済み' : '参加登録する') + '</button></div>' : '');
+    var w = old || document.createElement('div'); w.id = 'evpage'; w.innerHTML = h;
+    if (!old) { document.body.appendChild(w); document.documentElement.classList.add('invon'); try { history.pushState({ evp: 1 }, ''); } catch (er) {} }
+  }
+  function close(fromPop) { var w = document.getElementById('evpage'); if (!w) return; w.remove(); document.documentElement.classList.remove('invon'); if (!fromPop) try { if (history.state && history.state.evp) history.back(); } catch (er) {} }
+  window.addEventListener('popstate', function () { close(true); });
+  document.addEventListener('click', function (ev) {
+    var t = ev.target; if (!t.closest) return; var b;
+    if (t.closest('[data-evp-back]')) { close(); return; }
+    if ((b = t.closest('[data-evp-join]'))) { var id = b.dataset.evpJoin; Promise.resolve(window.DB.toggle(id, 'join')).then(function () { setTimeout(function () { page(id); }, 50); }); return; }
+    var c = t.closest('[data-evid]'); if (!c || t.closest('button, a')) return;
+    page(c.dataset.evid);
+  });
 })();
 
 // PC の左下アカウント表示を本人の情報に
@@ -1150,11 +1182,12 @@ setInterval(window.__chrome, 400);
 <div class="card" style="border-radius: 10px; overflow: hidden">
 <sc-for list="{{ libItems }}" as="m" hint-placeholder-count="8">
 <button onClick="{{ m.open }}" style="width: 100%; display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: transparent; border: 0; border-bottom: {{ m.sep }}; color: var(--fg); text-align: left">
+<sc-if value="{{ m.hasImg }}"><img class="mth" src="{{ m.img }}" alt="" referrerpolicy="no-referrer" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'mth ph'}))"></sc-if><sc-if value="{{ m.noImg }}"><span class="mth ph">{{ m.kind }}</span></sc-if>
 <span style="flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0">
-<span style="font-weight: 500; font-size: 15px">{{ m.title }}</span>
-<span style="font-size: 13px; color: var(--n66)">{{ m.kind }} · {{ m.min }} · <span class="en">{{ m.unit }}</span></span>
+<span class="mtt" style="font-weight: 500; font-size: 15px">{{ m.title }}</span>
+<span style="font-size: 13px; color: var(--n66); overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ m.kind }} · {{ m.min }} · <span class="en">{{ m.unit }}</span></span>
 </span>
-<span class="chip" style="flex: none; border-color: {{ m.color }}; color: {{ m.color }}">{{ m.src }}</span>
+
 </button>
 </sc-for>
 </div>
@@ -1939,7 +1972,7 @@ setInterval(window.__chrome, 400);
 <div style="display: flex; flex-direction: column; gap: 10px">
 <h2 class="h2">部内イベント</h2>
 <sc-for list="{{ clubEvents }}" as="e" hint-placeholder-count="2">
-<div class="card" style="padding: 14px 16px; display: flex; align-items: center; gap: 14px">
+<div class="card" data-evid="{{ e.id }}" role="button" tabindex="0" style="padding: 14px 16px; display: flex; align-items: center; gap: 14px; cursor: pointer">
 <span style="flex: none; width: 44px; display: flex; flex-direction: column; align-items: center; gap: 2px"><span class="en" style="font-size: 12px; color: var(--n66)">{{ e.mon }}</span><span class="en" style="font-size: {{ e.dfs }}; font-weight: 700; line-height: 1; white-space: nowrap">{{ e.d }}</span></span>
 <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px">
 <span style="font-weight: 700; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ e.title }}</span>
@@ -2509,9 +2542,10 @@ class Component extends DCLogic {
     const otFilters = [Object.assign({ name: 'すべて', pick: () => this.setState({ otf: '' }) }, pick(!otf))].concat(popTags.map((t) => Object.assign({ name: t, pick: () => this.setState({ otf: t }) }, pick(otf === t))));
 
     // ---- 教材ライブラリ（全トラックの教材リンク） ----
+    const thumbOf = (m) => { const yt = (String(m.url || '').match(/(?:youtube\.com\/watch\?(?:.*&)?v=|youtu\.be\/|youtube\.com\/shorts\/)([\w-]{6,})/) || [])[1]; return m.img || (yt ? 'https://i.ytimg.com/vi/' + yt + '/mqdefault.jpg' : ''); };
     const srcColor = { '部内': A, 'FCE': 'var(--n68)', '外部': 'var(--n85)' };
     const libRaw = [];
-    T.forEach((t) => unitsOf(t).forEach((u) => (D.unitData(t, u.code).materials || []).forEach((m) => libRaw.push({ title: (m.memo && !/^https?:\/\//.test(m.memo) ? m.memo : D.host(m.url)), kind: m.type || '記事', min: D.host(m.url), src: '外部', unit: u.code, g: isBase(t) ? 'base' : 'role', open: openUnitBy(t, u.code) }))));
+    T.forEach((t) => unitsOf(t).forEach((u) => (D.unitData(t, u.code).materials || []).forEach((m) => libRaw.push({ img: thumbOf(m), hasImg: !!thumbOf(m), noImg: !thumbOf(m), title: (m.memo && !/^https?:\/\//.test(m.memo) ? m.memo : D.host(m.url)), kind: m.type || '記事', min: D.host(m.url), src: '外部', unit: u.code, g: isBase(t) ? 'base' : 'role', open: openUnitBy(t, u.code) }))));
     const lq = (s.lq || '').trim();
     const libSel = libRaw.filter((m) => (s.libf === 'all' || m.g === s.libf) && (!lq || (m.title + m.unit).indexOf(lq) >= 0));
     const libItems = libSel.map((m, i) => Object.assign({}, m, { color: srcColor[m.src], sep: sep(i, libSel.length) }));
@@ -3077,6 +3111,16 @@ html.light{color-scheme:light}
 .nsph{display:flex;align-items:center;gap:6px;height:calc(56px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 12px 0 6px;border-bottom:1px solid var(--n12);flex:none}
 .nsph button{width:44px;height:44px;border:0;background:transparent;color:var(--fg);display:flex;align-items:center;justify-content:center;cursor:pointer}
 .nsph b{font-size:16px}
+#evpage{position:fixed;inset:0;z-index:2147481000;display:flex;flex-direction:column;background:var(--bg);color:var(--fg);font-family:'Zen Kaku Gothic New','Noto Sans JP','Hiragino Sans','Yu Gothic UI','Meiryo',sans-serif;animation:invin .22s ease}
+.evpb h1{margin:16px 0 18px;font-size:24px;line-height:1.35;font-weight:700;overflow-wrap:anywhere}
+.evpm{display:grid;grid-template-columns:auto 1fr;gap:10px 16px;margin:0 0 22px;padding:16px;border:1px solid var(--n12);border-radius:12px;background:var(--n3);font-size:14px}
+.evpm dt{color:var(--n49)}.evpm dd{margin:0;color:var(--fg);overflow-wrap:anywhere}
+.evpd{font-size:15px;line-height:1.85;color:var(--n85);overflow-wrap:anywhere}
+.evpd a,.evpl{color:var(--ac)}
+.evpl{display:inline-flex;margin-top:18px;font-size:14px;font-weight:700;text-decoration:none}
+.evpf{flex:none;padding:12px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--n12);max-width:640px;width:100%;margin:0 auto;box-sizing:border-box}
+.evpj{width:100%;height:48px;border:0;border-radius:12px;background:var(--fg);color:var(--bg);font:inherit;font-size:15px;font-weight:700;cursor:pointer;transition:background .2s,color .2s}
+.evpj.on{background:var(--n9);color:var(--n66)}
 .nspb{flex:1;overflow:auto;padding:8px 16px calc(32px + env(safe-area-inset-bottom));max-width:640px;width:100%;margin:0 auto;box-sizing:border-box}
 #nspage .lbl{display:block;margin:20px 0 8px}
 .nsl{display:flex;flex-direction:column;border:1px solid var(--n9);border-radius:12px;overflow:hidden;background:var(--n3)}

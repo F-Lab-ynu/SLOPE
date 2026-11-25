@@ -242,9 +242,10 @@
     const otFilters = [Object.assign({ name: 'すべて', pick: () => this.setState({ otf: '' }) }, pick(!otf))].concat(popTags.map((t) => Object.assign({ name: t, pick: () => this.setState({ otf: t }) }, pick(otf === t))));
 
     // ---- 教材ライブラリ（全トラックの教材リンク） ----
+    const thumbOf = (m) => { const yt = (String(m.url || '').match(/(?:youtube\.com\/watch\?(?:.*&)?v=|youtu\.be\/|youtube\.com\/shorts\/)([\w-]{6,})/) || [])[1]; return m.img || (yt ? 'https://i.ytimg.com/vi/' + yt + '/mqdefault.jpg' : ''); };
     const srcColor = { '部内': A, 'FCE': '#A6A6A6', '外部': '#D2CFC8' };
     const libRaw = [];
-    T.forEach((t) => unitsOf(t).forEach((u) => (D.unitData(t, u.code).materials || []).forEach((m) => libRaw.push({ title: (m.memo && !/^https?:\/\//.test(m.memo) ? m.memo : D.host(m.url)), kind: m.type || '記事', min: D.host(m.url), src: '外部', unit: u.code, g: isBase(t) ? 'base' : 'role', open: openUnitBy(t, u.code) }))));
+    T.forEach((t) => unitsOf(t).forEach((u) => (D.unitData(t, u.code).materials || []).forEach((m) => libRaw.push({ img: thumbOf(m), hasImg: !!thumbOf(m), noImg: !thumbOf(m), title: (m.memo && !/^https?:\/\//.test(m.memo) ? m.memo : D.host(m.url)), kind: m.type || '記事', min: D.host(m.url), src: '外部', unit: u.code, g: isBase(t) ? 'base' : 'role', open: openUnitBy(t, u.code) }))));
     const lq = (s.lq || '').trim();
     const libSel = libRaw.filter((m) => (s.libf === 'all' || m.g === s.libf) && (!lq || (m.title + m.unit).indexOf(lq) >= 0));
     const libItems = libSel.map((m, i) => Object.assign({}, m, { color: srcColor[m.src], sep: sep(i, libSel.length) }));

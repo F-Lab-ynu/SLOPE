@@ -59,7 +59,7 @@ function evPubDlg() {
   if (!on) {
     var f = function (k, lab, type, ph) { return '<div class="fld"><label for="pf' + k + '">' + lab + '</label><input id="pf' + k + '" class="input" type="' + type + '" data-evf="' + k + '" value="' + esc(c[k] || '') + '"' + (ph ? ' placeholder="' + ph + '"' : '') + ' autocomplete="off"></div>'; };
     return dlg('「' + t + '」を公開', '<div class="two">' + f('date', '開始日', 'date') + f('to', '終了日', 'date') + '</div><div class="two">' + f('time', '時間', 'time') + f('place', '場所', 'text') + '</div>' +
-      '<div class="fld"><label for="pfmemo">部員がやること・説明</label><textarea id="pfmemo" class="input" rows="3" data-evf="memo">' + esc(memoText(c.memo || '')) + '</textarea></div>' + f('link', 'リンク', 'url', 'https://') +
+      '<div class="fld"><label for="pfmemo">詳細<small class="muted">　部員がイベントを押すと全文が出ます</small></label><textarea id="pfmemo" class="input" rows="6" data-evf="memo">' + esc(memoText(c.memo || '')) + '</textarea></div>' + f('link', 'リンク', 'url', 'https://') +
       '<p class="dlgp sm">公開すると予定タブとカレンダーに出て、参加登録が始まります。</p>',
       '<button class="btn" data-act="close">やめる</button><button class="btn primary" data-act="evPubDo"' + (c.date ? '' : ' disabled title="開始日を入れてください"') + '>公開する</button>');
   }

@@ -313,7 +313,7 @@ function memberExtras(v) {
     next: nextEv ? { has: true, lc: '#F2A93B', rd: 'flex', wc: 'en', tfs: '21px', go: goCalTop, aid: '', label: 'NEXT · 部内イベント', title: nextEv.title, when: md(nextEv.end) + ' ' + wd(nextEv.end), left: String(Math.max(0, daysTo(nextEv.end))) } : { has: false, lc: '#F2A93B', rd: 'flex', wc: 'en', tfs: '21px', go: goCalTop, aid: '', label: 'NEXT', title: '予定されているイベントはありません', when: '', left: '—' },
     learnCard: { n: rN ? rD + '/' + rN : '—', dash: (ring * pct).toFixed(1) + ' ' + ring.toFixed(1), track: myRole || 'ロール未設定', next: nextU ? nextU.code + '\n' + nextU.title : (roleT ? '全単元修了' : 'マイページでロールを選ぶ') },
     clubEvents: D.clubEvents().filter(function (e) { return e.tbd || e.end >= today; }).map(function (e) { var on = D.mine(e.id, 'join'), p = e.start.split('-');
-      return { mon: e.tbd ? '日程' : ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][+p[1] - 1], d: e.tbd ? '未定' : String(+p[2]), dfs: e.tbd ? '15px' : '22px', title: e.title, sub: [e.end !== e.start ? '〜' + md(e.end) : '', e.sub].filter(Boolean).join(' · '),
+      return { id: e.id, mon: e.tbd ? '日程' : ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][+p[1] - 1], d: e.tbd ? '未定' : String(+p[2]), dfs: e.tbd ? '15px' : '22px', title: e.title, sub: [e.end !== e.start ? '〜' + md(e.end) : '', e.sub].filter(Boolean).join(' · '),
         jd: e.pub && !e.tbd ? 'inline-flex' : 'none', /* 日程未定は参加登録できない */ joinLabel: on ? '✓ 登録済み' : '参加登録', joinBd: on ? 'transparent' : '#474744', joinFg: on ? '#7D7B76' : '#D2CFC8', toggle: function () { D.toggle(e.id, 'join'); } }; }),
     noClubEvents: !D.clubEvents().some(function (e) { return e.tbd || e.end >= today; }),
     tasks: tasks, hasTasks: tasks.length > 0,
@@ -484,4 +484,35 @@ function annPop(a) {
   document.addEventListener('pointerup', end, true); document.addEventListener('pointercancel', end, true);
   document.addEventListener('click', function (e) { if (eat && e.target.closest && e.target.closest('.tcar')) { e.preventDefault(); e.stopPropagation(); } }, true);
   document.addEventListener('click', function (e) { var d = e.target.closest && e.target.closest('.tdots i'); if (!d) return; var c = d.closest('.tcar'); show(c, [].indexOf.call(d.parentNode.children, d)); last = Date.now(); }, true);
+})();
+
+// 部内イベントの詳細（告知で入れた説明の全文・リンク・参加登録）
+(function () {
+  var e = function (t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var link = function (t) { return e(t).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g, '<br>'); };
+  var WD = ['日', '月', '火', '水', '木', '金', '土'];
+  var day = function (iso) { var p = iso.split('-'), d = new Date(+p[0], +p[1] - 1, +p[2]); return (+p[1]) + '月' + (+p[2]) + '日（' + WD[d.getDay()] + '）'; };
+  var BACK = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>';
+  function page(id) {
+    var D = window.DB; if (!D) return; var x = D.items('cal').filter(function (y) { return y.id === id; })[0]; if (!x) return;
+    var d = x.data || {}, ok = /^\d{4}-\d{2}-\d{2}$/.test(d.date || ''), on = D.mine(id, 'join'), old = document.getElementById('evpage');
+    var when = ok ? day(d.date) + (d.to && d.to !== d.date ? ' – ' + day(d.to) : '') : '日程未定';
+    var h = '<div class="nsph"><button data-evp-back aria-label="戻る">' + BACK + '</button><b>部内イベント</b></div><div class="nspb evpb">' +
+      '<h1>' + e(d.title) + '</h1>' +
+      '<dl class="evpm"><dt>日にち</dt><dd>' + e(when) + '</dd>' + (d.time ? '<dt>時間</dt><dd>' + e(d.time) + '</dd>' : '') + (d.place ? '<dt>場所</dt><dd>' + e(d.place) + '</dd>' : '') + '</dl>' +
+      (d.memo ? '<div class="evpd">' + link(d.memo) + '</div>' : '') +
+      (/^https?:\/\//.test(d.link || '') ? '<a class="evpl" href="' + e(d.link) + '" target="_blank" rel="noopener">リンクを開く ↗</a>' : '') + '</div>' +
+      (ok ? '<div class="evpf"><button class="evpj' + (on ? ' on' : '') + '" data-evp-join="' + e(id) + '">' + (on ? '✓ 参加登録済み' : '参加登録する') + '</button></div>' : '');
+    var w = old || document.createElement('div'); w.id = 'evpage'; w.innerHTML = h;
+    if (!old) { document.body.appendChild(w); document.documentElement.classList.add('invon'); try { history.pushState({ evp: 1 }, ''); } catch (er) {} }
+  }
+  function close(fromPop) { var w = document.getElementById('evpage'); if (!w) return; w.remove(); document.documentElement.classList.remove('invon'); if (!fromPop) try { if (history.state && history.state.evp) history.back(); } catch (er) {} }
+  window.addEventListener('popstate', function () { close(true); });
+  document.addEventListener('click', function (ev) {
+    var t = ev.target; if (!t.closest) return; var b;
+    if (t.closest('[data-evp-back]')) { close(); return; }
+    if ((b = t.closest('[data-evp-join]'))) { var id = b.dataset.evpJoin; Promise.resolve(window.DB.toggle(id, 'join')).then(function () { setTimeout(function () { page(id); }, 50); }); return; }
+    var c = t.closest('[data-evid]'); if (!c || t.closest('button, a')) return;
+    page(c.dataset.evid);
+  });
 })();

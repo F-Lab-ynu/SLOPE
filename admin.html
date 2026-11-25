@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '1bf96f4aea', FILE = 'admin.ver';
+  var VER = '25d6b56e8b', FILE = 'admin.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -4392,7 +4392,7 @@ function calDlg() {
   var body = '<div class="fld"><label for="cT">イベント名</label><input id="cT" class="input" value="' + esc(d.title) + '" autocomplete="off"' + (ro ? ' disabled' : '') + '></div>' +
     '<div class="three"><div class="fld"><label for="cD">開始日</label><input id="cD" type="date" class="input" value="' + esc(d.date) + '"' + (ro ? ' disabled' : '') + '></div><div class="fld"><label for="cE">終了日</label><input id="cE" type="date" class="input" value="' + esc(d.to || '') + '"' + (ro ? ' disabled' : '') + '></div><div class="fld"><label for="cH">時間</label><input id="cH" type="time" class="input" value="' + esc(d.time || '') + '"' + (ro ? ' disabled' : '') + '></div></div>' +
     '<div class="fld"><label for="cP">場所</label><input id="cP" class="input" value="' + esc(d.place || '') + '" autocomplete="off"' + (ro ? ' disabled' : '') + '></div>' +
-    '<div class="fld"><label for="cM">部員がやること・説明</label><textarea id="cM" class="input" rows="3"' + (ro ? ' disabled' : '') + '>' + esc(d.memo || '') + '</textarea></div>' +
+    '<div class="fld"><label for="cM">詳細<small class="muted">　部員がイベントを押すと全文が出ます</small></label><textarea id="cM" class="input" rows="6"' + (ro ? ' disabled' : '') + '>' + esc(d.memo || '') + '</textarea></div>' +
     '<div class="fld"><label for="cL">リンク</label><input id="cL" class="input" value="' + esc(d.link || '') + '" placeholder="https://" autocomplete="off"' + (ro ? ' disabled' : '') + '></div>' +
     (c ? '<div class="p2box"><div class="p2st"><span class="p2pub' + (d.state === 'pub' ? ' on' : '') + '">' + (d.state === 'pub' ? '公開中' : '非公開') + '</span>' + (d.state === 'pub' ? '<span class="p2stn">参加登録 <b class="num">' + evJoins(c) + '</b> 人</span>' : '') + (ro ? '' : '<button class="btn sm" data-act="evPub" data-id="' + c.id + '">' + (d.state === 'pub' ? (evJoins(c) ? '中止する' : '非公開にする') : '部員に公開') + '</button>') + '</div></div>' : '') +
     (can('tracks') ? '<div class="opts"><label class="opt"><span class="ot"><b>学ぶに出す</b></span><input id="cG" type="checkbox" class="tsw"' + (inPg ? ' checked' : '') + (ro ? ' disabled' : '') + '></label></div>' : '');
@@ -4906,7 +4906,7 @@ function evPubDlg() {
   if (!on) {
     var f = function (k, lab, type, ph) { return '<div class="fld"><label for="pf' + k + '">' + lab + '</label><input id="pf' + k + '" class="input" type="' + type + '" data-evf="' + k + '" value="' + esc(c[k] || '') + '"' + (ph ? ' placeholder="' + ph + '"' : '') + ' autocomplete="off"></div>'; };
     return dlg('「' + t + '」を公開', '<div class="two">' + f('date', '開始日', 'date') + f('to', '終了日', 'date') + '</div><div class="two">' + f('time', '時間', 'time') + f('place', '場所', 'text') + '</div>' +
-      '<div class="fld"><label for="pfmemo">部員がやること・説明</label><textarea id="pfmemo" class="input" rows="3" data-evf="memo">' + esc(memoText(c.memo || '')) + '</textarea></div>' + f('link', 'リンク', 'url', 'https://') +
+      '<div class="fld"><label for="pfmemo">詳細<small class="muted">　部員がイベントを押すと全文が出ます</small></label><textarea id="pfmemo" class="input" rows="6" data-evf="memo">' + esc(memoText(c.memo || '')) + '</textarea></div>' + f('link', 'リンク', 'url', 'https://') +
       '<p class="dlgp sm">公開すると予定タブとカレンダーに出て、参加登録が始まります。</p>',
       '<button class="btn" data-act="close">やめる</button><button class="btn primary" data-act="evPubDo"' + (c.date ? '' : ' disabled title="開始日を入れてください"') + '>公開する</button>');
   }

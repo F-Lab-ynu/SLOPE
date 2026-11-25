@@ -244,7 +244,8 @@ button.pgrail::before{content:"";position:absolute;inset:0 -10px}
 body.wide .pgpb{display:block;flex:none;width:160px;height:4px;border-radius:2px;background:#2C2C2A;overflow:hidden;margin-left:16px}
 body.wide .pgpb i{display:block;height:100%;background:#F3F1EC;border-radius:2px}
 body.wide .pgsc{width:36px;text-align:right}
-body:not(.wide) #progList,body:not(.wide) #progOut{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+body:not(.wide) #progList{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+#progOut:empty{display:none}
 
 .pgjoin{flex:none;height:32px;padding:0 12px;border-radius:6px;border:1px solid #F3F1EC;background:#F3F1EC;color:#070707;font:inherit;font-size:13px;font-weight:700;line-height:1;cursor:pointer}
 .pgjoin.on{background:transparent;color:#F3F1EC}
@@ -2771,6 +2772,16 @@ html.light{color-scheme:light}
 .nsph{display:flex;align-items:center;gap:6px;height:calc(56px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 12px 0 6px;border-bottom:1px solid #232322;flex:none}
 .nsph button{width:44px;height:44px;border:0;background:transparent;color:#F3F1EC;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .nsph b{font-size:16px}
+#evpage{position:fixed;inset:0;z-index:2147481000;display:flex;flex-direction:column;background:#070707;color:#F3F1EC;font-family:'Zen Kaku Gothic New','Noto Sans JP','Hiragino Sans','Yu Gothic UI','Meiryo',sans-serif;animation:invin .22s ease}
+.evpb h1{margin:16px 0 18px;font-size:24px;line-height:1.35;font-weight:700;overflow-wrap:anywhere}
+.evpm{display:grid;grid-template-columns:auto 1fr;gap:10px 16px;margin:0 0 22px;padding:16px;border:1px solid #232322;border-radius:12px;background:#0E0E0D;font-size:14px}
+.evpm dt{color:#7D7B76}.evpm dd{margin:0;color:#F3F1EC;overflow-wrap:anywhere}
+.evpd{font-size:15px;line-height:1.85;color:#D2CFC8;overflow-wrap:anywhere}
+.evpd a,.evpl{color:#F2A93B}
+.evpl{display:inline-flex;margin-top:18px;font-size:14px;font-weight:700;text-decoration:none}
+.evpf{flex:none;padding:12px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid #232322;max-width:640px;width:100%;margin:0 auto;box-sizing:border-box}
+.evpj{width:100%;height:48px;border:0;border-radius:12px;background:#F3F1EC;color:#070707;font:inherit;font-size:15px;font-weight:700;cursor:pointer;transition:background .2s,color .2s}
+.evpj.on{background:#1C1C1B;color:#A3A19B}
 .nspb{flex:1;overflow:auto;padding:8px 16px calc(32px + env(safe-area-inset-bottom));max-width:640px;width:100%;margin:0 auto;box-sizing:border-box}
 #nspage .lbl{display:block;margin:20px 0 8px}
 .nsl{display:flex;flex-direction:column;border:1px solid #1C1C1B;border-radius:12px;overflow:hidden;background:#0E0E0D}

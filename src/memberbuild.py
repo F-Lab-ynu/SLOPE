@@ -98,6 +98,12 @@ s = '\n'.join(out)
 assert 'onClick="{{ openUnit }}"' not in s.split('<template id="tpl">')[1].split('</template>')[0], 'openUnit left'
 rep('<input type="search" placeholder="教材を検索" aria-label="教材を検索"', '<input type="search" placeholder="教材を検索" aria-label="教材を検索" onInput="{{ setLq }}"')
 rep('<input type="search" aria-label="単元を検索" placeholder="単元を検索"', '<input type="search" aria-label="単元を検索" placeholder="単元を検索" onInput="{{ setUq }}"')
+# 教材ライブラリ：サムネイル（なければ種類）。「外部」の印は全部同じなので出さない
+rep('<span style="flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0">\n<span style="font-weight: 500; font-size: 15px">{{ m.title }}</span>\n<span style="font-size: 13px; color: #A3A19B">{{ m.kind }} · {{ m.min }}',
+    '<sc-if value="{{ m.hasImg }}"><img class="mth" src="{{ m.img }}" alt="" referrerpolicy="no-referrer" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement(\'span\'),{className:\'mth ph\'}))"></sc-if><sc-if value="{{ m.noImg }}"><span class="mth ph">{{ m.kind }}</span></sc-if>\n<span style="flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0">\n<span class="mtt" style="font-weight: 500; font-size: 15px">{{ m.title }}</span>\n<span style="font-size: 13px; color: #A3A19B; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ m.kind }} · {{ m.min }}')
+rep('<span class="chip" style="flex: none; border-color: {{ m.color }}; color: {{ m.color }}">{{ m.src }}</span>', '')
+# 部内イベント：カードを押すと詳細へ
+rep('<sc-for list="{{ clubEvents }}" as="e" hint-placeholder-count="2">\n<div class="card" style="padding: 14px 16px; display: flex; align-items: center; gap: 14px">', '<sc-for list="{{ clubEvents }}" as="e" hint-placeholder-count="2">\n<div class="card" data-evid="{{ e.id }}" role="button" tabindex="0" style="padding: 14px 16px; display: flex; align-items: center; gap: 14px; cursor: pointer">')
 # 単元の詳細
 rep('<span class="lbl">Strategist · ST2</span>\n<h1 style="margin: 0; font-size: 28px; font-weight: 700">戦略理論</h1>', '<span class="lbl">{{ unit.head }}</span>\n<h1 style="margin: 0; font-size: 28px; font-weight: 700">{{ unit.title }}</h1>')
 rep('<span class="chip">前提：ST1 社会情勢と業界 ✓</span><span class="chip">対面の演習会あり</span>', '<span class="chip">{{ unit.deps }}</span><sc-if value="{{ unit.inperson }}"><span class="chip">対面の演習会あり</span></sc-if>')
