@@ -63,8 +63,9 @@ function evPubDlg() {
       '<p class="dlgp sm">公開すると予定タブとカレンダーに出て、参加登録が始まります。</p>',
       '<button class="btn" data-act="close">やめる</button><button class="btn primary" data-act="evPubDo"' + (c.date ? '' : ' disabled title="開始日を入れてください"') + '>公開する</button>');
   }
-  if (!n) return dlg('非公開にする', '<p class="dlgp">「' + t + '」を部員から見えなくします。</p>', '<button class="btn" data-act="close">やめる</button><button class="btn primary" data-act="evPubDo">非公開にする</button>');
-  return dlg('中止する', '<p class="dlgp">参加登録した ' + n + '人に、「' + t + '」の中止を知らせます。</p>', '<button class="btn" data-act="close">やめる</button><button class="btn danger" data-act="evPubDo">中止を知らせる</button>');
+  var an = annFields(annCancelText(c), true), lead = M.del ? '<p class="dlgp">削除した「' + t + '」は部員に公開中です。</p>' : '';
+  if (!n) return dlg(M.del ? '「' + t + '」を中止しますか' : '非公開にする', (M.del ? lead : '<p class="dlgp">「' + t + '」を部員から見えなくします。</p>') + an, '<button class="btn" data-act="close">' + (M.del ? '公開のまま' : 'やめる') + '</button><button class="btn primary" data-act="evPubDo">' + (M.del ? '中止する' : '非公開にする') + '</button>');
+  return dlg(M.del ? '「' + t + '」を中止しますか' : '中止する', lead + '<p class="dlgp">参加登録した ' + n + '人に、「' + t + '」の中止を知らせます。</p>' + an, '<button class="btn" data-act="close">' + (M.del ? '公開のまま' : 'やめる') + '</button><button class="btn danger" data-act="evPubDo">中止を知らせる</button>');
 }
 function evPubDo() {
   var c = evCal(M.id); if (!c) { M = null; renderModal(); return; }
@@ -75,11 +76,14 @@ function evPubDo() {
     ['date', 'to', 'time', 'place', 'memo', 'link'].forEach(function (k) { if (k === 'memo' && pf.memo === memoText(c.memo || '')) return; c[k] = pf[k] || ''; });
     if (c.to && c.to <= c.date) c.to = '';
   }
+  var av = c.state === 'pub' ? annRead() : null;
   M = null;
   var was = c.state === 'pub', n = evJoins(c);
+  if (was && av && !av.title) av = null;
+  if (av) annPost(av, c.id);
   c.state = was ? 'draft' : 'pub'; if (!was) evSnap(c);
   if (was && n) evTell(c, '「' + c.title + '」は中止になりました', 'カレンダーに追加していた場合は消してください');
-  evSync(); save(); render(); toast(was ? (n ? '中止を知らせました' : '非公開にしました') : '公開しました');
+  evSync(); save(); render(); toast(was ? (n ? '中止を知らせました' : '非公開にしました') + (av ? '（ホームにお知らせ）' : '') : '公開しました');
 }
 // 公開中に日時・場所が変わったら、参加登録した人に知らせる（続けて直したときは最後にまとめて1回）
 function evSnap(c) { UI.evSnap = UI.evSnap || {}; UI.evSnap[c.id] = evWhen(c); }

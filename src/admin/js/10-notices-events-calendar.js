@@ -69,5 +69,5 @@ document.addEventListener('click', function (e) {
   }
 
 }, true);
-document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && M && (M.m === 'cal' || M.m === 'pub' || M.m === 'evpick')) { M = null; renderModal(); } });
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && M && (M.m === 'cal' || M.m === 'pub' || M.m === 'evpick' || M.m === 'ann')) { M = null; renderModal(); } });
 

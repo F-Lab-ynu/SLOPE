@@ -219,10 +219,11 @@ function p2New(k, where) {
 }
 function p2Del(id) {
   var f = p2Get(id); if (!f || f.n.out) return; snap();
-  if (f.n.k === 'e') { f.arr.splice(f.i, 1); if (UI.psel === id) UI.psel = null; p2Save(); toastUndo('「' + (f.n.name || 'イベント') + '」をプログラムから外しました（告知のイベントには残っています）'); return; }
+  var ecids = []; p2Walk([f.n], function (x) { if (x.k === 'e' && x.ref) ecids.push(x.ref); });
+  if (f.n.k === 'e') { f.arr.splice(f.i, 1); if (UI.psel === id) UI.psel = null; p2Save(); toastUndo('「' + (f.n.name || 'イベント') + '」をプログラムから外しました（告知のイベントには残っています）'); evAskAfterDel(ecids); return; }
   p2Walk([f.n], function (x) { if (x.k === 'u') { var t = p2Track(x.t), i = t ? unitIdx(t, x.c) : -1; if (i >= 0) { tl(t).splice(i, 1); delete t.units[x.c]; serialize(t); } } if (x.k === 'f' && x.t) { var stillUsed = false; S.tracks = S.tracks.filter(function (t) { return t.id !== x.t || tl(t).length; }); } });
   f.arr.splice(f.i, 1); if (UI.psel === id) UI.psel = (f.arr[f.i] || f.arr[f.i - 1] || f.parent || {}).id || null;
-  p2Save(); toastUndo('「' + (p2Name(f.n) || '項目') + '」を削除しました');
+  p2Save(); toastUndo('「' + (p2Name(f.n) || '項目') + '」を削除しました'); evAskAfterDel(ecids);
 }
 function p2Inside(a, b) { var r = false; p2Walk([a], function (x) { if (x === b) r = true; }); return r; }
 function p2Move(id, toArr, at) { var f = p2Get(id); if (!f || f.n.out) return false; var T = p2(); if (toArr === T && at > T.length - 1) at = T.length - 1;

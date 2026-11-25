@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '5d7acc4d82', FILE = 'admin.ver';
+  var VER = 'f6c9459daf', FILE = 'admin.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -1820,6 +1820,19 @@ button.evst[aria-expanded="true"] svg{transform:none}
 .evdi.input{height:30px;width:auto;min-width:0;padding:0 8px;font-size:13px}
 .evds{color:var(--muted)}
 .evdr{display:inline-flex;align-items:baseline;gap:4px}
+/* お知らせ */
+.annf{margin-top:12px;border:1px solid var(--line);border-radius:10px;padding:4px 14px 12px}
+.annf .annsw{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;cursor:pointer}
+.annf .annsw .ot{font-size:13px;font-weight:600}
+.annb{transition:opacity .15s}
+.annb.off{opacity:.35;pointer-events:none}
+.annf .anu .input{max-width:180px}
+.dlg:not(:has(.annsw)) .annf{border:0;padding:0;margin:0}
+.anl .evr{grid-template-columns:minmax(0,1fr) 80px 80px 88px 64px}
+.anl .evr .evn span{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+@media (max-width:760px){ .anl .evr{grid-template-columns:minmax(0,1fr) auto 64px;grid-template-areas:"n s e" "d d d"} .anl .evr .evq + .evq{display:none} }
+.annf .annsw{padding:0}
+.annb{display:flex;flex-direction:column;gap:12px}
 
 /* ===== 本番 ===== */
 [data-act="reset"]{display:none !important}
@@ -2319,6 +2332,7 @@ function dlg(title, body, foot, wide) {
 function renderModal() {
   var el = document.getElementById('modal'), f;
   if (!M) { el.innerHTML = ''; return; }
+  if (M.m === 'ann') { el.innerHTML = annDlg(); f = document.getElementById('anT'); if (f) f.focus(); return; }
   if (M.m === 'pub') { el.innerHTML = evPubDlg(); f = el.querySelector('.btn.primary, .btn.danger'); if (f) f.focus(); return; }
   if (M.m === 'evpick') { el.innerHTML = evPickDlg(); f = el.querySelector('.evpk'); if (f) f.focus(); return; }
   if (M.m === 'cal') { el.innerHTML = calDlg(); f = document.getElementById('cT'); if (f && !f.disabled && !M.id) f.focus(); return; }
@@ -2404,12 +2418,13 @@ function renameUnit(t, old, nu) {
 
 // ---------- 外部告知：表のまま編集 ----------
 function viewNotices() {
-  if (['ev', 'cal', 'list', 'offer'].indexOf(S.ntab) < 0) S.ntab = 'ev';
+  if (['ev', 'ann', 'cal', 'list', 'offer'].indexOf(S.ntab) < 0) S.ntab = 'ev';
   var tab = S.ntab;
   var wait = S.offers.filter(function (o) { return o.state === 'wait'; });
   var list = S.notices.slice().sort(function (a, b) { var pa = dayOf(a.due) < TODAY, pb = dayOf(b.due) < TODAY; return pa !== pb ? (pa ? 1 : -1) : dayOf(a.due) - dayOf(b.due); });
   var body;
   if (tab === 'ev') body = viewEvents();
+  else if (tab === 'ann') body = viewAnns();
   else if (tab === 'cal') body = viewCal();
   else if (tab === 'list') {
     var host0 = function (u) { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return ''; } };
@@ -2431,7 +2446,7 @@ function viewNotices() {
       }).join('') : '<tr><td colspan="5" class="empty">新しい情報はありません</td></tr>') + '</tbody></table></div>';
   }
   var evn = (S.cals || []).filter(function (c) { return (c.to || c.date || '9') >= isoOf(TODAY); }).length;
-  return top('告知') + utabs('ntab', [['ev', 'イベント', evn], ['cal', 'カレンダー', null], ['list', '外部', S.notices.length], ['offer', '部員からの情報', wait.length]]) + '<div class="body">' + body + '</div>';
+  return top('告知') + utabs('ntab', [['ev', 'イベント', evn], ['ann', 'お知らせ', annActive() ? 1 : null], ['cal', 'カレンダー', null], ['list', '外部', S.notices.length], ['offer', '部員からの情報', wait.length]]) + '<div class="body">' + body + '</div>';
 }
 
 function notice(id) { return S.notices.filter(function (n) { return n.id === id; })[0]; }
@@ -3389,7 +3404,7 @@ document.addEventListener('click', function (e) {
     else if (a === 'dup') { UI.dupId = n.id; var ov = document.getElementById('cpov'); if (!ov) { ov = document.createElement('div'); ov.id = 'cpov'; document.body.appendChild(ov); } ov.innerHTML = dupModal(n); ov.querySelector('#cpN').focus(); }
     else if (a === 'del') {
       snap(); var par = parentOf(n), cur = curFolder(), gone = cur && (cur === n || ancestors(cur).indexOf(n) >= 0);
-      removeNode(n); if (gone) S.fcur = par ? par.id : ''; save(); render(); toastUndo('「' + ttl(n) + '」を削除しました');
+      var cids = evCidsIn(n); removeNode(n); if (gone) S.fcur = par ? par.id : ''; save(); render(); toastUndo('「' + ttl(n) + '」を削除しました'); evAskAfterDel(cids);
     }
     return;
   }
@@ -3624,6 +3639,7 @@ function fabHTML() { // 右下の＋（告知のイベント・カレンダー�
   if (S.view !== 'notices' || !can('notices')) return '';
   var plus = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
   if (S.ntab === 'cal' || S.ntab === 'ev') return '<div class="efabw"><button class="efab" data-act="calNew" title="予定を追加" aria-label="予定を追加">' + plus + '</button></div>';
+  if (S.ntab === 'ann') return '<div class="efabw"><button class="efab" data-act="annNew" title="お知らせを出す" aria-label="お知らせを出す">' + plus + '</button></div>';
   if (S.ntab === 'list') return '<div class="efabw"><button class="efab" data-act="nNew" title="告知を追加" aria-label="告知を追加">' + plus + '</button></div>';
   return '';
 }
@@ -4408,7 +4424,7 @@ document.addEventListener('click', function (e) {
   }
 
 }, true);
-document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && M && (M.m === 'cal' || M.m === 'pub' || M.m === 'evpick')) { M = null; renderModal(); } });
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && M && (M.m === 'cal' || M.m === 'pub' || M.m === 'evpick' || M.m === 'ann')) { M = null; renderModal(); } });
 
 // ---------- ux43 トラックを入れ子（グループ＋単元）で作る。前提は並び方から自動 ----------
 var GID = function () { return 'g' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36); };
@@ -4631,10 +4647,11 @@ function p2New(k, where) {
 }
 function p2Del(id) {
   var f = p2Get(id); if (!f || f.n.out) return; snap();
-  if (f.n.k === 'e') { f.arr.splice(f.i, 1); if (UI.psel === id) UI.psel = null; p2Save(); toastUndo('「' + (f.n.name || 'イベント') + '」をプログラムから外しました（告知のイベントには残っています）'); return; }
+  var ecids = []; p2Walk([f.n], function (x) { if (x.k === 'e' && x.ref) ecids.push(x.ref); });
+  if (f.n.k === 'e') { f.arr.splice(f.i, 1); if (UI.psel === id) UI.psel = null; p2Save(); toastUndo('「' + (f.n.name || 'イベント') + '」をプログラムから外しました（告知のイベントには残っています）'); evAskAfterDel(ecids); return; }
   p2Walk([f.n], function (x) { if (x.k === 'u') { var t = p2Track(x.t), i = t ? unitIdx(t, x.c) : -1; if (i >= 0) { tl(t).splice(i, 1); delete t.units[x.c]; serialize(t); } } if (x.k === 'f' && x.t) { var stillUsed = false; S.tracks = S.tracks.filter(function (t) { return t.id !== x.t || tl(t).length; }); } });
   f.arr.splice(f.i, 1); if (UI.psel === id) UI.psel = (f.arr[f.i] || f.arr[f.i - 1] || f.parent || {}).id || null;
-  p2Save(); toastUndo('「' + (p2Name(f.n) || '項目') + '」を削除しました');
+  p2Save(); toastUndo('「' + (p2Name(f.n) || '項目') + '」を削除しました'); evAskAfterDel(ecids);
 }
 function p2Inside(a, b) { var r = false; p2Walk([a], function (x) { if (x === b) r = true; }); return r; }
 function p2Move(id, toArr, at) { var f = p2Get(id); if (!f || f.n.out) return false; var T = p2(); if (toArr === T && at > T.length - 1) at = T.length - 1;
@@ -4893,8 +4910,9 @@ function evPubDlg() {
       '<p class="dlgp sm">公開すると予定タブとカレンダーに出て、参加登録が始まります。</p>',
       '<button class="btn" data-act="close">やめる</button><button class="btn primary" data-act="evPubDo"' + (c.date ? '' : ' disabled title="開始日を入れてください"') + '>公開する</button>');
   }
-  if (!n) return dlg('非公開にする', '<p class="dlgp">「' + t + '」を部員から見えなくします。</p>', '<button class="btn" data-act="close">やめる</button><button class="btn primary" data-act="evPubDo">非公開にする</button>');
-  return dlg('中止する', '<p class="dlgp">参加登録した ' + n + '人に、「' + t + '」の中止を知らせます。</p>', '<button class="btn" data-act="close">やめる</button><button class="btn danger" data-act="evPubDo">中止を知らせる</button>');
+  var an = annFields(annCancelText(c), true), lead = M.del ? '<p class="dlgp">削除した「' + t + '」は部員に公開中です。</p>' : '';
+  if (!n) return dlg(M.del ? '「' + t + '」を中止しますか' : '非公開にする', (M.del ? lead : '<p class="dlgp">「' + t + '」を部員から見えなくします。</p>') + an, '<button class="btn" data-act="close">' + (M.del ? '公開のまま' : 'やめる') + '</button><button class="btn primary" data-act="evPubDo">' + (M.del ? '中止する' : '非公開にする') + '</button>');
+  return dlg(M.del ? '「' + t + '」を中止しますか' : '中止する', lead + '<p class="dlgp">参加登録した ' + n + '人に、「' + t + '」の中止を知らせます。</p>' + an, '<button class="btn" data-act="close">' + (M.del ? '公開のまま' : 'やめる') + '</button><button class="btn danger" data-act="evPubDo">中止を知らせる</button>');
 }
 function evPubDo() {
   var c = evCal(M.id); if (!c) { M = null; renderModal(); return; }
@@ -4905,11 +4923,14 @@ function evPubDo() {
     ['date', 'to', 'time', 'place', 'memo', 'link'].forEach(function (k) { if (k === 'memo' && pf.memo === memoText(c.memo || '')) return; c[k] = pf[k] || ''; });
     if (c.to && c.to <= c.date) c.to = '';
   }
+  var av = c.state === 'pub' ? annRead() : null;
   M = null;
   var was = c.state === 'pub', n = evJoins(c);
+  if (was && av && !av.title) av = null;
+  if (av) annPost(av, c.id);
   c.state = was ? 'draft' : 'pub'; if (!was) evSnap(c);
   if (was && n) evTell(c, '「' + c.title + '」は中止になりました', 'カレンダーに追加していた場合は消してください');
-  evSync(); save(); render(); toast(was ? (n ? '中止を知らせました' : '非公開にしました') : '公開しました');
+  evSync(); save(); render(); toast(was ? (n ? '中止を知らせました' : '非公開にしました') + (av ? '（ホームにお知らせ）' : '') : '公開しました');
 }
 // 公開中に日時・場所が変わったら、参加登録した人に知らせる（続けて直したときは最後にまとめて1回）
 function evSnap(c) { UI.evSnap = UI.evSnap || {}; UI.evSnap[c.id] = evWhen(c); }
@@ -5026,6 +5047,70 @@ document.addEventListener('input', function (e) {
   if (!e.target.dataset || e.target.dataset.pf !== 'date') return;
   var b = document.querySelector('.dlg [data-act="evPubDo"]'); if (b) b.disabled = !e.target.value;
 });
+// ---------- お知らせ：部員ホームの一番上に出す（同時に1件。期限が来たら元の「NEXT」に戻る） ----------
+function annsInit() { if (!S.anns) S.anns = []; return S.anns; }
+function annLive(a) { return a && a.until >= isoOf(TODAY); }
+function annActive() { return annsInit().filter(annLive).sort(function (a, b) { return a.at < b.at ? 1 : -1; })[0] || null; }
+function annIn(days) { return isoOf(TODAY + (days || 7) * DAY); }
+// 中止のときの文面（編集できる）
+function annCancelText(c) {
+  return { title: '「' + (c.title || 'イベント') + '」は中止になりました', body: (c.date ? pmd(c.date) + (c.to ? ' – ' + pmd(c.to) : '') + 'に予定していた' : '予定していた') + '「' + (c.title || 'イベント') + '」は中止になりました。', until: annIn(7) };
+}
+// 入力欄（中止の確認・お知らせの編集で共通）
+function annFields(a, sw) {
+  return '<div class="annf">' + (sw ? '<label class="opt annsw"><span class="ot">ホームにお知らせを出す</span><input type="checkbox" class="tsw" id="annOn" checked></label>' : '') +
+    '<div class="annb"><div class="fld"><label for="anT">見出し</label><input id="anT" class="input" value="' + esc(a.title || '') + '" autocomplete="off"></div>' +
+    '<div class="fld"><label for="anB">本文</label><textarea id="anB" class="input" rows="3">' + esc(a.body || '') + '</textarea></div>' +
+    '<div class="fld anu"><label for="anU">掲載期限</label><input id="anU" class="input" type="date" value="' + esc(a.until || annIn(7)) + '"></div></div></div>';
+}
+function annRead() { var t = document.getElementById('anT'); if (!t) return null; var on = document.getElementById('annOn'); if (on && !on.checked) return null; return { title: t.value.trim(), body: document.getElementById('anB').value.trim(), until: document.getElementById('anU').value || annIn(7) }; }
+function annPost(v, cid) { if (!v || !v.title) return false; annsInit().push({ id: uid('an'), title: v.title, body: v.body, until: v.until, at: new Date().toISOString(), cid: cid || '' }); return true; }
+document.addEventListener('change', function (e) { if (e.target.id === 'annOn') { var b = document.querySelector('.annb'); if (b) b.classList.toggle('off', !e.target.checked); } });
+
+// 告知タブ「お知らせ」
+function viewAnns() {
+  var L = annsInit().slice().sort(function (a, b) { return a.at < b.at ? 1 : -1; }), act = annActive();
+  if (!L.length) return '<div class="empty big">お知らせはまだありません</div>';
+  return '<div class="evl anl"><div class="evr evh"><span>お知らせ</span><span>出した日</span><span>掲載期限</span><span class="tdc">状態</span><span></span></div>' + L.map(function (a) {
+    var st = a === act ? '<span class="pubc on nsw">掲載中</span>' : annLive(a) ? '<span class="pubc nsw" title="新しいお知らせが出ているため表示されていません">待機</span>' : '<span class="pubc end nsw">終了</span>';
+    return '<div class="evr' + (annLive(a) ? '' : ' past') + '" data-anid="' + a.id + '"><span class="evn"><b>' + esc(a.title) + '</b>' + (a.body ? '<span>' + esc(a.body) + '</span>' : '') + '</span>' +
+      '<span class="evq num">' + pmd(a.at.slice(0, 10)) + '</span><span class="evq num">' + pmd(a.until) + '</span>' + st +
+      '<span class="evact"><button class="ib" data-act="annEdit" data-id="' + a.id + '" aria-label="編集" title="編集">' + PEN + '</button><button class="rmore" type="button" tabindex="-1" aria-label="その他" title="その他">' + ic('more') + '</button></span></div>';
+  }).join('') + '</div>';
+}
+function annDlg() {
+  var a = M.id ? annsInit().filter(function (x) { return x.id === M.id; })[0] : null;
+  return dlg(a ? 'お知らせを編集' : 'お知らせを出す', annFields(a || { until: annIn(7) }, false) + '<p class="dlgp sm">部員のホームの一番上に、掲載期限まで出ます。</p>',
+    (a ? '<button class="btn ghost mdanger" data-act="annDel" data-id="' + a.id + '">削除</button><span class="sp"></span>' : '') + '<button class="btn" data-act="close">やめる</button><button class="btn primary" data-act="annSave">' + (a ? '保存' : '出す') + '</button>');
+}
+document.addEventListener('click', function (e) {
+  var b = e.target.closest && e.target.closest('[data-act="annNew"],[data-act="annEdit"],[data-act="annSave"],[data-act="annDel"]'); if (!b) return;
+  e.preventDefault(); e.stopImmediatePropagation(); var a = b.dataset.act;
+  if (!can('notices')) { toast('告知の権限が必要です'); return; }
+  if (a === 'annNew') { M = { m: 'ann' }; renderModal(); return; }
+  if (a === 'annEdit') { M = { m: 'ann', id: b.dataset.id }; renderModal(); return; }
+  if (a === 'annDel') { snap(); S.anns = annsInit().filter(function (x) { return x.id !== b.dataset.id; }); M = null; renderModal(); save(); render(); toastUndo('お知らせを削除しました'); return; }
+  var v = annRead(); if (!v || !v.title) { toast('見出しを入れてください'); return; }
+  snap();
+  if (M.id) { var x = annsInit().filter(function (y) { return y.id === M.id; })[0]; if (x) { x.title = v.title; x.body = v.body; x.until = v.until; } }
+  else annPost(v);
+  var was = M.id; M = null; renderModal(); save(); render(); toast(was ? '保存しました' : 'お知らせを出しました');
+}, true);
+window.addEventListener('contextmenu', function (e) {
+  if (S.view !== 'notices' || !e.target.closest) return; var r = e.target.closest('.evr[data-anid]'); if (!r) return;
+  e.preventDefault(); e.stopImmediatePropagation(); var id = r.dataset.anid, ok = can('notices');
+  openMenu('お知らせ', [['編集', function () { M = { m: 'ann', id: id }; renderModal(); }, false, ok ? '' : '告知の権限が必要'],
+    ['今すぐ下げる', function () { var x = annsInit().filter(function (y) { return y.id === id; })[0]; if (!x) return; snap(); x.until = isoOf(TODAY - DAY); save(); render(); toast('ホームから下げました'); }, false, ok ? '' : '告知の権限が必要'],
+    'sep', ['削除', function () { snap(); S.anns = annsInit().filter(function (x) { return x.id !== id; }); save(); render(); toastUndo('お知らせを削除しました'); }, true, ok ? '' : '告知の権限が必要']], e.clientX, e.clientY);
+}, true);
+
+// 公開中のイベントを業務・教材で消したとき：中止するか聞く（お知らせの文面を入れて）
+function evAskAfterDel(cids) {
+  var t = isoOf(TODAY), c = cids.map(evCal).filter(function (x) { return x && x.state === 'pub' && (x.to || x.date || t) >= t; })[0];
+  if (!c || !can('notices')) return;
+  setTimeout(function () { M = { m: 'pub', id: c.id, del: 1 }; renderModal(); }, 0);
+}
+function evCidsIn(n) { return nodesOf(n).filter(function (x) { return isEvent(x) && x.ev; }).map(function (x) { return x.ev; }); }
 // ---------- ux54 ファイルも担当を複数に。下の段の担当は、上のフォルダのメンバーからだけ選べる ----------
 function pickFrom(n) { return parentOf(n) || null; } // 担当の候補を決める、すぐ上のフォルダー
 function pickable(n) { var a = pickFrom(n); if (a) return teamOf(a); return isAdmin() ? null : []; } // null＝制限なし（いちばん上の段を代表が決めるときだけ）。それ以外は代表も含め、すぐ上のフォルダーのメンバーからだけ選べる（未定なら誰も選べない）
@@ -5698,8 +5783,8 @@ document.addEventListener('click', function (e) {
   e.stopPropagation();
   if (b.dataset.act === 'undoAll') { undoNow(); return; }
   var n = task(b.dataset.id); if (!n) return;
-  snap(); var cnt = nodesOf(n).length - 1; removeNode(n); rerender();
-  toastUndo('「' + ttl(n) + '」' + (cnt ? 'と下の ' + cnt + ' 件' : '') + 'を削除しました');
+  snap(); var cnt = nodesOf(n).length - 1, cids = evCidsIn(n); removeNode(n); rerender();
+  toastUndo('「' + ttl(n) + '」' + (cnt ? 'と下の ' + cnt + ' 件' : '') + 'を削除しました'); evAskAfterDel(cids);
 }, true);
 
 
@@ -6036,11 +6121,13 @@ function itemsIn(items, reports) {
     return { id: x.id, kind: x.kind, text: d.title || d.text || '', who: whoLabel(x.author), time: fmtAt(x.created_at), on: par ? '「' + ((par.data || {}).title || (par.data || {}).text || '').slice(0, 20) + '」' : '', tab: x.kind === 'other' ? (d.tag || 'その他') : KIND_LABEL[x.kind], reports: rs.length, reason: reason, state: x.state };
   });
   S.cals = items.filter(function (x) { return x.kind === 'cal' && x.state !== 'deleted'; }).map(function (x) { return Object.assign({ title: '', date: isoOf(TODAY), time: '', place: '', memo: '', state: 'pub' }, x.data, { id: x.id }); });
+  S.anns = items.filter(function (x) { return x.kind === 'ann' && x.state !== 'deleted'; }).map(function (x) { return Object.assign({ title: '', body: '', until: '', at: x.created_at || '', cid: '' }, x.data, { id: x.id }); });
   var pg = items.filter(function (x) { return x.kind === 'program'; })[0]; S.program = pg ? pg.data : null;
   S.patches = items.filter(function (x) { return x.kind === 'patch' && x.state !== 'deleted'; }).sort(function (a, b) { return a.pos - b.pos; }).map(function (x) { return Object.assign({ date: '', title: '', note: '', state: 'done' }, x.data, { id: x.id }); });
   SYNC.items = {};
   S.patches.forEach(function (x, i) { SYNC.items[x.id] = JSON.stringify(trackData(x, i)); });
   S.cals.forEach(function (c) { SYNC.items[c.id] = JSON.stringify(noticeData(c)); });
+  S.anns.forEach(function (a) { SYNC.items[a.id] = JSON.stringify(noticeData(a)); });
   S.tracks.forEach(function (t, i) { SYNC.items[t.id] = JSON.stringify(trackData(t, i)); });
   if (S.program) SYNC.items.program = JSON.stringify({ data: S.program });
   S.notices.forEach(function (n) { SYNC.items[n.id] = JSON.stringify(noticeData(n)); });
@@ -6061,6 +6148,7 @@ function itemChanges() {
   S.notices.forEach(function (n) { put('notice', n.id, noticeData(n), can('notices')); });
   (S.patches || []).forEach(function (x, i) { put('patch', x.id, trackData(x, i), isAdmin()); });
   (S.cals || []).forEach(function (c) { put('cal', c.id, noticeData(c), can('notices')); });
+  (S.anns || []).forEach(function (a) { put('ann', a.id, noticeData(a), can('notices')); });
   S.offers.forEach(function (o) {
     seen[o.id] = 1; if (SYNC.items[o.id] === o.state || !can('notices')) return; SYNC.items[o.id] = o.state;
     ops.push(function () { return sb.from('items').select('data').eq('id', o.id).single().then(function (r) { if (r.error) return r.error; return sb.from('items').update({ data: Object.assign({}, r.data.data, { state: o.state }) }).eq('id', o.id).then(function (u) { return u.error; }); }); });

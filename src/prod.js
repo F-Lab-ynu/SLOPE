@@ -295,11 +295,13 @@ function itemsIn(items, reports) {
     return { id: x.id, kind: x.kind, text: d.title || d.text || '', who: whoLabel(x.author), time: fmtAt(x.created_at), on: par ? '「' + ((par.data || {}).title || (par.data || {}).text || '').slice(0, 20) + '」' : '', tab: x.kind === 'other' ? (d.tag || 'その他') : KIND_LABEL[x.kind], reports: rs.length, reason: reason, state: x.state };
   });
   S.cals = items.filter(function (x) { return x.kind === 'cal' && x.state !== 'deleted'; }).map(function (x) { return Object.assign({ title: '', date: isoOf(TODAY), time: '', place: '', memo: '', state: 'pub' }, x.data, { id: x.id }); });
+  S.anns = items.filter(function (x) { return x.kind === 'ann' && x.state !== 'deleted'; }).map(function (x) { return Object.assign({ title: '', body: '', until: '', at: x.created_at || '', cid: '' }, x.data, { id: x.id }); });
   var pg = items.filter(function (x) { return x.kind === 'program'; })[0]; S.program = pg ? pg.data : null;
   S.patches = items.filter(function (x) { return x.kind === 'patch' && x.state !== 'deleted'; }).sort(function (a, b) { return a.pos - b.pos; }).map(function (x) { return Object.assign({ date: '', title: '', note: '', state: 'done' }, x.data, { id: x.id }); });
   SYNC.items = {};
   S.patches.forEach(function (x, i) { SYNC.items[x.id] = JSON.stringify(trackData(x, i)); });
   S.cals.forEach(function (c) { SYNC.items[c.id] = JSON.stringify(noticeData(c)); });
+  S.anns.forEach(function (a) { SYNC.items[a.id] = JSON.stringify(noticeData(a)); });
   S.tracks.forEach(function (t, i) { SYNC.items[t.id] = JSON.stringify(trackData(t, i)); });
   if (S.program) SYNC.items.program = JSON.stringify({ data: S.program });
   S.notices.forEach(function (n) { SYNC.items[n.id] = JSON.stringify(noticeData(n)); });
@@ -320,6 +322,7 @@ function itemChanges() {
   S.notices.forEach(function (n) { put('notice', n.id, noticeData(n), can('notices')); });
   (S.patches || []).forEach(function (x, i) { put('patch', x.id, trackData(x, i), isAdmin()); });
   (S.cals || []).forEach(function (c) { put('cal', c.id, noticeData(c), can('notices')); });
+  (S.anns || []).forEach(function (a) { put('ann', a.id, noticeData(a), can('notices')); });
   S.offers.forEach(function (o) {
     seen[o.id] = 1; if (SYNC.items[o.id] === o.state || !can('notices')) return; SYNC.items[o.id] = o.state;
     ops.push(function () { return sb.from('items').select('data').eq('id', o.id).single().then(function (r) { if (r.error) return r.error; return sb.from('items').update({ data: Object.assign({}, r.data.data, { state: o.state }) }).eq('id', o.id).then(function (u) { return u.error; }); }); });

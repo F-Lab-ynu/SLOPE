@@ -21,6 +21,7 @@ function fabHTML() { // 右下の＋（告知のイベント・カレンダー�
   if (S.view !== 'notices' || !can('notices')) return '';
   var plus = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
   if (S.ntab === 'cal' || S.ntab === 'ev') return '<div class="efabw"><button class="efab" data-act="calNew" title="予定を追加" aria-label="予定を追加">' + plus + '</button></div>';
+  if (S.ntab === 'ann') return '<div class="efabw"><button class="efab" data-act="annNew" title="お知らせを出す" aria-label="お知らせを出す">' + plus + '</button></div>';
   if (S.ntab === 'list') return '<div class="efabw"><button class="efab" data-act="nNew" title="告知を追加" aria-label="告知を追加">' + plus + '</button></div>';
   return '';
 }

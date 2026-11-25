@@ -110,8 +110,8 @@ document.addEventListener('click', function (e) {
   e.stopPropagation();
   if (b.dataset.act === 'undoAll') { undoNow(); return; }
   var n = task(b.dataset.id); if (!n) return;
-  snap(); var cnt = nodesOf(n).length - 1; removeNode(n); rerender();
-  toastUndo('「' + ttl(n) + '」' + (cnt ? 'と下の ' + cnt + ' 件' : '') + 'を削除しました');
+  snap(); var cnt = nodesOf(n).length - 1, cids = evCidsIn(n); removeNode(n); rerender();
+  toastUndo('「' + ttl(n) + '」' + (cnt ? 'と下の ' + cnt + ' 件' : '') + 'を削除しました'); evAskAfterDel(cids);
 }, true);
 
 

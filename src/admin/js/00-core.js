@@ -450,6 +450,7 @@ function dlg(title, body, foot, wide) {
 function renderModal() {
   var el = document.getElementById('modal'), f;
   if (!M) { el.innerHTML = ''; return; }
+  if (M.m === 'ann') { el.innerHTML = annDlg(); f = document.getElementById('anT'); if (f) f.focus(); return; }
   if (M.m === 'pub') { el.innerHTML = evPubDlg(); f = el.querySelector('.btn.primary, .btn.danger'); if (f) f.focus(); return; }
   if (M.m === 'evpick') { el.innerHTML = evPickDlg(); f = el.querySelector('.evpk'); if (f) f.focus(); return; }
   if (M.m === 'cal') { el.innerHTML = calDlg(); f = document.getElementById('cT'); if (f && !f.disabled && !M.id) f.focus(); return; }
