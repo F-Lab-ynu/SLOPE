@@ -366,6 +366,14 @@ body.wide .iqsheet{bottom:auto;top:50%;transform:translate(-50%,-50%);border-bot
 #annpop h2{margin:0;font-size:20px;line-height:1.4;font-weight:700;overflow-wrap:anywhere}
 #annpop p{margin:0;font-size:15px;line-height:1.75;color:#D2CFC8;overflow-wrap:anywhere}
 #annpop .anok{align-self:flex-end;margin-top:6px;height:40px;padding:0 18px;border:0;border-radius:10px;background:#2C2C2A;color:#F3F1EC;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.tcar{position:relative;overflow:hidden;border-radius:12px;margin:-1px;padding:1px}
+.tcart{display:flex;gap:12px;will-change:transform}
+.tcart>.tslide{flex:0 0 100%;transition:opacity .55s ease,transform .55s cubic-bezier(.22,.8,.2,1)}
+.tcar .tslide:not(.on){opacity:.4;transform:scale(.965)}
+.tdots{display:flex;justify-content:center;gap:6px;margin-top:10px}
+.tdots i{width:6px;height:6px;border-radius:3px;background:#383836;transition:width .35s cubic-bezier(.22,.8,.2,1),background .35s;cursor:pointer}
+.tdots i.on{width:18px;background:#BDBAB3}
+@media (prefers-reduced-motion:reduce){.tcart,.tcart>.tslide,.tdots i{transition:none !important}}
 @keyframes anfade{from{opacity:0}}
 @keyframes anup{from{opacity:0;transform:translateY(8px)}}
 </style>
