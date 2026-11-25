@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '4370f90488', FILE = 'admin.ver';
+  var VER = '8f70aa3f65', FILE = 'admin.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -1788,6 +1788,7 @@ input[type=time]::-webkit-calendar-picker-indicator{display:none}
 .gl .wck{margin:0 0 0 2px}
 .gr.mvsrc .gl > .hldot{opacity:0}
 .gl .gwho{justify-content:flex-end}
+.gl .check.wck,.gl .fck{margin:0 0 0 2px}
 
 /* ===== 本番 ===== */
 [data-act="reset"]{display:none !important}

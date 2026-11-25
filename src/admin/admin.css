@@ -1761,3 +1761,4 @@ input[type=time]::-webkit-calendar-picker-indicator{display:none}
 .gl .wck{margin:0 0 0 2px}
 .gr.mvsrc .gl > .hldot{opacity:0}
 .gl .gwho{justify-content:flex-end}
+.gl .check.wck,.gl .fck{margin:0 0 0 2px}
