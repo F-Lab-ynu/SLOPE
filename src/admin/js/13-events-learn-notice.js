@@ -129,7 +129,7 @@ function viewEvents () {
     return '<div class="evr" data-calid="' + c.id + '"><span class="evn"><b>' + esc(c.title || 'イベント') + (pg ? '<i class="evtag">学ぶ</i>' : '') + (fo ? '<i class="evtag wkt">業務</i>' : '') + '</b>' + (c.memo ? '<span>' + esc(memoText(c.memo).slice(0, 60)) + '</span>' : '') + '</span>' +
       '<span class="evq num">' + (c.date ? pmd(c.date) + (c.to ? ' – ' + pmd(c.to) : '') + (c.time ? ' ' + esc(c.time) : '') : '<span class="dim">未定</span>') + '</span>' + (c.place ? '<span class="evp">' + esc(c.place) + '</span>' : '<span class="evp dim">—</span>') +
       '<span class="evg num">' + (pub ? evJoins(c) + ' 人' : '<span class="dim">—</span>') + '</span>' +
-      (past ? '<span class="muted nsw" style="font-size:12px">終了</span>' : '<button class="pubc nsw' + (pub ? ' on' : '') + '" data-act="evPub" data-id="' + c.id + '" title="' + (pub ? '非公開にする' : '部員に公開する') + '">' + (pub ? '公開中' : '非公開') + '</button>') +
+      (past ? '<span class="pubc end nsw">終了</span>' : '<button class="pubc nsw' + (pub ? ' on' : '') + '" data-act="evPub" data-id="' + c.id + '" title="' + (pub ? '非公開にする' : '部員に公開する') + '">' + (pub ? '公開中' : '非公開') + '</button>') +
       '<span class="evact"><button class="ib" data-act="calItem" data-k="cal" data-id="' + c.id + '" aria-label="編集" title="編集">' + PEN + '</button>' + '<button class="rmore" type="button" tabindex="-1" aria-label="その他" title="その他">' + ic('more') + '</button>' + '</span></div>';
   }).join('') + '</div>';
 }
