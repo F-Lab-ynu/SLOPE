@@ -1751,3 +1751,13 @@ input[type=time]::-webkit-calendar-picker-indicator{display:none}
 #nsddm svg{width:14px;height:14px;fill:none;stroke:var(--text);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;visibility:hidden}
 #nsddm [aria-selected="true"]{font-weight:600}
 #nsddm [aria-selected="true"] svg{visibility:visible}
+/* ガント：完了の印（ファイル＝四角、フォルダー＝丸） */
+.gl .fck{width:16px;height:16px;border-radius:50%;background:transparent !important;flex:none}
+.gl .fck svg{width:16px;height:16px;fill:none}
+.gl .fck circle{stroke:#E5E7EB;stroke-width:2}
+.gl .fck circle.a{stroke:#10B981;stroke-linecap:round}
+.gl .fck.on{background:#10B981 !important}
+.gl .fck.on svg{width:12px;height:12px;stroke:#fff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.gl .wck{margin:0 0 0 2px}
+.gr.mvsrc .gl > .hldot{opacity:0}
+.gl .gwho{justify-content:flex-end}

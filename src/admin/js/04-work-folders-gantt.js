@@ -277,9 +277,11 @@ function decorateDone() {
   if (S.view !== 'projects' || S.fmode !== 'gantt') return;
   document.querySelectorAll('.gg .gr[data-row]').forEach(function (row) {
     var n = task(row.dataset.row); if (!n || !isFolder(n)) return;
-    var g = progress(n); if (!(g.n && g.d === g.n)) return;
-    row.classList.add('fdone');
-    var ph = row.querySelector('.gl .ckph'); if (ph) ph.outerHTML = '<span class="wck fck" title="すべて完了"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12l4 4 8-8"/></svg></span>';
+    var g = progress(n), ph = row.querySelector('.gl .ckph'); if (!g.n) return;
+    var all = g.d === g.n; if (all) row.classList.add('fdone');
+    // フォルダーは丸：中の完了の割合を輪で、すべて完了で塗りつぶし（ファイルの四角いチェックと区別）
+    if (ph) ph.outerHTML = '<span class="wck fck' + (all ? ' on' : '') + '" title="' + (all ? 'すべて完了' : '完了 ' + g.d + '/' + g.n) + '" role="img" aria-label="' + (all ? 'すべて完了' : '完了 ' + g.d + '/' + g.n) + '">' +
+      (all ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"/></svg>' : '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25"/><circle class="a" cx="8" cy="8" r="6.25" stroke-dasharray="' + (39.27 * g.d / g.n).toFixed(2) + ' 40" transform="rotate(-90 8 8)"/></svg>') + '</span>';
   });
 }
 // ---------- ux12: 畳む・戻る・ガントは見るだけ＋編集ボタン・右クリック ----------
@@ -318,7 +320,9 @@ function decorateGantt() {
     var ed = (editSelf(n) || n.who === S.me) ? '<button class="gedit" data-act="edit" data-id="' + n.id + '" title="編集" aria-label="編集"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/></svg></button>' : '<span class="gedit ph"></span>';
     var lwh = gl.querySelector('.lwh');
     var pl = isFolder(n) && manages(n) ? '<button class="gedit gplus" data-act="gaddIn" data-id="' + n.id + '" title="中に追加" aria-label="中に追加"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>' : '<span class="gedit ph"></span>';
+    var ck = gl.querySelector('.wck');
     gl.insertAdjacentHTML('beforeend', ed + pl + who);
+    if (ck) gl.appendChild(ck); // 完了のチェックは右端、担当の隣
     if (lwh) gl.appendChild(lwh);
   });
   if (UI.gedit && S.fmode === 'gantt') { // 行内で編集中の行

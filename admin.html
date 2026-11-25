@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '80e4942fb7', FILE = 'admin.ver';
+  var VER = '4370f90488', FILE = 'admin.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -1778,6 +1778,16 @@ input[type=time]::-webkit-calendar-picker-indicator{display:none}
 #nsddm svg{width:14px;height:14px;fill:none;stroke:var(--text);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;visibility:hidden}
 #nsddm [aria-selected="true"]{font-weight:600}
 #nsddm [aria-selected="true"] svg{visibility:visible}
+/* ガント：完了の印（ファイル＝四角、フォルダー＝丸） */
+.gl .fck{width:16px;height:16px;border-radius:50%;background:transparent !important;flex:none}
+.gl .fck svg{width:16px;height:16px;fill:none}
+.gl .fck circle{stroke:#E5E7EB;stroke-width:2}
+.gl .fck circle.a{stroke:#10B981;stroke-linecap:round}
+.gl .fck.on{background:#10B981 !important}
+.gl .fck.on svg{width:12px;height:12px;stroke:#fff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.gl .wck{margin:0 0 0 2px}
+.gr.mvsrc .gl > .hldot{opacity:0}
+.gl .gwho{justify-content:flex-end}
 
 /* ===== 本番 ===== */
 [data-act="reset"]{display:none !important}
@@ -3230,9 +3240,11 @@ function decorateDone() {
   if (S.view !== 'projects' || S.fmode !== 'gantt') return;
   document.querySelectorAll('.gg .gr[data-row]').forEach(function (row) {
     var n = task(row.dataset.row); if (!n || !isFolder(n)) return;
-    var g = progress(n); if (!(g.n && g.d === g.n)) return;
-    row.classList.add('fdone');
-    var ph = row.querySelector('.gl .ckph'); if (ph) ph.outerHTML = '<span class="wck fck" title="すべて完了"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12l4 4 8-8"/></svg></span>';
+    var g = progress(n), ph = row.querySelector('.gl .ckph'); if (!g.n) return;
+    var all = g.d === g.n; if (all) row.classList.add('fdone');
+    // フォルダーは丸：中の完了の割合を輪で、すべて完了で塗りつぶし（ファイルの四角いチェックと区別）
+    if (ph) ph.outerHTML = '<span class="wck fck' + (all ? ' on' : '') + '" title="' + (all ? 'すべて完了' : '完了 ' + g.d + '/' + g.n) + '" role="img" aria-label="' + (all ? 'すべて完了' : '完了 ' + g.d + '/' + g.n) + '">' +
+      (all ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"/></svg>' : '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25"/><circle class="a" cx="8" cy="8" r="6.25" stroke-dasharray="' + (39.27 * g.d / g.n).toFixed(2) + ' 40" transform="rotate(-90 8 8)"/></svg>') + '</span>';
   });
 }
 // ---------- ux12: 畳む・戻る・ガントは見るだけ＋編集ボタン・右クリック ----------
@@ -3271,7 +3283,9 @@ function decorateGantt() {
     var ed = (editSelf(n) || n.who === S.me) ? '<button class="gedit" data-act="edit" data-id="' + n.id + '" title="編集" aria-label="編集"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/></svg></button>' : '<span class="gedit ph"></span>';
     var lwh = gl.querySelector('.lwh');
     var pl = isFolder(n) && manages(n) ? '<button class="gedit gplus" data-act="gaddIn" data-id="' + n.id + '" title="中に追加" aria-label="中に追加"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>' : '<span class="gedit ph"></span>';
+    var ck = gl.querySelector('.wck');
     gl.insertAdjacentHTML('beforeend', ed + pl + who);
+    if (ck) gl.appendChild(ck); // 完了のチェックは右端、担当の隣
     if (lwh) gl.appendChild(lwh);
   });
   if (UI.gedit && S.fmode === 'gantt') { // 行内で編集中の行
