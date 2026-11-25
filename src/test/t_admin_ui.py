@@ -73,6 +73,12 @@ async def main():
             await pg.click('.utabs button[data-v=list]'); await pg.wait_for_timeout(300)
             await pg.click('.nvl [data-act=nEdit]'); await pg.wait_for_timeout(300)
             print(w, 'notice dialog:', await pg.locator('#modal .dlg').count() == 1, '| fab hidden:', not await pg.locator('.efabw').is_visible() if await pg.locator('.efabw').count() else True)
+            # 計画中の「公開する」：入力欄に打てる
+            await pg.keyboard.press('Escape'); await pg.wait_for_timeout(200)
+            await pg.click('.utabs button[data-v=ev]'); await pg.wait_for_timeout(300)
+            await pg.click('.ev-plan [data-act=evPub]'); await pg.wait_for_timeout(300)
+            await pg.click('[data-evf=place]'); await pg.keyboard.type('X棟'); await pg.wait_for_timeout(200)
+            print(w, 'publish form types:', (await pg.input_value('[data-evf=place]')).endswith('X棟'))
             await ctx.close()
         print('errors:', errs); await b.close()
 asyncio.run(main())
