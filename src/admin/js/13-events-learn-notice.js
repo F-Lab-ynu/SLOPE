@@ -164,7 +164,7 @@ function viewEvents () {
     var h = '<div class="evsh' + (L.length ? '' : ' none') + '">' + (k === 'end' ? '<button class="evst" data-act="evEnd" aria-expanded="' + !!UI.evEnd + '">' + ic('chev') + name + '</button>' : '<span class="evst">' + name + '</span>') + '<span class="num">' + L.length + '</span></div>';
     return '<section class="evl evs ev-' + k + '">' + h + (open ? L.map(function (c) { return row(c, k); }).join('') : '') + '</section>';
   };
-  return '<div class="evsecs">' + sec('day', '当日') + sec('pub', '公開中') + sec('plan', '計画中') + (G.end.length ? sec('end', '終了') : '') + '</div>';
+  return '<div class="evsecs">' + sec('plan', '計画中') + sec('pub', '公開中') + sec('day', '当日') + (G.end.length ? sec('end', '終了') : '') + '</div>';
 }
 document.addEventListener('click', function (e) {
   var b = e.target.closest && e.target.closest('[data-act="evEnd"]'); if (!b) return;
