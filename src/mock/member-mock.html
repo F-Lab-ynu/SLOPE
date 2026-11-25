@@ -1423,7 +1423,7 @@ body.wide .iqsheet{bottom:auto;top:50%;transform:translate(-50%,-50%);border-bot
 <div class="mplist">
 <button class="mprow" data-theme-open="1"><span class="mpl">テーマ</span><span class="thdot" aria-hidden="true"><i style="background:var(--bg)"></i><i style="background:var(--fg)"></i><i style="background:var(--ac)"></i></span><svg class="mpch" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
 <button class="mprow" onClick="{{ push.toggle }}" role="switch" aria-checked="{{ push.on }}"><span class="mpl">通知を受け取る<small>{{ push.note }}</small></span><span class="mpsw" style="background: {{ push.bg }}"><i style="left: {{ push.x }}; background: {{ push.knob }}"></i></span></button>
-<button class="mprow" data-nset-open="1"><span class="mpl">通知の種類<small>受け取る通知を選べます</small></span><svg class="mpch" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+<button class="mprow" data-nset-open="1"><span class="mpl">通知の設定<small>種類ごとにプッシュ・アプリ内・オフ</small></span><svg class="mpch" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
 <a class="mprow" href="{{ calSub.ios }}"><span class="mpl">iPhone・Mac のカレンダーに追加</span><svg class="mpch" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
 <a class="mprow" href="{{ calSub.google }}"><span class="mpl">Google カレンダーに追加</span><svg class="mpch" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
 <button class="mprow" onClick="{{ calSub.copy }}"><span class="mpl">カレンダーの URL をコピー</span><span class="mpnote">{{ calSub.note }}</span></button>
@@ -2676,42 +2676,60 @@ html.light{color-scheme:light}
 .thsheet .lbl{display:block;margin:0}
 </style>
 <script>
-// 通知の設定（種類を選ぶ・止めたイベント／フォルダーを戻す）と、通知の長押しメニュー
+// 通知の設定（別の画面）と、通知の長押しメニュー
 (function () {
   var X = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+  var BACK = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>';
+  var NDUE = [[7, '7日前'], [3, '3日前'], [1, '前日'], [0, '当日']];
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
-  function close() { var w = document.getElementById('nspop'); if (w) w.remove(); }
-  function sheet(title, body) { close(); var w = document.createElement('div'); w.id = 'nspop'; w.innerHTML = '<div class="npbg" data-ns-x></div><div class="iqsheet nssheet" role="dialog" aria-label="' + esc(title) + '"><div class="iqtop"><b>' + esc(title) + '</b><button data-ns-x aria-label="閉じる">' + X + '</button></div><div class="iqbody">' + body + '</div></div>'; document.body.appendChild(w); }
-  function openSet() {
-    var np = window.__np; if (!np) return; var p = np.get(), sc = document.querySelector('#nspop .iqbody'), y = sc ? sc.scrollTop : 0;
-    var h = '<div class="nsl">' + window.__NK.map(function (k) { var on = p.off.indexOf(k[0]) < 0;
-      return '<button class="nsr" data-ns-k="' + k[0] + '" role="switch" aria-checked="' + on + '"><span class="mpl">' + esc(k[1]) + '<small>' + esc(k[2]) + '</small></span><span class="mpsw" style="background:' + (on ? '#F3F1EC' : '#383836') + '"><i style="left:' + (on ? '21px' : '3px') + ';background:' + (on ? '#070707' : '#D2CFC8') + '"></i></span></button>'; }).join('') + '</div>' +
-      '<p class="nsn">運営からの大事な連絡は止められません。</p>' +
-      '<span class="lbl">止めているイベント・フォルダー</span>' + (p.mute.length ? '<div class="nsm">' + p.mute.map(function (m) { return '<button class="nsc" data-ns-un="' + esc(m) + '" aria-label="「' + esc(m) + '」の通知を戻す">' + esc(m) + X + '</button>'; }).join('') + '</div>' : '<p class="nsn">ありません。通知を長押しすると、そのイベント・フォルダーの通知を止められます。</p>');
-    sheet('通知の設定', h); sc = document.querySelector('#nspop .iqbody'); if (sc) sc.scrollTop = y;
+  function sw(on, attr, dis) { return '<span class="mpsw nssw" role="switch" aria-checked="' + on + '" ' + attr + (dis ? ' aria-disabled="true"' : '') + ' style="background:' + (on ? '#F3F1EC' : '#383836') + '"><i style="left:' + (on ? '21px' : '3px') + ';background:' + (on ? '#070707' : (dis ? '#7D7B76' : '#D2CFC8')) + '"></i></span>'; }
+  // ---- 設定の画面 ----
+  function page() {
+    var np = window.__np; if (!np) return; var q = np.get(), ps = np.push(), old = document.getElementById('nspage'), y = old ? old.querySelector('.nspb').scrollTop : 0;
+    var pnote = { on: 'この端末に届きます', off: 'オンにするとこの端末に届きます', denied: 'ブラウザの設定で通知が止められています', ios: 'ホーム画面に追加すると受け取れます', no: 'この端末では受け取れません' }[ps] || '';
+    var seg = function (k) { var m = np.mode(q, k); return '<span class="nseg" role="group">' + [['push', 'プッシュ'], ['app', 'アプリ内'], ['off', 'オフ']].map(function (x) { return '<button data-ns-m="' + x[0] + '" data-ns-k="' + k + '" aria-pressed="' + (m === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</span>'; };
+    var h = '<div class="nsph"><button data-ns-back aria-label="戻る">' + BACK + '</button><b>通知の設定</b></div><div class="nspb">' +
+      '<span class="lbl">この端末</span><div class="nsl"><div class="nsr"><span class="mpl">プッシュ通知を受け取る<small>' + pnote + '</small></span>' + sw(ps === 'on', 'data-ns-push="1"', ps !== 'on' && ps !== 'off') + '</div></div>' +
+      window.__NKG.filter(function (g) { return g[0] === 'member' || np.isOps(); }).map(function (g) {
+        return '<span class="lbl">' + g[1] + '</span><div class="nsl">' + g[2].map(function (x) {
+          return '<div class="nsr nsk"><span class="mpl">' + esc(x[1]) + '</span>' + seg(x[0]) + '</div>' +
+            (x[0] === 'due' && np.mode(q, 'due') !== 'off' ? '<div class="nsr nsdue"><span class="mpl"><small>知らせる日</small></span><span class="nsdays">' + NDUE.map(function (d) { return '<button data-ns-due="' + d[0] + '" aria-pressed="' + (q.due.indexOf(d[0]) >= 0) + '">' + d[1] + '</button>'; }).join('') + '</span></div>' : '');
+        }).join('') + '</div>';
+      }).join('') +
+      '<span class="lbl">止めているイベント・フォルダー</span>' + (q.mute.length ? '<div class="nsm">' + q.mute.map(function (m) { return '<button class="nsc" data-ns-un="' + esc(m) + '" aria-label="「' + esc(m) + '」の通知を戻す">' + esc(m) + X + '</button>'; }).join('') + '</div>' : '<p class="nsn">ありません。通知を長押しすると止められます。</p>') +
+      '<p class="nsn">運営からの大事な連絡はいつも届きます。設定は運営画面と共通です。</p></div>';
+    var w = old || document.createElement('div'); w.id = 'nspage'; w.innerHTML = h; if (!old) { document.body.appendChild(w); document.documentElement.classList.add('invon'); try { history.pushState({ nsp: 1 }, ''); } catch (er) {} }
+    w.querySelector('.nspb').scrollTop = y;
   }
+  function closePage(fromPop) { var w = document.getElementById('nspage'); if (!w) return; w.remove(); document.documentElement.classList.remove('invon'); if (!fromPop) try { if (history.state && history.state.nsp) history.back(); } catch (er) {} }
+  window.addEventListener('popstate', function () { closePage(true); });
+  // ---- 長押しのメニュー（短いので下から出す） ----
+  function closeMenu() { var w = document.getElementById('nspop'); if (w) w.remove(); }
   function openMenu(id) {
     var np = window.__np, n = np && np.find(id); if (!n) return;
-    var k = window.__nKind(n.text), src = window.__nSrc(n.text, n.sub, k), kn = (window.__NK.filter(function (x) { return x[0] === k; })[0] || [])[1];
+    var k = np.kindOf(n), s = window.__nSrc(n.text, n.sub, k), kn = window.__nLabel(k), m0 = np.mode(np.get(), k);
     var h = '<p class="nsq">' + esc(n.text) + '</p><div class="nsl">' +
-      (kn ? '<button class="nsa" data-ns-off="' + k + '">「' + esc(kn) + '」の通知をオフ</button>' : '') +
-      (src && k !== 'system' ? '<button class="nsa" data-ns-mute="' + esc(src) + '">「' + esc(src) + '」の通知をオフ</button>' : '') +
-      '<button class="nsa" data-ns-del="' + esc(id) + '">この通知を削除</button><button class="nsa" data-nset-open="1">通知の設定</button></div>' +
-      (k === 'system' ? '<p class="nsn">運営からの大事な連絡は止められません。</p>' : '');
-    sheet('この通知', h);
+      (kn && m0 === 'push' ? '<button class="nsa" data-nm-k="' + k + '" data-nm-m="app">「' + esc(kn) + '」はアプリ内だけにする</button>' : '') +
+      (kn ? '<button class="nsa" data-nm-k="' + k + '" data-nm-m="off">「' + esc(kn) + '」をオフ</button>' : '') +
+      (s ? '<button class="nsa" data-nm-mute="' + esc(s) + '">「' + esc(s) + '」の通知をオフ</button>' : '') +
+      '<button class="nsa" data-nm-del="' + esc(id) + '">この通知を削除</button><button class="nsa" data-nset-open="1">通知の設定</button></div>';
+    closeMenu(); var w = document.createElement('div'); w.id = 'nspop'; w.innerHTML = '<div class="npbg" data-nm-x></div><div class="iqsheet nssheet" role="dialog" aria-label="この通知"><div class="iqtop"><b>この通知</b><button data-nm-x aria-label="閉じる">' + X + '</button></div><div class="iqbody">' + h + '</div></div>'; document.body.appendChild(w);
   }
   document.addEventListener('click', function (e) {
-    var t = e.target.closest ? e.target : null; if (!t) return;
-    if (t.closest('[data-nset-open]')) { e.preventDefault(); e.stopPropagation(); openSet(); return; }
-    if (t.closest('[data-ns-x]')) { close(); return; }
-    var np = window.__np; if (!np) return; var p = np.get(), b;
-    if ((b = t.closest('[data-ns-k]'))) { var k = b.dataset.nsK, i = p.off.indexOf(k); if (i >= 0) p.off.splice(i, 1); else p.off.push(k); np.set(p.off, p.mute); openSet(); return; }
-    if ((b = t.closest('[data-ns-un]'))) { np.set(p.off, p.mute.filter(function (m) { return m !== b.dataset.nsUn; })); openSet(); return; }
-    if ((b = t.closest('[data-ns-off]'))) { if (p.off.indexOf(b.dataset.nsOff) < 0) p.off.push(b.dataset.nsOff); np.set(p.off, p.mute); close(); np.flash('オフにしました。通知の設定から戻せます'); return; }
-    if ((b = t.closest('[data-ns-mute]'))) { if (p.mute.indexOf(b.dataset.nsMute) < 0) p.mute.push(b.dataset.nsMute); np.set(p.off, p.mute); close(); np.flash('オフにしました。通知の設定から戻せます'); return; }
-    if ((b = t.closest('[data-ns-del]'))) { np.del(b.dataset.nsDel); close(); return; }
+    var t = e.target.closest ? e.target : null; if (!t) return; var np = window.__np, b;
+    if (t.closest('[data-nset-open]')) { e.preventDefault(); e.stopPropagation(); closeMenu(); page(); return; }
+    if (t.closest('[data-ns-back]')) { closePage(); return; }
+    if (t.closest('[data-nm-x]')) { closeMenu(); return; }
+    if (!np) return; var q = np.get();
+    if ((b = t.closest('#nspage [data-ns-m]'))) { np.setMode(q, b.dataset.nsK, b.dataset.nsM); np.set(q); page(); return; }
+    if ((b = t.closest('#nspage [data-ns-due]'))) { var d = +b.dataset.nsDue, i = q.due.indexOf(d); if (i >= 0) { if (q.due.length < 2) { np.flash('1つは選んでください'); return; } q.due.splice(i, 1); } else q.due.push(d); q.due.sort(function (a, c) { return c - a; }); np.set(q); page(); return; }
+    if ((b = t.closest('#nspage [data-ns-un]'))) { q.mute = q.mute.filter(function (m) { return m !== b.dataset.nsUn; }); np.set(q); page(); return; }
+    if ((b = t.closest('#nspage [data-ns-push]'))) { np.pushToggle(); setTimeout(page, 600); setTimeout(page, 2500); return; }
+    if ((b = t.closest('[data-nm-k]'))) { np.setMode(q, b.dataset.nmK, b.dataset.nmM); np.set(q); closeMenu(); np.flash((b.dataset.nmM === 'off' ? 'オフ' : 'アプリ内だけ') + 'にしました。通知の設定から戻せます'); return; }
+    if ((b = t.closest('[data-nm-mute]'))) { if (q.mute.indexOf(b.dataset.nmMute) < 0) q.mute.push(b.dataset.nmMute); np.set(q); closeMenu(); np.flash('オフにしました。通知の設定から戻せます'); return; }
+    if ((b = t.closest('[data-nm-del]'))) { np.del(b.dataset.nmDel); closeMenu(); return; }
   }, true);
-  // 長押し（タッチ）・右クリック（マウス）で、その通知のメニュー
+  // 長押し（タッチ）・右クリック（マウス）
   var lp = null, just = 0;
   document.addEventListener('pointerdown', function (e) {
     var it = e.target.closest && e.target.closest('.npi[data-nid]'); if (!it || e.target.closest('button')) return;
@@ -2727,20 +2745,35 @@ html.light{color-scheme:light}
 .npi[data-nid]{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 .npset{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;padding:12px 16px;border:0;border-top:1px solid #2C2C2A;background:transparent;color:#F3F1EC;font:inherit;font-size:13px;font-weight:700;text-align:left;cursor:pointer}
 .npset span{font-size:11px;font-weight:400;color:#7D7B76}
-.nssheet .iqbody{padding-bottom:calc(20px + env(safe-area-inset-bottom))}
-.nsl{display:flex;flex-direction:column;border:1px solid #2C2C2A;border-radius:12px;overflow:hidden;margin-bottom:10px}
-.nsr,.nsa{display:flex;align-items:center;gap:12px;width:100%;min-height:52px;padding:10px 16px;border:0;border-top:1px solid #232322;background:transparent;color:#F3F1EC;font:inherit;font-size:15px;text-align:left;cursor:pointer}
+#nspage{position:fixed;inset:0;z-index:2147481000;display:flex;flex-direction:column;background:#070707;color:#F3F1EC;font-family:'Zen Kaku Gothic New','Noto Sans JP','Hiragino Sans','Yu Gothic UI','Meiryo',sans-serif;animation:invin .22s ease}
+.nsph{display:flex;align-items:center;gap:6px;height:calc(56px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 12px 0 6px;border-bottom:1px solid #232322;flex:none}
+.nsph button{width:44px;height:44px;border:0;background:transparent;color:#F3F1EC;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.nsph b{font-size:16px}
+.nspb{flex:1;overflow:auto;padding:8px 16px calc(32px + env(safe-area-inset-bottom));max-width:640px;width:100%;margin:0 auto;box-sizing:border-box}
+#nspage .lbl{display:block;margin:20px 0 8px}
+.nsl{display:flex;flex-direction:column;border:1px solid #2C2C2A;border-radius:12px;overflow:hidden}
+.nsr,.nsa{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;padding:8px 14px;border:0;border-top:1px solid #232322;background:transparent;color:#F3F1EC;font:inherit;font-size:14px;text-align:left;box-sizing:border-box}
+.nsa{font-size:15px;cursor:pointer}
 .nsr:first-child,.nsa:first-child{border-top:0}
+.nsr.nsdue{border-top:0;min-height:0;padding-top:0;padding-bottom:12px;flex-wrap:wrap}
 .nsr .mpl{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .nsr .mpl small{font-size:12px;color:#7D7B76}
-.nsr .mpsw{flex:none;position:relative;width:44px;height:26px;border-radius:13px}
-.nsr .mpsw i{position:absolute;top:3px;width:20px;height:20px;border-radius:50%}
-.nsn{margin:0 0 14px;font-size:12px;color:#7D7B76;line-height:1.6}
+.nssw{flex:none;position:relative;width:44px;height:26px;border-radius:13px;cursor:pointer}
+.nssw i{position:absolute;top:3px;width:20px;height:20px;border-radius:50%}
+.nseg{flex:none;display:inline-flex;border:1px solid #383836;border-radius:8px;overflow:hidden}
+.nseg button,.nsdays button{border:0;background:transparent;color:#D2CFC8;font:inherit;font-size:12px;font-weight:700;height:30px;padding:0 9px;cursor:pointer}
+.nseg button+button{border-left:1px solid #383836}
+.nseg button[aria-pressed="true"],.nsdays button[aria-pressed="true"]{background:#F3F1EC;color:#070707}
+.nsdays{display:flex;flex-wrap:wrap;gap:6px}
+.nsdays button{border:1px solid #383836;border-radius:15px}
+.nsdays button[aria-pressed="true"]{border-color:#F3F1EC}
+.nsn{margin:14px 0 0;font-size:12px;color:#7D7B76;line-height:1.6}
 .nsq{margin:0 0 12px;font-size:14px;color:#D2CFC8;line-height:1.6}
-.nsm{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 14px}
+.nsm{display:flex;flex-wrap:wrap;gap:8px}
 .nsc{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 8px 0 12px;border:1px solid #2C2C2A;border-radius:17px;background:transparent;color:#F3F1EC;font:inherit;font-size:13px;cursor:pointer}
 .nsc svg{width:14px;height:14px;color:#7D7B76}
-.nssheet .lbl{display:block;margin:6px 0 0}
+.nssheet .iqbody{padding-bottom:calc(20px + env(safe-area-inset-bottom))}
+@media (max-width:380px){ .nseg button{padding:0 7px} }
 </style>
 </body>
 </html>

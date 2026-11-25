@@ -37,7 +37,7 @@ function dueLabel(k) {
 function dashSelf() {
   var m = me(), mine = myTasks(m.id), open = mine.filter(function (o) { return !isDone(o.k); }), lateN = open.filter(function (o) { return late(o.k); }).length;
   (S.notifs || []).forEach(function (n) { if (!n.id) n.id = uid('nt'); });
-  var ns = (S.notifs || []).filter(function (n) { return n.to === m.id; }).slice(0, 20);
+  var ns = opsNotifs().filter(function (n) { return n.to === m.id; }).slice(0, 20); // 運営画面には運営向けだけ
   var rows = mine.length ? mine.map(function (o) {
     var k = o.k, f = isFolder(k), du = dueLabel(k), par = parentOf(k);
     var sub = '<span class="dd ' + du.c + '">' + du.t + '</span>' + (par ? '<span class="dp">' + esc(ttl(par)) + '</span>' : (o.p && o.p !== k ? '<span class="dp">' + esc(ttl(o.p)) + '</span>' : ''));

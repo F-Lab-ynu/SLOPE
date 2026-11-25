@@ -492,11 +492,11 @@ function render() {
 function renderMain() {
   if (S.projects && S.projects.length) evMigrate();
   var items = navItems().map(function (t) { return t.id; });
-  if (items.indexOf(S.view) < 0) S.view = items[0] || 'none';
+  if (items.indexOf(S.view) < 0 && S.view !== 'nset') S.view = items[0] || 'none'; // 通知の設定はだれでも開ける
   renderChrome();
   var v = document.getElementById('view');
   if (S.view === 'none') { v.innerHTML = top('SLOPE') + '<div class="locked">このアカウントには運営画面の権限がありません</div>'; renderModal(); return; }
-  v.innerHTML = ({ dash: viewDash, tracks: viewTracks, notices: viewNotices, board: viewBoard, projects: viewWork, perms: viewPerms }[S.view])();
+  v.innerHTML = ({ dash: viewDash, tracks: viewTracks, notices: viewNotices, board: viewBoard, projects: viewWork, perms: viewPerms, nset: viewNset }[S.view] || viewDash)();
   if (S.view === 'projects' && S.wtab === 'gantt') {
     var gs = document.getElementById('gs'), now = document.querySelector('.gnow');
     if (UI.sp === 'g') { gs.scrollLeft = UI.sl; gs.scrollTop = UI.st; }

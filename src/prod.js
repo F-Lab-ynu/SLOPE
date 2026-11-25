@@ -88,7 +88,7 @@ async function loadAll() {
   (function walk(a) { a.forEach(function (n) { if (n.kind === 'event') n.reg = joins[n.id] || 0; walk(n.tasks || []); }); })(S.projects);
   itemsIn(res[3].data || [], res[4].data || []);
   var base = rowsFromTree(); SYNC.nodes = {}; for (var k in base) SYNC.nodes[k] = JSON.stringify(base[k]);
-  S.notifs = (res[2].data || []).map(function (x) { return { id: x.id, to: x.to_id, text: x.text, sub: x.sub, at: fmtAt(x.created_at) }; });
+  S.notifs = (res[2].data || []).map(function (x) { return { id: x.id, to: x.to_id, text: x.text, sub: x.sub, kind: x.kind || '', at: fmtAt(x.created_at) }; });
 }
 
 // ---------- 変更の送信（前回との差分だけ） ----------
@@ -365,14 +365,14 @@ window.__delNotif = function (id) {
 };
 
 // ---------- 通知の設定（部員アプリと同じ profiles.notif_off / notif_mute）・この端末へのプッシュ ----------
-window.__nSave = function (off, mute) { sb.from('profiles').update({ notif_off: off, notif_mute: mute }).eq('id', S.me).then(function (r) { if (r.error) toast('通知の設定を保存できませんでした'); }); };
+window.__nSave = function (p) { sb.from('profiles').update({ notif_off: p.off, notif_app: p.app, notif_mute: p.mute, notif_due: p.due }).eq('id', S.me).then(function (r) { if (r.error) toast('通知の設定を保存できませんでした'); }); };
 window.__adminPush = (function () {
   var VAPID = 'BNYuEXq2mMrHbNn06huazGpyd0PqDbp-CVXr2TJ7Ev-8Oy2OCjJzbW-DVeopb2BcvZHMoS5g98I5VUw4i8jXlgU', on = null;
   function state() {
     var ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1), app = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone;
     if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return ios && !app ? 'ios' : 'no';
     if (Notification.permission === 'denied') return 'denied';
-    if (on === null) { on = false; navigator.serviceWorker.ready.then(function (r) { return r.pushManager.getSubscription(); }).then(function (x) { if (x) { on = true; if (document.getElementById('nsdlg') && window.__nsOpen) window.__nsOpen(); } }).catch(function () {}); }
+    if (on === null) { on = false; navigator.serviceWorker.ready.then(function (r) { return r.pushManager.getSubscription(); }).then(function (x) { if (x) { on = true; if (window.__nsRender) window.__nsRender(); } }).catch(function () {}); }
     return on ? 'on' : 'off';
   }
   function toggle(done) {

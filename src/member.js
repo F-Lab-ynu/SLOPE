@@ -151,10 +151,10 @@
     readAll: function () { if (!NOTIFS.some(function (n) { return !n.read; })) return; NOTIFS.forEach(function (n) { n.read = true; }); bump(); sb.from('notifications').update({ read: true }).eq('to_id', DB.me).eq('read', false).then(function () {}); },
     readNotif: function (id) { NOTIFS.forEach(function (n) { if (n.id === id) n.read = true; }); bump(); sb.from('notifications').update({ read: true }).eq('id', id).then(function () {}); },
     // 通知の設定（受け取る種類・止めているイベント／フォルダー）。止めた通知はデータベースで作られなくなる
-    nPrefs: function () { var p = DB.self || {}; return { off: (p.notif_off || []).slice(), mute: (p.notif_mute || []).slice() }; },
-    nSet: function (off, mute) {
-      if (!DB.self) return; DB.self.notif_off = off; DB.self.notif_mute = mute; bump();
-      return sb.from('profiles').update({ notif_off: off, notif_mute: mute }).eq('id', DB.me).then(function (r) { if (r.error) DB.flash('通知の設定を保存できませんでした'); });
+    nPrefs: function () { var p = DB.self || {}; return { off: (p.notif_off || []).slice(), app: (p.notif_app || ['done']).slice(), mute: (p.notif_mute || []).slice(), due: (p.notif_due || [3, 0]).slice() }; },
+    nSet: function (q) {
+      if (!DB.self) return; DB.self.notif_off = q.off; DB.self.notif_app = q.app; DB.self.notif_mute = q.mute; DB.self.notif_due = q.due; bump();
+      return sb.from('profiles').update({ notif_off: q.off, notif_app: q.app, notif_mute: q.mute, notif_due: q.due }).eq('id', DB.me).then(function (r) { if (r.error) DB.flash('通知の設定を保存できませんでした'); });
     },
     saveProfile: function (patch) { Object.assign(DB.self, patch); bump(); return sb.from('profiles').update(patch).eq('id', DB.me).then(function (r) { if (r.error) DB.flash('保存できませんでした'); else DB.flash('保存しました'); reload(); }); },
     inqs: null,
@@ -406,13 +406,23 @@ function __trackMk(sb, app) {
 window.__track = function (tab) { if (/[?&]embed=1/.test(location.search)) return; (window.__trk = window.__trk || __trackMk(window.sb, 'member'))(tab); };
 
 // 通知の種類（運営画面・データベースと同じ決め方）
-window.__NK = [['assign', '担当・メンバーになったとき', '業務の担当やフォルダーのメンバーに入ったとき'], ['done', '業務が完了したとき', '自分がまとめている業務を誰かが完了したとき'], ['event', '参加するイベントのお知らせ', '前日のお知らせ・日時の変更・中止'], ['reply', 'お問い合わせへの返信', '運営からの返信']];
-window.__nKind = function (t) { t = String(t || ''); if (/」の(担当|メンバー|リーダー)になりました$/.test(t)) return 'assign'; if (/(を完了しました|がすべて完了しました)$/.test(t)) return 'done'; if (/^お問い合わせに返信/.test(t)) return 'reply'; if (/^「.*」(は中止になりました|の日時・場所が変わりました)$/.test(t) || /^明日：/.test(t)) return 'event'; return 'system'; };
-window.__nSrc = function (t, s, k) { if (k === 'event') { var m = /^「(.*)」/.exec(t) || /^明日：(.*)$/.exec(t); return m ? m[1] : ''; } return s || ''; };
+window.__NKG = [
+  ['member', '部員向け', [['remind', '参加するイベントの前日'], ['evchange', 'イベントの中止・変更'], ['evnew', '新しいイベント'], ['comment', '自分の投稿へのコメント'], ['offer_ok', '共有した外部告知が公式になった'], ['reply', 'お問い合わせへの返信']]],
+  ['ops', '運営向け', [['assign', '担当・メンバーになった'], ['done', '業務の完了'], ['due', '期限が近い'], ['late', '期限切れ'], ['inquiry', '新しいお問い合わせ'], ['report', '投稿の通報'], ['offer_wait', '外部告知の確認待ち']]]
+];
+window.__nLabel = function (k) { var r = ''; window.__NKG.forEach(function (g) { g[2].forEach(function (x) { if (x[0] === k) r = x[1]; }); }); return r; };
+window.__nKind = function (t) { t = String(t || ''); if (/」の(担当|メンバー|リーダー)になりました$/.test(t)) return 'assign'; if (/(を完了しました|がすべて完了しました)$/.test(t)) return 'done'; if (/^お問い合わせに返信/.test(t)) return 'reply'; if (/^「.*」(は中止になりました|の日時・場所が変わりました)$/.test(t)) return 'evchange'; if (/^明日：/.test(t)) return 'remind'; return 'system'; };
+window.__nSrc = function (t, s, k) { if (k === 'remind' || k === 'evchange' || k === 'evnew') { var m = /「(.*)」/.exec(t) || /^明日：(.*)$/.exec(t); return m ? m[1] : ''; } return ['assign', 'done', 'due', 'late'].indexOf(k) >= 0 ? (s || '') : ''; };
 window.__np = {
-  get: function () { return window.DB ? window.DB.nPrefs() : { off: [], mute: [] }; },
-  set: function (off, mute) { if (window.DB) window.DB.nSet(off, mute); },
+  get: function () { return window.DB ? window.DB.nPrefs() : { off: [], app: ['done'], mute: [], due: [3, 0] }; },
+  set: function (q) { if (window.DB) window.DB.nSet(q); },
+  mode: function (q, k) { return q.off.indexOf(k) >= 0 ? 'off' : q.app.indexOf(k) >= 0 ? 'app' : 'push'; },
+  setMode: function (q, k, m) { q.off = q.off.filter(function (x) { return x !== k; }); q.app = q.app.filter(function (x) { return x !== k; }); if (m === 'off') q.off.push(k); if (m === 'app') q.app.push(k); },
+  isOps: function () { return !!(window.DB && (window.DB.isOps() || window.DB.myTasks().length)); }, // 業務を担当している部員にも運営向けを出す
+  push: function () { return window.DB ? window.DB.pushState() : 'no'; },
+  pushToggle: function () { if (window.DB) window.DB.pushToggle(); },
   find: function (id) { var D = window.DB; return D ? D.notifs().filter(function (n) { return String(n.id) === String(id); })[0] : null; },
+  kindOf: function (n) { return (n && n.kind) || window.__nKind(n && n.text); },
   del: function (id) { if (window.DB) window.DB.delNotif(id); },
   flash: function (m) { if (window.DB) window.DB.flash(m); }
 };

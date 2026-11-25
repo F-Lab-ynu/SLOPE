@@ -1676,33 +1676,32 @@ input[type=time]::-webkit-calendar-picker-indicator{display:none}
 .ftn.ftarm{background:rgba(37,99,235,.10);border-radius:6px;box-shadow:inset 0 0 0 1.5px var(--accent)}
 .ftl .ftn{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 
-/* ---------- ux59 通知の設定 ---------- */
-#nsdlg{position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center}
-.nsbg{position:absolute;inset:0;background:rgba(17,24,39,.35)}
-.nsd{position:relative;width:min(480px,calc(100vw - 24px));max-height:min(86vh,720px);display:flex;flex-direction:column;background:#fff;border-radius:12px;box-shadow:0 20px 50px rgba(17,24,39,.25);overflow:hidden}
-.nsh{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px 20px;border-bottom:1px solid var(--line)}
-.nsh b{font-size:15px}
-.nsb{overflow:auto;padding:14px 20px 20px}
-.nst{font-size:12px;font-weight:600;color:var(--muted);margin:16px 0 8px}
-.nsg{border:1px solid var(--line);border-radius:10px;overflow:hidden}
-.nsr{display:flex;align-items:center;gap:12px;padding:11px 14px;border-top:1px solid var(--line)}
+/* ---------- ux59 通知の設定（別の画面） ---------- */
+.nset{max-width:720px;padding:20px 24px 48px}
+.nset section{margin-bottom:24px}
+.nset h2{font-size:13px;font-weight:600;color:var(--muted);margin:0 0 8px}
+.nsg{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+.nsr{display:flex;align-items:center;gap:12px;min-height:48px;padding:8px 14px;border-top:1px solid var(--line)}
 .nsr:first-child{border-top:0}
-.nsr > span{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
-.nsr b{font-size:13.5px;font-weight:600}
-.nsr small{font-size:12px;color:var(--muted)}
+.nsr.nsub{border-top:0;padding-top:0;min-height:40px}
+.nsl{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;font-size:13.5px}
+.nsr.nsub .nsl{color:var(--muted);font-size:12.5px;padding-left:12px}
+.nsl small{font-size:12px;color:var(--muted)}
+.nseg button{font-size:12px;padding:0 10px}
+.nsdays{display:flex;flex-wrap:wrap;gap:6px}
 .nssw{position:relative;flex:none;width:40px;height:24px;border-radius:12px;border:0;padding:0;background:#D1D5DB;cursor:pointer;transition:background .15s}
 .nssw i{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
 .nssw[aria-checked="true"]{background:#2563EB}
 .nssw[aria-checked="true"] i{transform:translateX(16px)}
 .nssw:disabled{opacity:.45;cursor:default}
-.nsn{margin:10px 0 0;font-size:12px;color:var(--muted);line-height:1.6}
+.nsn{margin:0;font-size:12px;color:var(--muted);line-height:1.6}
 .nsm{display:flex;flex-wrap:wrap;gap:6px}
 .nsc{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 6px 0 12px;border:1px solid var(--line2);border-radius:15px;background:#fff;font:inherit;font-size:12.5px;cursor:pointer}
 .nsc svg.i{width:14px;height:14px;color:var(--muted)}
 .nsc:hover{border-color:var(--text)}
 .nr2[data-nid]{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 .cm .cmh span{white-space:normal;max-width:280px;display:block;font-size:12px;color:var(--muted);line-height:1.5}
-@media (max-width:760px){ #nsdlg{align-items:flex-end} .nsd{width:100vw;border-radius:14px 14px 0 0;max-height:88vh} .nsb{padding-bottom:calc(20px + env(safe-area-inset-bottom))} }
+@media (max-width:760px){ .nset{padding:16px 14px 40px} .nsr{flex-wrap:wrap} .nsr .nseg{margin-left:auto} }
 
 /* ---------- ux60 ガントの「表示」：絞り込みのチップ ---------- */
 .vp{width:320px}
