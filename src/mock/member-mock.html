@@ -370,7 +370,8 @@ body.wide .iqsheet{bottom:auto;top:50%;transform:translate(-50%,-50%);border-bot
 .tcart{display:flex;gap:12px;will-change:transform}
 .tcart>.tslide{flex:0 0 100%;transition:opacity .55s ease,transform .55s cubic-bezier(.22,.8,.2,1)}
 .tcar .tslide:not(.on){opacity:.4;transform:scale(.965)}
-.tdots{display:flex;justify-content:center;gap:6px;margin-top:10px}
+.tdots{position:absolute;left:0;right:0;bottom:11px;display:flex;justify-content:center;gap:6px;pointer-events:none}
+.tdots i{pointer-events:auto}
 .tdots i{width:6px;height:6px;border-radius:3px;background:#383836;transition:width .35s cubic-bezier(.22,.8,.2,1),background .35s;cursor:pointer}
 .tdots i.on{width:18px;background:#BDBAB3}
 @media (prefers-reduced-motion:reduce){.tcart,.tcart>.tslide,.tdots i{transition:none !important}}
