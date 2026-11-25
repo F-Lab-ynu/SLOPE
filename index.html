@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = 'c293a51e78', FILE = 'index.ver';
+  var VER = '9ba965c947', FILE = 'index.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -44,6 +44,28 @@
   var t = window.__theme(); if (t.join() !== T[0][1][0].join()) window.__applyTheme(t);
 })();
 </script>
+<script>
+// フォント：端末ごとに選べる。選ばれたものだけを読み込む
+(function () {
+  var F = window.__FONTS = [
+    ['zen', 'Zen Kaku Gothic New', 'Zen+Kaku+Gothic+New:wght@400;500;700'],
+    ['noto', 'Noto Sans JP', 'Noto+Sans+JP:wght@400;500;700'],
+    ['maru', 'M PLUS Rounded 1c', 'M+PLUS+Rounded+1c:wght@400;500;700'],
+    ['biz', 'BIZ UDPGothic', 'BIZ+UDPGothic:wght@400;700'],
+    ['mincho', 'Shippori Mincho', 'Shippori+Mincho:wght@400;500;700']
+  ];
+  function get(id) { return F.filter(function (f) { return f[0] === id; })[0] || F[0]; }
+  window.__font = function () { try { return get(localStorage.getItem('slope-font'))[0]; } catch (e) { return 'zen'; } };
+  window.__applyFont = function (id) {
+    var f = get(id), r = document.documentElement; r.dataset.font = f[0];
+    if (f[0] === 'zen') { r.style.removeProperty('--jp'); return; }
+    r.style.setProperty('--jp', "'" + f[1] + "'");
+    if (!document.getElementById('font-' + f[0])) { var l = document.createElement('link'); l.id = 'font-' + f[0]; l.rel = 'stylesheet'; l.href = 'https://fonts.googleapis.com/css2?family=' + f[2] + '&display=swap'; document.head.appendChild(l); }
+  };
+  window.__setFont = function (id) { try { localStorage.setItem('slope-font', id); } catch (e) {} window.__applyFont(id); };
+  window.__applyFont(window.__font());
+})();
+</script>
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -68,7 +90,7 @@
   color-scheme:dark;
 }
 html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--text)}
-body{font-family:'Zen Kaku Gothic New','Noto Sans JP','Hiragino Sans','Yu Gothic UI','Meiryo',sans-serif}
+body{font-family:var(--jp,'Zen Kaku Gothic New'),'Noto Sans JP','Hiragino Sans','Yu Gothic UI','Meiryo',sans-serif}
 @media (display-mode: standalone){html{height:auto;min-height:calc(100% + env(safe-area-inset-top))}} /* iPhone：上のバーを透明にしたとき下に隙間ができるのを防ぐ */
 html:has(body.desk),body.desk{background:var(--bg)}
 *{-webkit-tap-highlight-color:transparent}
@@ -1327,7 +1349,7 @@ setInterval(window.__chrome, 400);
 </div>
 </div>
 <template id="tpl">
-<div class="app" style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--bg); color: var(--fg); font-family: 'Zen Kaku Gothic New', 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', sans-serif; font-size: 16px; line-height: 1.6">
+<div class="app" style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--bg); color: var(--fg); font-family: var(--jp,'Zen Kaku Gothic New'), 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', sans-serif; font-size: 16px; line-height: 1.6">
 
 <sc-if value="{{ show.main }}" hint-placeholder-val="{{ true }}">
 <header style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 6px 12px 0 20px">
@@ -2203,6 +2225,7 @@ setInterval(window.__chrome, 400);
 <h2 class="h2">設定</h2>
 <div class="mplist">
 <button class="mprow" data-theme-open="1"><span class="mpl">テーマ</span><span class="thdot" aria-hidden="true"><i style="background:var(--bg)"></i><i style="background:var(--fg)"></i><i style="background:var(--ac)"></i></span><svg class="mpch" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+<button class="mprow" data-font-open="1"><span class="mpl">フォント</span><span class="fnv" aria-hidden="true"></span><svg class="mpch" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
 <button class="mprow" onClick="{{ push.toggle }}" role="switch" aria-checked="{{ push.on }}"><span class="mpl">通知を受け取る<small>{{ push.note }}</small></span><span class="mpsw" style="background: {{ push.bg }}"><i style="left: {{ push.x }}; background: {{ push.knob }}"></i></span></button>
 <button class="mprow" data-nset-open="1"><span class="mpl">通知の設定<small>種類ごとにプッシュ・アプリ内・オフ</small></span><svg class="mpch" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
 <a class="mprow" href="{{ calSub.ios }}"><span class="mpl">iPhone・Mac のカレンダーに追加</span><svg class="mpch" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
@@ -3180,7 +3203,7 @@ document.addEventListener('click',function(e){
 })();
 </script>
 <style>
-#inv{position:fixed;inset:0;z-index:2147482000;display:flex;flex-direction:column;background:var(--bg);animation:invin .22s ease;font-family:'Zen Kaku Gothic New','Noto Sans JP','Hiragino Sans','Yu Gothic UI','Meiryo',sans-serif}
+#inv{position:fixed;inset:0;z-index:2147482000;display:flex;flex-direction:column;background:var(--bg);animation:invin .22s ease;font-family:var(--jp,'Zen Kaku Gothic New'),'Noto Sans JP','Hiragino Sans','Yu Gothic UI','Meiryo',sans-serif}
 @keyframes invin{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
 .invh{flex:none;display:flex;align-items:center;gap:6px;padding:calc(env(safe-area-inset-top) + 6px) 6px 6px;border-bottom:1px solid var(--n10);color:var(--fg)}
 .invb{flex:none;width:44px;height:44px;border:0;background:transparent;color:var(--fg);display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:8px}
@@ -3212,9 +3235,43 @@ html.invon,html.invon body{overflow:hidden;overscroll-behavior:none}
     sc = document.querySelector('#thpop .iqbody'); if (sc) sc.scrollTop = y;
   });
 })();
+
+// フォントを選ぶ画面：それぞれの書体で見本を出す（見本の文字だけ先に読み込む）
+(function () {
+  var SAMPLE = '起業部の掲示板 あいうえお 0123 Aa';
+  function open() {
+    var c = window.__font(), h = '<div class="npbg" data-fn-x></div><div class="iqsheet thsheet" role="dialog" aria-label="フォント"><div class="iqtop"><b>フォント</b><button data-fn-x aria-label="閉じる"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="iqbody"><div class="fnlist">';
+    window.__FONTS.forEach(function (f) {
+      if (!document.getElementById('fs-' + f[0])) { var l = document.createElement('link'); l.id = 'fs-' + f[0]; l.rel = 'stylesheet'; l.href = 'https://fonts.googleapis.com/css2?family=' + f[2] + '&display=swap&text=' + encodeURIComponent(SAMPLE + f[1]); document.head.appendChild(l); }
+      var on = f[0] === c;
+      h += '<button class="fnc' + (on ? ' on' : '') + '" data-fn="' + f[0] + '" aria-pressed="' + on + '" style="font-family:\'' + f[1] + '\',sans-serif"><b>' + f[1] + '</b><span>' + SAMPLE + '</span></button>';
+    });
+    var w = document.createElement('div'); w.id = 'fnpop'; w.innerHTML = h + '</div></div></div>'; document.body.appendChild(w);
+  }
+  function close() { var w = document.getElementById('fnpop'); if (w) w.remove(); }
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest) return;
+    if (e.target.closest('[data-font-open]')) { e.preventDefault(); open(); return; }
+    if (e.target.closest('[data-fn-x]')) { close(); return; }
+    var b = e.target.closest('[data-fn]'); if (!b) return;
+    window.__setFont(b.dataset.fn); close(); open();
+  });
+})();
 </script>
 <style>
 html.light{color-scheme:light}
+html[data-font=zen] .fnv::after{content:'Zen Kaku Gothic New'}
+html[data-font=noto] .fnv::after{content:'Noto Sans JP'}
+html[data-font=maru] .fnv::after{content:'M PLUS Rounded 1c'}
+html[data-font=biz] .fnv::after{content:'BIZ UDPGothic'}
+html[data-font=mincho] .fnv::after{content:'Shippori Mincho'}
+.fnv{flex:none;font-size:13px;color:var(--n66);white-space:nowrap}
+.fnlist{display:flex;flex-direction:column;gap:8px}
+.fnc{display:flex;flex-direction:column;align-items:flex-start;gap:6px;width:100%;padding:14px 16px;border:1.5px solid var(--n15);border-radius:12px;background:transparent;color:var(--fg);text-align:left;cursor:pointer}
+.fnc b{font-size:13px;font-weight:500;color:var(--n66)}
+.fnc span{font-size:18px;line-height:1.4}
+.fnc.on{border-color:var(--ac)}
+
 .thdot{flex:none;display:flex;gap:4px}
 .thdot i{width:12px;height:12px;border-radius:3px;display:block;box-shadow:inset 0 0 0 1px var(--n28)}
 .thgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px}
@@ -3296,7 +3353,7 @@ html.light{color-scheme:light}
 .npi[data-nid]{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 .npset{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;padding:12px 16px;border:0;border-top:1px solid var(--n16);background:transparent;color:var(--fg);font:inherit;font-size:13px;font-weight:700;text-align:left;cursor:pointer}
 .npset span{font-size:11px;font-weight:400;color:var(--n49)}
-#nspage{position:fixed;inset:0;z-index:2147481000;display:flex;flex-direction:column;background:var(--bg);color:var(--fg);font-family:'Zen Kaku Gothic New','Noto Sans JP','Hiragino Sans','Yu Gothic UI','Meiryo',sans-serif;animation:invin .22s ease}
+#nspage{position:fixed;inset:0;z-index:2147481000;display:flex;flex-direction:column;background:var(--bg);color:var(--fg);font-family:var(--jp,'Zen Kaku Gothic New'),'Noto Sans JP','Hiragino Sans','Yu Gothic UI','Meiryo',sans-serif;animation:invin .22s ease}
 .nsph{box-sizing:border-box;display:flex;align-items:center;gap:6px;height:calc(52px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 12px 0 6px;border-bottom:1px solid var(--n12);flex:none}
 .nsph button{width:44px;height:44px;border:0;background:transparent;color:var(--fg);display:flex;align-items:center;justify-content:center;cursor:pointer}
 .nsph b{font-size:16px}
@@ -3356,7 +3413,7 @@ button[style*="height"]:not([class]){padding-bottom:2px !important}
 .bxfab{position:fixed;right:20px;bottom:calc(92px + env(safe-area-inset-bottom));z-index:30;width:56px;height:56px;border:0;border-radius:50%;background:var(--ac);color:var(--bg);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(0,0,0,.45);cursor:pointer}
 .bxfab svg{width:24px;height:24px;stroke-width:2.4}
 body.wide .bxfab{bottom:32px;right:32px}
-#bxth,#bxnew{position:fixed;inset:0;box-sizing:border-box;overscroll-behavior:contain;z-index:2147481000;display:flex;flex-direction:column;background:var(--bg);color:var(--fg);font-family:'Zen Kaku Gothic New','Noto Sans JP','Hiragino Sans','Yu Gothic UI','Meiryo',sans-serif;animation:invin .22s ease}
+#bxth,#bxnew{position:fixed;inset:0;box-sizing:border-box;overscroll-behavior:contain;z-index:2147481000;display:flex;flex-direction:column;background:var(--bg);color:var(--fg);font-family:var(--jp,'Zen Kaku Gothic New'),'Noto Sans JP','Hiragino Sans','Yu Gothic UI','Meiryo',sans-serif;animation:invin .22s ease}
 .bxthb{padding:0 0 24px !important;max-width:none !important}
 #bxth .bxths{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 #bxth .nsph{position:sticky;top:0;z-index:5;background:rgba(7,7,7,.82);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);transition:transform .22s ease}
@@ -3433,7 +3490,7 @@ button.bxpk{background:transparent;font:inherit}
 .bxmnc{position:relative;width:min(520px,100%);padding:8px 8px calc(8px + env(safe-area-inset-bottom));background:var(--n5);border-radius:16px 16px 0 0;display:flex;flex-direction:column}
 .bxmnc button{height:52px;border:0;background:transparent;color:var(--fg);font:inherit;font-size:16px;font-weight:600;border-radius:10px;cursor:pointer}
 .bxmnc button.bad{color:#FF5C66}
-#evpage{position:fixed;inset:0;z-index:2147481000;display:flex;flex-direction:column;background:var(--bg);color:var(--fg);font-family:'Zen Kaku Gothic New','Noto Sans JP','Hiragino Sans','Yu Gothic UI','Meiryo',sans-serif;animation:invin .22s ease}
+#evpage{position:fixed;inset:0;z-index:2147481000;display:flex;flex-direction:column;background:var(--bg);color:var(--fg);font-family:var(--jp,'Zen Kaku Gothic New'),'Noto Sans JP','Hiragino Sans','Yu Gothic UI','Meiryo',sans-serif;animation:invin .22s ease}
 .evpb h1{margin:16px 0 18px;font-size:24px;line-height:1.35;font-weight:700;overflow-wrap:anywhere}
 .evpm{display:grid;grid-template-columns:auto 1fr;gap:10px 16px;margin:0 0 22px;padding:16px;border:1px solid var(--n12);border-radius:12px;background:var(--n3);font-size:14px}
 .evpm dt{color:var(--n49)}.evpm dd{margin:0;color:var(--fg);overflow-wrap:anywhere}
