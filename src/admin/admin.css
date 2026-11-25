@@ -1644,3 +1644,9 @@ select.cell{padding-right:26px;background-repeat:no-repeat;background-position:r
 .revt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .revt b{font-size:14px}.revt span{font-size:12px;color:var(--muted)}
 .rec .p2box{margin-bottom:12px}
+
+/* 列の中のラベルは同じ幅・中央揃え */
+.tagc{min-width:68px;justify-content:center}
+.tdc,th.tdc{text-align:center}
+.evr .evg{text-align:center}
+.latec{min-width:56px;display:inline-flex;justify-content:center;flex:none}

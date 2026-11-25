@@ -34,20 +34,20 @@ function viewNotices() {
   else if (tab === 'cal') body = viewCal();
   else if (tab === 'list') {
     var host0 = function (u) { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return ''; } };
-    body = list.length ? '<div class="evl nvl"><div class="evr evh"><span>告知</span><span>締切</span><span>リンク</span><span>種類</span><span>公開</span><span></span></div>' +
+    body = list.length ? '<div class="evl nvl"><div class="evr evh"><span>告知</span><span>締切</span><span>リンク</span><span class="tdc">種類</span><span>公開</span><span></span></div>' +
       list.map(function (n) {
         var past = dayOf(n.due) < TODAY, ok = /^https?:\/\//i.test(n.url || ''), hs = n.host && n.host !== '—' ? n.host : '';
         return '<div class="evr' + (past ? ' past' : '') + '" data-nid="' + n.id + '"><span class="evn"><b>' + esc(n.title) + '</b>' + (hs ? '<span>' + esc(hs) + '</span>' : '') + '</span>' +
           '<span class="evq num">' + (n.due ? pmd(n.due) + (n.due.slice(0, 4) !== isoOf(TODAY).slice(0, 4) ? ' <small>' + n.due.slice(0, 4) + '</small>' : '') : '<span class="dim">未定</span>') + '</span>' +
           (ok ? '<a class="evp evlink" href="' + esc(n.url) + '" target="_blank" rel="noopener">' + esc(host0(n.url)) + ' ↗</a>' : '<span class="evp dim">—</span>') +
-          '<span class="evg"><span class="tag">' + esc(n.type) + '</span></span>' +
+          '<span class="evg"><span class="tag tagc">' + esc(n.type) + '</span></span>' +
           (past ? '<span class="muted nsw" style="font-size:12px">終了</span>' : '<button class="sw nsw" role="switch" data-act="nState" data-id="' + n.id + '" aria-checked="' + (n.state === 'pub') + '" aria-label="公開"><i></i></button>') +
           '<span class="evact"><button class="ib" data-act="nEdit" data-id="' + n.id + '" aria-label="編集" title="編集">' + PEN + '</button>' + '<button class="rmore" type="button" tabindex="-1" aria-label="その他" title="その他">' + ic('more') + '</button>' + '</span></div>';
       }).join('') + '</div>' : '<div class="empty big">告知はまだありません</div>';
   } else {
-    body = '<div class="tw"><table><thead><tr><th>タイトル</th><th>種類</th><th class="hide-sm">提供者</th><th>締切</th><th></th></tr></thead><tbody>' +
+    body = '<div class="tw"><table><thead><tr><th>タイトル</th><th class="tdc">種類</th><th class="hide-sm">提供者</th><th>締切</th><th></th></tr></thead><tbody>' +
       (wait.length ? wait.map(function (o) {
-        return '<tr><td><div class="cell2"><b style="font-weight:500">' + esc(o.title) + '</b><span class="s">' + esc(o.host) + '　' + esc(o.note) + '</span></div></td><td><span class="tag">' + esc(o.type) + '</span></td><td class="muted hide-sm">' + esc(o.by) + '</td><td class="num" data-l="締切">' + fmtDate(o.due) + '</td>' +
+        return '<tr><td><div class="cell2"><b style="font-weight:500">' + esc(o.title) + '</b><span class="s">' + esc(o.host) + '　' + esc(o.note) + '</span></div></td><td class="tdc"><span class="tag tagc">' + esc(o.type) + '</span></td><td class="muted hide-sm">' + esc(o.by) + '</td><td class="num" data-l="締切">' + fmtDate(o.due) + '</td>' +
           '<td class="a"><div class="acts"><button class="btn sm ghost" data-act="oNo" data-id="' + o.id + '">見送る</button><button class="btn sm primary" data-act="oYes" data-id="' + o.id + '">掲載</button></div></td></tr>';
       }).join('') : '<tr><td colspan="5" class="empty">新しい情報はありません</td></tr>') + '</tbody></table></div>';
   }
@@ -72,12 +72,12 @@ function viewBoard() {
         '<button class="ib bhide" data-act="pHide" data-id="' + p.id + '" title="非表示にする" aria-label="非表示にする"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 6.1A9.8 9.8 0 0 1 12 6c5 0 9 6 9 6a17 17 0 0 1-3.1 3.6M6.6 6.6C4.4 8 3 12 3 12s4 6 9 6c1.4 0 2.7-.4 3.9-1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg></button>' +
         '<button class="ib udel" data-act="pDelNow" data-id="' + p.id + '" aria-label="削除"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/></svg></button>';
     return '<tr' + (gone ? ' style="color:var(--dim)"' : '') + '><td style="max-width:520px"><div class="cell2"><span>' + esc(p.text) + '</span><span class="s">' + esc(p.who) + '・<span class="num">' + esc(p.time) + '</span>' + (p.on ? '・' + esc(p.on) + ' へのコメント' : '') + '</span></div></td>' +
-      '<td><span class="tag">' + esc(p.tab) + '</span></td>' +
+      '<td class="tdc"><span class="tag tagc">' + esc(p.tab) + '</span></td>' +
       '<td class="rp">' + (p.reports > 0 && !gone ? '<span class="bad num">' + p.reports + '</span> <span class="muted">' + esc(p.reason) + '</span>' : '<span class="dim">—</span>') + '</td>' +
       '<td class="a"><div class="acts">' + acts + '</div></td></tr>';
   }).join('');
   return head +
-    '<div class="body"><div class="tw"><table><thead><tr><th>内容</th><th>場所</th><th>通報</th><th></th></tr></thead><tbody>' +
+    '<div class="body"><div class="tw"><table><thead><tr><th>内容</th><th class="tdc">場所</th><th>通報</th><th></th></tr></thead><tbody>' +
     (rows || '<tr><td colspan="4" class="empty">' + (S.boardTab === 'rep' ? '対応が必要な通報はありません' : '投稿はありません') + '</td></tr>') + '</tbody></table></div></div>';
 }
 // お問い合わせ・要望（本人と運営だけが見られる）。未対応が上

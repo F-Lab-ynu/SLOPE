@@ -83,9 +83,10 @@ function viewDash() {
       return '<button class="mr soon" data-act="open" data-id="' + o.k.id + '"><span class="mt">' + FILE + '<b>' + esc(ttl(o.k)) + '</b><span class="ms"><span class="dd ' + du.c + '">' + du.t + '</span><span class="dp">' + esc(ttl(parentOf(o.k) || o.p)) + '</span></span></span><span class="mwho">' + (who.length ? avStack(who) + '<span>' + esc(fwNames(o.k)) + '</span>' : '<span class="dim">担当未定</span>') + '</span><span class="mact">' + GO + '</span></button>';
     }).join('') : none, 'projects'));
     var ps = lv.slice().sort(function (a, b) { return dayOf(a.end) - dayOf(b.end); });
+    var anyLate = ps.some(function (p) { return progress(p).late; });
     cards.push(card('イベント', ps.length ? ps.map(function (p) {
       var g = progress(p);
-      return '<button class="li" data-act="open" data-id="' + p.id + '"><span class="t"><b>' + esc(p.name) + '</b><span class="num">' + fmtDate(p.start) + ' – ' + fmtDate(p.end) + '</span></span><span class="prog"><span class="b"><i style="width:' + (g.n ? Math.round(g.d / g.n * 100) : 0) + '%"></i></span><span class="num muted" style="font-size:12px">' + g.d + '/' + g.n + '</span></span>' + (g.late ? '<span class="r cc bad">遅れ ' + g.late + '</span>' : '') + '</button>';
+      return '<button class="li" data-act="open" data-id="' + p.id + '"><span class="t"><b>' + esc(p.name) + '</b><span class="num">' + fmtDate(p.start) + ' – ' + fmtDate(p.end) + '</span></span><span class="prog"><span class="b"><i style="width:' + (g.n ? Math.round(g.d / g.n * 100) : 0) + '%"></i></span><span class="num muted" style="font-size:12px">' + g.d + '/' + g.n + '</span></span>' + (anyLate ? (g.late ? '<span class="r cc bad latec">遅れ ' + g.late + '</span>' : '<span class="latec"></span>') : '') + '</button>';
     }).join('') : none, 'projects'));
   }
   if (can('board') || can('notices') || can('tracks')) {
