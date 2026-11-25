@@ -643,7 +643,7 @@ function annPop(a) {
     fit();
   }
   function closeTh(pop) { var w = document.getElementById('bxth'); if (!w) return; w.remove(); document.documentElement.classList.remove('invon'); if (!pop) try { if (history.state && history.state.bxth) history.back(); } catch (er) {} }
-  window.addEventListener('popstate', function () { closeTh(true); closeNew(true); });
+  window.addEventListener('popstate', function () { if (document.getElementById('bxiv')) { ivClose(true); return; } closeTh(true); closeNew(true); });
 
   // ---- 投稿・返信（本文と写真。下の帯：写真・種類・メンバー募集。キーボードの上に出る） ----
   var NEW = null, KIND = [['idea', 'アイデア'], ['pain', 'ペイン'], ['other', 'フリー']];
@@ -701,9 +701,9 @@ function annPop(a) {
   function lock(on) {
     var b = document.body;
     if (on && !LOCK) { LOCK = { y: window.scrollY }; b.style.position = 'fixed'; b.style.top = -LOCK.y + 'px'; b.style.left = '0'; b.style.right = '0'; }
-    if (!on && LOCK && !document.getElementById('bxnew') && !document.getElementById('bxth')) { b.style.position = ''; b.style.top = ''; b.style.left = ''; b.style.right = ''; window.scrollTo(0, LOCK.y); LOCK = null; }
+    if (!on && LOCK && !document.getElementById('bxnew') && !document.getElementById('bxth') && !document.getElementById('bxiv')) { b.style.position = ''; b.style.top = ''; b.style.left = ''; b.style.right = ''; window.scrollTo(0, LOCK.y); LOCK = null; }
   }
-  new MutationObserver(function () { lock(!!(document.getElementById('bxnew') || document.getElementById('bxth'))); }).observe(document.body, { childList: true });
+  new MutationObserver(function () { lock(!!(document.getElementById('bxnew') || document.getElementById('bxth') || document.getElementById('bxiv'))); }).observe(document.body, { childList: true });
   document.addEventListener('touchmove', function (ev) { // 中身のスクロールだけ許す
     var w = ev.target.closest && ev.target.closest('#bxnew, #bxth'); if (!w) return;
     var sc = ev.target.closest('.bxths, .bxnb, textarea'); if (sc && sc.scrollHeight > sc.clientHeight + 1) return;
@@ -737,12 +737,82 @@ function annPop(a) {
     closeNew(); paint(); if (parent && document.getElementById('bxth')) thread(parent);
   }
 
+  // ---- 写真ビューア（X と同じ：黒い全画面・左右で送る・下へ払って閉じる・ピンチ／ダブルタップで拡大）----
+  var IV = null;
+  function ivOpen(paths, i) {
+    ivClose(true); var w = document.createElement('div'); w.id = 'bxiv';
+    w.innerHTML = '<div class="bxivbg"></div><div class="bxivt">' + paths.map(function (p) { return '<div class="bxivs"><img src="' + e(URLS[p] || '') + '" alt="" draggable="false"></div>'; }).join('') + '</div>' +
+      '<button class="bxivx" data-bxiv-x aria-label="閉じる">' + IC.x + '</button>' +
+      (paths.length > 1 ? '<span class="bxivc"></span><button class="bxivp" data-bxiv-go="-1" aria-label="前の写真">' + IC.back + '</button><button class="bxivn" data-bxiv-go="1" aria-label="次の写真">' + IC.back + '</button>' : '');
+    document.body.appendChild(w); IV = { w: w, n: paths.length, i: i, s: 1, tx: 0, ty: 0 };
+    try { history.pushState({ bxiv: 1 }, ''); } catch (er) {}
+    ivGo(i, false); requestAnimationFrame(function () { w.classList.add('in'); });
+  }
+  function ivClose(pop) {
+    var w = document.getElementById('bxiv'); if (!w) return; IV = null; w.classList.remove('in'); w.classList.add('out'); setTimeout(function () { w.remove(); }, 180);
+    if (!pop) try { if (history.state && history.state.bxiv) history.back(); } catch (er) {}
+  }
+  function ivImg() { return IV && IV.w.querySelectorAll('.bxivs img')[IV.i]; }
+  function ivZoom(s, tx, ty, anim) {
+    var im = ivImg(); if (!im) return; IV.s = s; IV.tx = tx; IV.ty = ty;
+    im.style.transition = anim ? 'transform .22s ease' : 'none'; im.style.transform = s === 1 && !tx && !ty ? '' : 'translate(' + tx + 'px,' + ty + 'px) scale(' + s + ')';
+    IV.w.classList.toggle('zoom', s > 1);
+  }
+  function ivClamp(anim) { // 拡大中は写真の端が画面の内側に入らないように戻す
+    var im = ivImg(); if (!im) return; var s = Math.min(4, Math.max(1, IV.s)); if (s < 1.05) return ivZoom(1, 0, 0, anim);
+    var W = im.clientWidth * s, H = im.clientHeight * s, mx = Math.max(0, (W - window.innerWidth) / 2), my = Math.max(0, (H - window.innerHeight) / 2);
+    ivZoom(s, Math.max(-mx, Math.min(mx, IV.tx)), Math.max(-my, Math.min(my, IV.ty)), anim);
+  }
+  function ivGo(i, anim) {
+    if (!IV) return; i = Math.max(0, Math.min(IV.n - 1, i)); if (i !== IV.i) ivZoom(1, 0, 0, false); IV.i = i;
+    var t = IV.w.querySelector('.bxivt'); t.style.transition = anim === false ? 'none' : 'transform .26s cubic-bezier(.2,.8,.2,1)'; t.style.transform = 'translateX(' + (-i * 100) + '%)';
+    var c = IV.w.querySelector('.bxivc'); if (c) c.textContent = (i + 1) + ' / ' + IV.n;
+    IV.w.classList.toggle('first', i === 0); IV.w.classList.toggle('last', i === IV.n - 1);
+  }
+  var G = null, lastTap = 0, tapT = null;
+  function dist(t) { return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); }
+  function mid(t) { return { x: (t[0].clientX + t[1].clientX) / 2 - window.innerWidth / 2, y: (t[0].clientY + t[1].clientY) / 2 - window.innerHeight / 2 }; }
+  document.addEventListener('touchstart', function (ev) {
+    if (!IV || !ev.target.closest('#bxiv') || ev.target.closest('button')) return; var T = ev.touches;
+    if (T.length === 2) { G = { pinch: true, d0: dist(T), m0: mid(T), s0: IV.s, tx0: IV.tx, ty0: IV.ty }; return; }
+    if (T.length === 1) G = { x: T[0].clientX, y: T[0].clientY, t: Date.now(), ax: '', tx0: IV.tx, ty0: IV.ty };
+  }, { passive: true });
+  document.addEventListener('touchmove', function (ev) {
+    if (!IV || !G || !ev.target.closest('#bxiv')) return; ev.preventDefault(); var T = ev.touches;
+    if (G.pinch) { if (T.length < 2) return; var k = dist(T) / G.d0, s = Math.max(.8, Math.min(5, G.s0 * k)), m = mid(T), r = s / G.s0; ivZoom(s, m.x - (G.m0.x - G.tx0) * r, m.y - (G.m0.y - G.ty0) * r, false); return; }
+    var dx = T[0].clientX - G.x, dy = T[0].clientY - G.y;
+    if (!G.ax) { if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return; G.ax = IV.s > 1 ? 'pan' : Math.abs(dx) > Math.abs(dy) ? 'x' : 'y'; }
+    if (G.ax === 'pan') { ivZoom(IV.s, G.tx0 + dx, G.ty0 + dy, false); return; }
+    if (G.ax === 'x') { var edge = (IV.i === 0 && dx > 0) || (IV.i === IV.n - 1 && dx < 0), t = IV.w.querySelector('.bxivt'); t.style.transition = 'none'; t.style.transform = 'translateX(calc(' + (-IV.i * 100) + '% + ' + (edge ? dx / 3 : dx) + 'px))'; return; }
+    var im = ivImg(); im.style.transition = 'none'; im.style.transform = 'translate(' + dx * .4 + 'px,' + dy + 'px) scale(' + (1 - Math.min(.15, Math.abs(dy) / 2000)) + ')';
+    IV.w.style.setProperty('--ivo', String(Math.max(0, 1 - Math.abs(dy) / 360)));
+  }, { passive: false });
+  document.addEventListener('touchend', function (ev) {
+    if (!IV || !G) return; var g = G; if (ev.touches.length) { if (g.pinch && ev.touches.length === 1) G = { x: ev.touches[0].clientX, y: ev.touches[0].clientY, t: Date.now(), ax: IV.s > 1 ? 'pan' : 'none', tx0: IV.tx, ty0: IV.ty }; return; } G = null;
+    if (g.pinch) { ivClamp(true); return; }
+    var c = ev.changedTouches[0], dx = c.clientX - g.x, dy = c.clientY - g.y, dt = Date.now() - g.t;
+    if (g.ax === 'pan') { ivClamp(true); return; }
+    if (g.ax === 'x') { var v = Math.abs(dx) / dt; ivGo(IV.i + ((Math.abs(dx) > window.innerWidth * .2 || v > .5) ? (dx < 0 ? 1 : -1) : 0)); return; }
+    if (g.ax === 'y') { if (Math.abs(dy) > 110 || Math.abs(dy) / dt > .6) { var im = ivImg(); im.style.transition = 'transform .2s ease'; im.style.transform = 'translateY(' + (dy > 0 ? 1 : -1) * window.innerHeight + 'px)'; ivClose(); } else { IV.w.style.removeProperty('--ivo'); ivZoom(1, 0, 0, true); } return; }
+    if (g.ax || dt > 300) return;
+    // タップ：2回目なら拡大／元に戻す、1回だけなら上の✕と枚数を出し入れ
+    ev.preventDefault();
+    if (Date.now() - lastTap < 280) { clearTimeout(tapT); lastTap = 0; if (IV.s > 1) ivZoom(1, 0, 0, true); else { var px = c.clientX - window.innerWidth / 2, py = c.clientY - window.innerHeight / 2; IV.s = 2.5; IV.tx = -px * 1.5; IV.ty = -py * 1.5; ivClamp(true); } return; }
+    lastTap = Date.now(); tapT = setTimeout(function () { if (IV) IV.w.classList.toggle('bare'); }, 280);
+  }, { passive: false });
+  document.addEventListener('keydown', function (ev) { if (!IV) return; if (ev.key === 'Escape') ivClose(); else if (ev.key === 'ArrowLeft') ivGo(IV.i - 1); else if (ev.key === 'ArrowRight') ivGo(IV.i + 1); });
+  document.addEventListener('dblclick', function (ev) { if (!IV || !ev.target.closest('#bxiv img') || 'ontouchstart' in window) return; if (IV.s > 1) ivZoom(1, 0, 0, true); else { IV.s = 2.5; IV.tx = -(ev.clientX - window.innerWidth / 2) * 1.5; IV.ty = -(ev.clientY - window.innerHeight / 2) * 1.5; ivClamp(true); } });
+
   // ---- 操作 ----
   document.addEventListener('click', function (ev) {
     var t = ev.target; if (!t.closest) return; var b, D = window.DB;
     if ((b = t.closest('[data-bxt]'))) { var i0 = TABS.map(function (z) { return z[0]; }), a0 = i0.indexOf(cur()), a1 = i0.indexOf(b.dataset.bxt); setTab(b.dataset.bxt, a1 - a0); return; }
     if ((b = t.closest('[data-bxnew]'))) { openNew(); return; }
     if (t.closest('[data-bxnew-x]')) { closeNew(); return; }
+    if ((b = t.closest('[data-bxi]'))) { var ims = [].slice.call(b.parentNode.querySelectorAll('[data-bxi]')).map(function (z) { return z.dataset.bxi; }); ivOpen(ims, ims.indexOf(b.dataset.bxi)); return; }
+    if (t.closest('[data-bxiv-x]')) { ivClose(); return; }
+    if ((b = t.closest('[data-bxiv-go]'))) { ivGo(IV.i + +b.dataset.bxivGo); return; }
+    if (IV && !('ontouchstart' in window) && t.closest('#bxiv') && !t.closest('img')) { ivClose(); return; }
     if (t.closest('[data-bxpost]')) { post(); return; }
     if (t.closest('[data-bxrec]')) { sheet('募集するロール', ROLES.map(function (r) { return { k: r, n: r, on: NEW.roles.indexOf(r) >= 0 }; }), true, function (sel) { NEW.roles = ROLES.filter(function (r) { return sel.indexOf(r) >= 0; }); drawNew(); }); return; }
     if (t.closest('[data-bxkind]')) { sheet('投稿する場所', KIND.map(function (z) { return { k: z[0], n: z[1], on: z[0] === NEW.tab }; }), false, function (sel) { NEW.tab = sel[0]; if (NEW.tab !== 'idea') NEW.roles = []; drawNew(); }); return; }
@@ -774,7 +844,7 @@ function annPop(a) {
   }
   // 投稿の画面：左端から右へスワイプで戻る（指についてくる）
   var eg = null;
-  document.addEventListener('touchstart', function (ev) { var w = document.getElementById('bxth'); if (!w || ev.touches.length !== 1 || ev.touches[0].clientX > 28 || document.getElementById('bxnew')) return; eg = { x: ev.touches[0].clientX, y: ev.touches[0].clientY, on: false, w: w }; }, { passive: true });
+  document.addEventListener('touchstart', function (ev) { var w = document.getElementById('bxth'); if (!w || ev.touches.length !== 1 || ev.touches[0].clientX > 28 || document.getElementById('bxnew') || document.getElementById('bxiv')) return; eg = { x: ev.touches[0].clientX, y: ev.touches[0].clientY, on: false, w: w }; }, { passive: true });
   document.addEventListener('touchmove', function (ev) {
     if (!eg) return; var dx = ev.touches[0].clientX - eg.x, dy = ev.touches[0].clientY - eg.y;
     if (!eg.on) { if (Math.abs(dy) > Math.abs(dx)) { eg = null; return; } if (dx < 8) return; eg.on = true; eg.w.classList.add('drag'); }
