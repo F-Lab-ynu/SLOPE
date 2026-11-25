@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '9ba965c947', FILE = 'index.ver';
+  var VER = '5c25696ead', FILE = 'index.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -139,7 +139,7 @@ body.desk #stage{box-shadow:0 0 0 8px var(--bg),0 0 0 9px var(--n18),0 30px 80px
 .tv iframe{background:transparent}
 
 /* mode switch (member <-> admin), same control in both pages */
-html,body{overscroll-behavior:none}
+html,body{overscroll-behavior:none;overflow-x:hidden}
 .msw{position:relative;width:44px;height:26px;border-radius:13px;border:0;padding:0;background:var(--n22);cursor:pointer;flex:none;transition:background .16s}
 .msw i{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--fg);box-shadow:0 1px 3px rgba(0,0,0,.35);transition:transform .16s}
 .msw.on{background:#2563EB}
@@ -882,6 +882,23 @@ function memberExtras(v) {
 }
 
 // スマホ：ピンチで画面全体が拡大・縮小しないようにする
+// スマホ：画面の左右端から始まるスワイプで iOS の「戻る／進む」が動いて画面が横にずれるのを止める
+// （touchstart を止めるとタップも消えるので、動かさずに離したときはその場所をタップしたことにする）
+(function () {
+  var E = 18, st = null;
+  document.addEventListener('touchstart', function (ev) {
+    st = null; if (ev.touches.length !== 1) return; var t = ev.touches[0];
+    if (t.clientX > E && t.clientX < window.innerWidth - E) return;
+    ev.preventDefault(); st = { x: t.clientX, y: t.clientY, el: ev.target, t: Date.now() };
+  }, { passive: false, capture: true });
+  document.addEventListener('touchend', function (ev) {
+    if (!st) return; var g = st, c = ev.changedTouches[0]; st = null;
+    if (Math.abs(c.clientX - g.x) > 10 || Math.abs(c.clientY - g.y) > 10 || Date.now() - g.t > 500) return;
+    var el = document.elementFromPoint(c.clientX, c.clientY) || g.el;
+    if (/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) el.focus();
+    el.click ? el.click() : el.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: c.clientX, clientY: c.clientY }));
+  }, { capture: true });
+})();
 document.addEventListener('touchmove', function (e) { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
 document.addEventListener('gesturestart', function (e) { e.preventDefault(); }, { passive: false });
 document.addEventListener('gesturechange', function (e) { e.preventDefault(); }, { passive: false });

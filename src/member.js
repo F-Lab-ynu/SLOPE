@@ -414,6 +414,23 @@ function memberExtras(v) {
 }
 
 // スマホ：ピンチで画面全体が拡大・縮小しないようにする
+// スマホ：画面の左右端から始まるスワイプで iOS の「戻る／進む」が動いて画面が横にずれるのを止める
+// （touchstart を止めるとタップも消えるので、動かさずに離したときはその場所をタップしたことにする）
+(function () {
+  var E = 18, st = null;
+  document.addEventListener('touchstart', function (ev) {
+    st = null; if (ev.touches.length !== 1) return; var t = ev.touches[0];
+    if (t.clientX > E && t.clientX < window.innerWidth - E) return;
+    ev.preventDefault(); st = { x: t.clientX, y: t.clientY, el: ev.target, t: Date.now() };
+  }, { passive: false, capture: true });
+  document.addEventListener('touchend', function (ev) {
+    if (!st) return; var g = st, c = ev.changedTouches[0]; st = null;
+    if (Math.abs(c.clientX - g.x) > 10 || Math.abs(c.clientY - g.y) > 10 || Date.now() - g.t > 500) return;
+    var el = document.elementFromPoint(c.clientX, c.clientY) || g.el;
+    if (/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) el.focus();
+    el.click ? el.click() : el.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: c.clientX, clientY: c.clientY }));
+  }, { capture: true });
+})();
 document.addEventListener('touchmove', function (e) { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
 document.addEventListener('gesturestart', function (e) { e.preventDefault(); }, { passive: false });
 document.addEventListener('gesturechange', function (e) { e.preventDefault(); }, { passive: false });
