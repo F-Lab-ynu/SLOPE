@@ -675,6 +675,7 @@ function stkPaint() {
   };
   // スマホ：開いた付箋は下から出る入力の枠に（キーボードの上に付く）。画面の付箋は小さいまま
   l.innerHTML = here.map(function (s) { return one(s); }).join('') + '<div class="stkac" id="stkac" hidden></div>';
+  [].forEach.call(l.querySelectorAll('.stk'), function (c) { var W = l.clientWidth, H = l.clientHeight, t = parseFloat(c.style.top) || 0, x = parseFloat(c.style.left) || 0; if (t + c.offsetHeight > H) c.style.top = Math.max(0, H - c.offsetHeight) + 'px'; if (x + c.offsetWidth > W) c.style.left = Math.max(0, W - c.offsetWidth) + 'px'; });
   if (keep && keep.id) { var el = document.getElementById(keep.id); if (el) { el.value = keep.v; el.focus(); try { el.setSelectionRange(keep.s, keep.s); } catch (er) {} } }
   var add = document.querySelector('#view .top .stkadd'); if (!add) { var tp = document.querySelector('#view .top'); if (tp) tp.insertAdjacentHTML('beforeend', '<button class="ib stkadd" data-stk-new title="付箋を貼る（画面を右クリックでも）" aria-label="付箋を貼る">' + STKI + '</button>'); }
 }
@@ -743,8 +744,9 @@ document.addEventListener('pointerdown', function (e) {
 }, true);
 function sdFrame() {
   SDF = 0; var d = SD; if (!d) return;
-  if (d.rz) { var lw = document.getElementById('stkl'), mw = lw ? lw.clientWidth - 16 : 520; d.el.style.width = Math.max(200, Math.min(520, mw, d.w0 + d.x - d.x0)) + 'px'; d.el.style.height = Math.max(120, Math.min(640, d.h0 + d.y - d.y0)) + 'px'; d.el.style.setProperty('max-height', 'none', 'important'); return; }
-  d.el.style.transform = 'translate3d(' + (d.x - d.x0) + 'px,' + (d.y - d.y0) + 'px,0)';
+  if (d.rz) { var lw = document.getElementById('stkl'), mw = lw ? lw.clientWidth - 16 : 520, mh = lw ? lw.clientHeight - (parseFloat(d.el.style.top) || 0) - 4 : 640; d.el.style.width = Math.max(200, Math.min(520, mw, d.w0 + d.x - d.x0)) + 'px'; d.el.style.height = Math.max(120, Math.min(640, mh, d.h0 + d.y - d.y0)) + 'px'; d.el.style.setProperty('max-height', 'none', 'important'); return; }
+  var L = document.getElementById('stkl'), dx = d.x - d.x0, dy = d.y - d.y0; if (L) { dx = Math.max(-d.l0, Math.min(L.clientWidth - d.el.offsetWidth - d.l0, dx)); dy = Math.max(-d.t0, Math.min(L.clientHeight - d.el.offsetHeight - d.t0, dy)); }
+  d.el.style.transform = 'translate3d(' + dx + 'px,' + dy + 'px,0)';
 }
 document.addEventListener('pointermove', function (e) {
   if (!SD || e.pointerId !== SD.pid) return; SD.x = e.clientX; SD.y = e.clientY;
@@ -756,7 +758,7 @@ function sdEnd(e) {
   if (!d.moved) return; d.el._moved = true;
   var l = document.getElementById('stkl'), s = STK.list.filter(function (x) { return x.id === d.id; })[0]; if (!s || !l) return;
   if (d.rz) { s.w = parseFloat(d.el.style.width); s.h = parseFloat(d.el.style.height); sb.from('stickies').update({ w: s.w, h: s.h }).eq('id', s.id).then(function () {}); return; }
-  var nl = d.l0 + d.x - d.x0, nt = d.t0 + d.y - d.y0; d.el.style.transform = ''; d.el.style.left = nl + 'px'; d.el.style.top = nt + 'px';
+  var nl = Math.max(0, Math.min(l.clientWidth - d.el.offsetWidth, d.l0 + d.x - d.x0)), nt = Math.max(0, Math.min(l.clientHeight - d.el.offsetHeight, d.t0 + d.y - d.y0)); d.el.style.transform = ''; d.el.style.left = nl + 'px'; d.el.style.top = nt + 'px';
   s.x = Math.max(0, Math.min(1, nl / l.clientWidth)); s.y = Math.max(0, Math.min(1, nt / l.clientHeight));
   sb.from('stickies').update({ x: s.x, y: s.y }).eq('id', s.id).then(function () {});
 }

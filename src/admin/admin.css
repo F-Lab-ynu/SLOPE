@@ -1942,7 +1942,7 @@ button.evst[aria-expanded="true"] svg{transform:none}
 .grpl{max-height:280px;overflow:auto;display:flex;flex-direction:column;margin-top:6px}
 .grpl .tpi{cursor:pointer}.grpl .tpn{flex:1}
 /* 付箋 */
-#stkl{position:absolute;z-index:40;pointer-events:none}
+#stkl{position:absolute;z-index:40;pointer-events:none;overflow:hidden}
 .stk{position:absolute;pointer-events:auto}
 .stk.mini{width:30px;height:30px;border:0;border-radius:8px 8px 8px 2px;background:#FDE68A;color:#78350F;font:inherit;font-size:12px;font-weight:700;box-shadow:0 2px 6px rgba(120,53,15,.25);cursor:grab;display:flex;align-items:center;justify-content:center;padding:0;transition:transform .12s}
 .stk.mini:hover{transform:scale(1.1)}
