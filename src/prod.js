@@ -647,7 +647,7 @@ function stkMentions(text) { // 本文から @名前・@グループ を拾う
   return ids.filter(function (x, i) { return ids.indexOf(x) === i; });
 }
 function stkHL(text) { var h = esc(String(text).replace(/＠/g, '@')); var names = grpAll().map(function (g) { return g.name; }).concat(S.members.map(function (m) { return m.name; })).sort(function (a, b) { return b.length - a.length; }); names.forEach(function (n) { h = h.split('@' + esc(n)).join('<b class="stkat">@' + esc(n) + '</b>'); }); return linkify(h.replace(/&lt;b class=&quot;stkat&quot;&gt;/g, '')).replace(/\n/g, '<br>'); }
-function stkLayer() { var l = document.getElementById('stkl'); if (!l) { l = document.createElement('div'); l.id = 'stkl'; document.body.appendChild(l); } var v = document.getElementById('view'); if (v) { var r = v.getBoundingClientRect(); l.style.left = r.left + 'px'; l.style.top = r.top + 'px'; l.style.width = r.width + 'px'; l.style.height = r.height + 'px'; } return l; }
+function stkLayer() { var l = document.getElementById('stkl'); if (!l) { l = document.createElement('div'); l.id = 'stkl'; document.body.appendChild(l); } var v = document.getElementById('view'); if (v) { var r = v.getBoundingClientRect(); l.style.left = (r.left + window.scrollX) + 'px'; l.style.top = (r.top + window.scrollY) + 'px'; l.style.width = r.width + 'px'; l.style.height = r.height + 'px'; } return l; }
 function stkPaint() {
   if (!SYNC.ready || SD) return; var l = stkLayer(), here = STK.list.filter(function (s) { return s.place === stkPlace() && stkLeft(s) > 0; });
   var keep = document.activeElement && document.activeElement.closest && document.activeElement.closest('#stkl, #stksh') ? { id: document.activeElement.id, v: document.activeElement.value, s: document.activeElement.selectionStart } : null;
@@ -698,9 +698,8 @@ function stkSaveBody(id, text) {
   s.body = text; s.mentions = all; s.updated_at = new Date().toISOString();
   sb.from('stickies').update({ body: text, mentions: all, updated_at: s.updated_at }).eq('id', id).then(function (r) { if (r.error) toast('付箋を保存できませんでした'); });
 }
-function stkClose(id) { // 中身のない付箋は閉じたら消す
+function stkClose(id) { // 閉じる（中身がなくても消さない。消すのは「剥がす」だけ）
   var s = STK.list.filter(function (x) { return x.id === id; })[0]; STK.open = null;
-  if (s && !s.body.trim() && !STK.msgs.some(function (m) { return m.sticky_id === id; })) { STK.list = STK.list.filter(function (x) { return x !== s; }); sb.from('stickies').delete().eq('id', id).then(function () {}); }
   stkPaint();
 }
 function stkGo(id) { // 通知から：その画面へ行って開く
@@ -865,13 +864,3 @@ document.addEventListener('pointerdown', function (e) {
   stkClose(id);
 }, true);
 
-// スマホ：付箋に書き始めたとき（キーボードが出るとき）だけ、下の方の付箋を上に寄せる。書き終われば元の場所へ
-document.addEventListener('focusin', function (e) {
-  if (window.innerWidth > 760 || !e.target.closest) return; var c = e.target.closest('#stkl .stk.card'); if (!c || c.dataset.lift) return;
-  var l = document.getElementById('stkl'), lim = window.innerHeight * 0.42, r = c.getBoundingClientRect();
-  if (r.top + Math.min(r.height, 200) > lim) { c.dataset.lift = c.style.top; c.style.top = '8px'; }
-});
-document.addEventListener('focusout', function (e) {
-  if (!e.target.closest) return; var c = e.target.closest('#stkl .stk.card'); if (!c || c.dataset.lift == null) return;
-  setTimeout(function () { if (c.contains(document.activeElement)) return; c.style.top = c.dataset.lift; delete c.dataset.lift; }, 0);
-});

@@ -1941,7 +1941,7 @@ button.evst[aria-expanded="true"] svg{transform:none}
 .grpl{max-height:280px;overflow:auto;display:flex;flex-direction:column;margin-top:6px}
 .grpl .tpi{cursor:pointer}.grpl .tpn{flex:1}
 /* 付箋 */
-#stkl{position:fixed;z-index:40;pointer-events:none}
+#stkl{position:absolute;z-index:40;pointer-events:none}
 .stk{position:absolute;pointer-events:auto}
 .stk.mini{width:30px;height:30px;border:0;border-radius:8px 8px 8px 2px;background:#FDE68A;color:#78350F;font:inherit;font-size:12px;font-weight:700;box-shadow:0 2px 6px rgba(120,53,15,.25);cursor:grab;display:flex;align-items:center;justify-content:center;padding:0;transition:transform .12s}
 .stk.mini:hover{transform:scale(1.1)}
@@ -2051,7 +2051,7 @@ body.stkdrag,body.stkdrag *{user-select:none !important;-webkit-user-select:none
 
 /* スマホ：付箋はその場で開く。キーボードに隠れない高さに収め、文字は拡大されない大きさ */
 @media (max-width:760px){
-  .stk.card{max-height:min(38vh,320px) !important;transition:top .18s ease,left .18s ease}
+  .stk.card{max-height:min(38vh,320px) !important}
   .stk.card .stkb,.stk.card .stkr input{font-size:16px}
   .stk.card .stkrz{display:none}
 }
