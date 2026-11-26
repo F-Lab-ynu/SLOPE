@@ -1133,3 +1133,10 @@ function annPop(a) {
     else { g.m.style.transform = ''; if (u) { u.style.transform = 'translateX(' + (-W * .3) + 'px)'; u.style.opacity = '.6'; } setTimeout(function () { g.m.style.transition = ''; g.m.classList.remove('medrag'); if (u) { show(u, false); u.style.transition = ''; } }, 230); }
   }, { passive: true });
 })();
+
+// プッシュ通知から：?dm=<相手> でその会話を開く
+(function () {
+  function go(search) { var m = /[?&]dm=([\w-]+)/.exec(search || ''); if (!m) return; var uid = m[1], n = 0; var t = setInterval(function () { if (window.DB && window.DB.ready && window.__dmOpen && window.DB.profiles().some(function (p) { return p.id === uid; })) { clearInterval(t); window.__dmOpen(uid); } else if (++n > 80) clearInterval(t); }, 250); }
+  if (/[?&]dm=/.test(location.search)) { var s0 = location.search; history.replaceState(null, '', location.pathname); go(s0); }
+  if (navigator.serviceWorker) navigator.serviceWorker.addEventListener('message', function (e) { if (e.data && e.data.slopeGo) go(e.data.slopeGo); });
+})();

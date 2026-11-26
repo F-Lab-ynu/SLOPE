@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = 'e898fcde40', FILE = 'index.ver';
+  var VER = 'fb92d0e717', FILE = 'index.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -1618,6 +1618,13 @@ function annPop(a) {
     if (dx > W * .3) { g.m.style.transform = 'translateX(' + W + 'px)'; if (u) { u.style.transform = 'translateX(0)'; u.style.opacity = '1'; } setTimeout(function () { g.m.classList.remove('medrag'); goBack(g.m); }, 220); }
     else { g.m.style.transform = ''; if (u) { u.style.transform = 'translateX(' + (-W * .3) + 'px)'; u.style.opacity = '.6'; } setTimeout(function () { g.m.style.transition = ''; g.m.classList.remove('medrag'); if (u) { show(u, false); u.style.transition = ''; } }, 230); }
   }, { passive: true });
+})();
+
+// プッシュ通知から：?dm=<相手> でその会話を開く
+(function () {
+  function go(search) { var m = /[?&]dm=([\w-]+)/.exec(search || ''); if (!m) return; var uid = m[1], n = 0; var t = setInterval(function () { if (window.DB && window.DB.ready && window.__dmOpen && window.DB.profiles().some(function (p) { return p.id === uid; })) { clearInterval(t); window.__dmOpen(uid); } else if (++n > 80) clearInterval(t); }, 250); }
+  if (/[?&]dm=/.test(location.search)) { var s0 = location.search; history.replaceState(null, '', location.pathname); go(s0); }
+  if (navigator.serviceWorker) navigator.serviceWorker.addEventListener('message', function (e) { if (e.data && e.data.slopeGo) go(e.data.slopeGo); });
 })();
 
 // PC の左下アカウント表示を本人の情報に

@@ -605,23 +605,37 @@ function stkMentions(text) { // 本文から @名前・@グループ を拾う
 function stkHL(text) { var h = esc(text); var names = grpAll().map(function (g) { return g.name; }).concat(S.members.map(function (m) { return m.name; })).sort(function (a, b) { return b.length - a.length; }); names.forEach(function (n) { h = h.split('@' + esc(n)).join('<b class="stkat">@' + esc(n) + '</b>'); }); return linkify(h.replace(/&lt;b class=&quot;stkat&quot;&gt;/g, '')).replace(/\n/g, '<br>'); }
 function stkLayer() { var l = document.getElementById('stkl'); if (!l) { l = document.createElement('div'); l.id = 'stkl'; document.body.appendChild(l); } var v = document.getElementById('view'); if (v) { var r = v.getBoundingClientRect(); l.style.left = r.left + 'px'; l.style.top = r.top + 'px'; l.style.width = r.width + 'px'; l.style.height = r.height + 'px'; } return l; }
 function stkPaint() {
-  if (!SYNC.ready) return; var l = stkLayer(), here = STK.list.filter(function (s) { return s.place === stkPlace() && stkLeft(s) > 0; });
+  if (!SYNC.ready || SD) return; var l = stkLayer(), here = STK.list.filter(function (s) { return s.place === stkPlace() && stkLeft(s) > 0; });
   var keep = document.activeElement && document.activeElement.closest && document.activeElement.closest('#stkl') ? { id: document.activeElement.id, v: document.activeElement.value, s: document.activeElement.selectionStart } : null;
   l.innerHTML = here.map(function (s) {
     var W = l.clientWidth, H = l.clientHeight, open = STK.open === s.id, ms = STK.msgs.filter(function (m) { return m.sticky_id === s.id; }), left = stkLeft(s), mine = s.author === S.me;
     var x = Math.max(4, Math.min(W - (open ? 264 : 36), s.x * W)), y = Math.max(4, Math.min(H - (open ? 120 : 36), s.y * H));
-    if (!open) return '<button class="stk mini' + (left < 1 ? ' old' : '') + '" data-stk="' + s.id + '" style="left:' + x + 'px;top:' + y + 'px" title="' + esc((s.body || '付箋').slice(0, 60)) + '">' + esc(initials(member(s.author) ? member(s.author).name : '?')) + (ms.length ? '<i>' + ms.length + '</i>' : '') + '</button>';
+    var cw = Math.max(200, Math.min(520, s.w || 260)), ch = s.h ? Math.max(120, Math.min(640, s.h)) : 0; if (open) { x = Math.max(4, Math.min(W - cw - 4, s.x * W)); }
+    if (!open) return '<button class="stk mini c-' + (s.color || 'y') + (left < 1 ? ' old' : '') + '" data-stk="' + s.id + '" style="left:' + x + 'px;top:' + y + 'px" title="' + esc((s.body || '付箋').slice(0, 60)) + '">' + esc(initials(member(s.author) ? member(s.author).name : '?')) + (ms.length ? '<i>' + ms.length + '</i>' : '') + '</button>';
     var who = s.mentions.filter(member).map(function (id) { return member(id).name; });
-    return '<div class="stk card' + (left < 1 ? ' old' : '') + '" data-stk="' + s.id + '" style="left:' + x + 'px;top:' + y + 'px">' +
+    return '<div class="stk card c-' + (s.color || 'y') + (left < 1 ? ' old' : '') + '" data-stk="' + s.id + '" style="left:' + x + 'px;top:' + y + 'px;width:' + cw + 'px' + (ch ? ';height:' + ch + 'px;max-height:none' : '') + '">' +
       '<div class="stkh" data-stk-drag="' + s.id + '">' + av(s.author) + '<span class="stkt">' + esc(member(s.author) ? member(s.author).name : '') + '<small>' + (left < 1 ? 'まもなく消えます' : 'あと' + Math.ceil(left) + '日') + (s.everyone ? ' · 運営全員' : '') + '</small></span><button class="ib" data-stk-menu="' + s.id + '" aria-label="その他">' + ic('more') + '</button><button class="ib" data-stk-min="' + s.id + '" aria-label="小さくする">' + ic('chev') + '</button></div>' +
       (mine && !ms.length ? '<textarea class="stkb" id="stkb-' + s.id + '" data-stk-body="' + s.id + '" placeholder="メモ（@名前・@グループで呼ぶ）" rows="2">' + esc(s.body) + '</textarea>' : '<div class="stkbt">' + (s.body ? stkHL(s.body) : '<span class="dim">（メモなし）</span>') + '</div>') +
       (ms.length ? '<div class="stkms">' + ms.map(function (m) { return '<div class="stkm"><b>' + esc(member(m.author) ? member(m.author).name : '') + '</b>' + stkHL(m.body) + '</div>'; }).join('') + '</div>' : '') +
       (mine && !ms.length ? '' : '<div class="stkr"><input id="stkr-' + s.id + '" data-stk-rep="' + s.id + '" placeholder="返信（Enter）" autocomplete="off"></div>') +
-      (who.length ? '<div class="stkw">' + who.slice(0, 4).map(esc).join('・') + (who.length > 4 ? ' ほか' + (who.length - 4) + '人' : '') + '</div>' : '') + '</div>';
+      (who.length ? '<div class="stkw">' + who.slice(0, 4).map(esc).join('・') + (who.length > 4 ? ' ほか' + (who.length - 4) + '人' : '') + '</div>' : '') + '<i class="stkrz" data-stk-rz="' + s.id + '" title="ドラッグで大きさを変える"></i></div>';
   }).join('') + '<div class="stkac" id="stkac" hidden></div>';
   if (keep && keep.id) { var el = document.getElementById(keep.id); if (el) { el.value = keep.v; el.focus(); try { el.setSelectionRange(keep.s, keep.s); } catch (er) {} } }
   var add = document.querySelector('#view .top .stkadd'); if (!add) { var tp = document.querySelector('#view .top'); if (tp) tp.insertAdjacentHTML('beforeend', '<button class="ib stkadd" data-stk-new title="付箋を貼る（画面を右クリックでも）" aria-label="付箋を貼る">' + STKI + '</button>'); }
 }
+var STKC = [['y', '黄色'], ['p', 'ピンク'], ['b', '青'], ['g', '緑'], ['v', '紫'], ['w', '白']];
+function stkMenuItems(s) {
+  var fn = S.view === 'projects' && S.fcur && task(S.fcur) && !isFolder(task(S.fcur)) ? task(S.fcur) : null, it = [];
+  STKC.forEach(function (c) { it.push([((s.color || 'y') === c[0] ? '✓ ' : '　 ') + c[1], function () { s.color = c[0]; stkPaint(); sb.from('stickies').update({ color: c[0] }).eq('id', s.id).then(function () {}); }]); });
+  it.push('sep', [s.everyone ? '呼んだ人だけに見せる' : '運営全員に見せる', function () { s.everyone = !s.everyone; sb.from('stickies').update({ everyone: s.everyone }).eq('id', s.id).then(function () {}); stkPaint(); }, false, s.author === S.me ? '' : '貼った人だけ']);
+  if (s.w || s.h) it.push(['大きさを元に戻す', function () { s.w = null; s.h = null; stkPaint(); sb.from('stickies').update({ w: null, h: null }).eq('id', s.id).then(function () {}); }]);
+  if (fn) it.push(['このファイルのメモに移す', function () { var ms = STK.msgs.filter(function (m) { return m.sticky_id === s.id; }); var html = '<blockquote>' + [s.body].concat(ms.map(function (m) { return (member(m.author) ? member(m.author).name : '') + '：' + m.body; })).filter(Boolean).map(esc).join('<br>') + '</blockquote>'; snap(); fn.memo = (fn.memo || '') + html; save(); STK.list = STK.list.filter(function (x) { return x !== s; }); STK.open = null; sb.from('stickies').delete().eq('id', s.id).then(function () {}); render(); toast('メモに移しました'); }]);
+  if (s.author !== S.me) it.push(['メッセージで続ける', function () { S.view = 'dm'; DMA.sel = s.author; DMA.pick = false; save(); render(); }]);
+  it.push('sep', ['剥がす', function () { STK.list = STK.list.filter(function (x) { return x !== s; }); STK.open = null; sb.from('stickies').delete().eq('id', s.id).then(function (r2) { if (r2.error) toast('剥がせませんでした'); }); stkPaint(); }, true, s.author === S.me || isAdmin() ? '' : '貼った人だけ']);
+  return it;
+}
+// 付箋を右クリック：色・見せる人・大きさなど（ほかの右クリックより先に受ける）
+window.addEventListener('contextmenu', function (e) { var el = e.target.closest && e.target.closest('#stkl .stk'); if (!el || e.target.closest('textarea, input')) return; e.preventDefault(); e.stopImmediatePropagation(); var s = STK.list.filter(function (x) { return x.id === el.dataset.stk; })[0]; if (s) openMenu('付箋', stkMenuItems(s), e.clientX, e.clientY); }, true);
 var STKI = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v10l-6 6H5z"/><path d="M13 20v-6h6"/></svg>';
 async function stkNew(x, y) {
   var r = await sb.from('stickies').insert({ place: stkPlace(), label: stkLabel(), x: x, y: y, body: '' }).select().single();
@@ -652,14 +666,7 @@ document.addEventListener('click', function (e) {
   if ((b = t.closest('.stk.mini'))) { if (b._moved) { b._moved = false; return; } if (STK.open) stkClose(STK.open); STK.open = b.dataset.stk; stkPaint(); return; }
   if ((b = t.closest('[data-stk-min]'))) { var ta = document.getElementById('stkb-' + b.dataset.stkMin); if (ta) stkSaveBody(b.dataset.stkMin, ta.value); stkClose(b.dataset.stkMin); return; }
   if ((b = t.closest('[data-stk-ac]'))) { e.preventDefault(); stkAcPick(b.dataset.stkAc); return; }
-  if ((b = t.closest('[data-stk-menu]'))) {
-    var s = STK.list.filter(function (x) { return x.id === b.dataset.stkMenu; })[0]; if (!s) return; var r = b.getBoundingClientRect(), fn = S.view === 'projects' && S.fcur && task(S.fcur) && !isFolder(task(S.fcur)) ? task(S.fcur) : null;
-    var it = [[s.everyone ? '呼んだ人だけに見せる' : '運営全員に見せる', function () { s.everyone = !s.everyone; sb.from('stickies').update({ everyone: s.everyone }).eq('id', s.id).then(function () {}); stkPaint(); }, false, s.author === S.me ? '' : '貼った人だけ']];
-    if (fn) it.push(['このファイルのメモに移す', function () { var ms = STK.msgs.filter(function (m) { return m.sticky_id === s.id; }); var html = '<blockquote>' + [s.body].concat(ms.map(function (m) { return (member(m.author) ? member(m.author).name : '') + '：' + m.body; })).filter(Boolean).map(esc).join('<br>') + '</blockquote>'; snap(); fn.memo = (fn.memo || '') + html; save(); STK.list = STK.list.filter(function (x) { return x !== s; }); STK.open = null; sb.from('stickies').delete().eq('id', s.id).then(function () {}); render(); toast('メモに移しました'); }]);
-    if (s.author !== S.me) it.push(['メッセージで続ける', function () { S.view = 'dm'; DMA.sel = s.author; DMA.pick = false; save(); render(); }]);
-    it.push('sep', ['剥がす', function () { STK.list = STK.list.filter(function (x) { return x !== s; }); STK.open = null; sb.from('stickies').delete().eq('id', s.id).then(function (r2) { if (r2.error) toast('剥がせませんでした'); }); stkPaint(); }, true, s.author === S.me || isAdmin() ? '' : '貼った人だけ']);
-    openMenu('付箋', it, r.left, r.bottom + 4); return;
-  }
+  if ((b = t.closest('[data-stk-menu]'))) { var s = STK.list.filter(function (x) { return x.id === b.dataset.stkMenu; })[0]; if (!s) return; var r = b.getBoundingClientRect(); openMenu('付箋', stkMenuItems(s), r.left, r.bottom + 4); return; }
 }, true);
 // 画面の何もない所を右クリック → ここに付箋
 document.addEventListener('contextmenu', function (e) {
@@ -670,16 +677,21 @@ document.addEventListener('contextmenu', function (e) {
 // ドラッグで動かす（小さい付箋・開いた付箋の上の帯）
 var SD = null;
 document.addEventListener('pointerdown', function (e) {
+  var rz = e.target.closest && e.target.closest('[data-stk-rz]');
+  if (rz && e.button === 0) { e.preventDefault(); var c = rz.closest('.stk'), r0 = c.getBoundingClientRect(); SD = { el: c, id: c.dataset.stk, rz: true, w0: r0.width, h0: r0.height, x0: e.clientX, y0: e.clientY, moved: false }; document.body.classList.add('stkdrag'); return; }
   var h = e.target.closest && (e.target.closest('.stk.mini') || (e.target.closest('[data-stk-drag]') && !e.target.closest('button') ? e.target.closest('.stk') : null)); if (!h || e.button !== 0) return;
-  var r = h.getBoundingClientRect(); SD = { el: h, id: h.dataset.stk, dx: e.clientX - r.left, dy: e.clientY - r.top, x0: e.clientX, y0: e.clientY, moved: false };
+  e.preventDefault(); // 後ろの文字を選んでしまわないように
+  var r = h.getBoundingClientRect(); SD = { el: h, id: h.dataset.stk, dx: e.clientX - r.left, dy: e.clientY - r.top, x0: e.clientX, y0: e.clientY, moved: false }; document.body.classList.add('stkdrag');
 }, true);
 document.addEventListener('pointermove', function (e) {
   if (!SD) return; if (!SD.moved && Math.abs(e.clientX - SD.x0) + Math.abs(e.clientY - SD.y0) < 5) return; SD.moved = true; e.preventDefault();
+  if (SD.rz) { SD.el.style.width = Math.max(200, Math.min(520, SD.w0 + e.clientX - SD.x0)) + 'px'; SD.el.style.height = Math.max(120, Math.min(640, SD.h0 + e.clientY - SD.y0)) + 'px'; SD.el.style.maxHeight = 'none'; return; }
   var l = document.getElementById('stkl').getBoundingClientRect(); SD.el.style.left = (e.clientX - l.left - SD.dx) + 'px'; SD.el.style.top = (e.clientY - l.top - SD.dy) + 'px'; SD.el.classList.add('drag');
 });
 document.addEventListener('pointerup', function () {
-  if (!SD) return; var d = SD; SD = null; if (!d.moved) return; d.el._moved = true; d.el.classList.remove('drag');
+  if (!SD) return; var d = SD; SD = null; document.body.classList.remove('stkdrag'); if (!d.moved) return; d.el._moved = true; d.el.classList.remove('drag');
   var l = document.getElementById('stkl'), s = STK.list.filter(function (x) { return x.id === d.id; })[0]; if (!s || !l) return;
+  if (d.rz) { s.w = parseFloat(d.el.style.width); s.h = parseFloat(d.el.style.height); sb.from('stickies').update({ w: s.w, h: s.h }).eq('id', s.id).then(function () {}); return; }
   s.x = Math.max(0, Math.min(1, parseFloat(d.el.style.left) / l.clientWidth)); s.y = Math.max(0, Math.min(1, parseFloat(d.el.style.top) / l.clientHeight));
   sb.from('stickies').update({ x: s.x, y: s.y }).eq('id', s.id).then(function () {});
 });
@@ -726,3 +738,8 @@ new MutationObserver(function () {
   var r = m.getBoundingClientRect(); if (r.bottom > window.innerHeight - 8) m.style.top = Math.max(8, window.innerHeight - r.height - 8) + 'px';
 }).observe(document.body, { childList: true, subtree: true });
 document.addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('[data-stkhere]'); if (!b) return; e.stopImmediatePropagation(); e.preventDefault(); var m = document.getElementById('cm'), fx = +m.dataset.fx, fy = +m.dataset.fy; closeCM(); stkNew(fx, fy); }, true);
+
+// 通知（プッシュ）から：?go=sticky:<id> でその付箋へ
+function goFrom(search) { var m = /[?&]go=sticky:([\w-]+)/.exec(search || ''); if (!m) return; var id = m[1]; var t = function (n) { if (STK.ready) stkGo(id); else if (n < 40) setTimeout(function () { t(n + 1); }, 250); }; t(0); }
+if (/[?&]go=/.test(location.search)) { var GO0 = location.search; history.replaceState(null, '', location.pathname); var gw = setInterval(function () { if (SYNC.ready) { clearInterval(gw); goFrom(GO0); } }, 200); }
+if (navigator.serviceWorker) navigator.serviceWorker.addEventListener('message', function (e) { if (e.data && e.data.slopeGo) goFrom(e.data.slopeGo); });

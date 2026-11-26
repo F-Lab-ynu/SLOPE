@@ -1,5 +1,5 @@
 // プッシュ通知を送る。データベースから呼ばれる（合い言葉 x-push-key が要る）
-//  POST {to_id, title, body}   … その人の端末すべてに送る
+//  POST {to_id, title, body, url?}   … その人の端末すべてに送る（url は押したときに開く画面）
 //  POST {job: 'remind'}         … 明日の部内イベントに参加登録した人に前日のお知らせ
 import webpush from 'npm:web-push@3.6.7';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
@@ -37,5 +37,5 @@ Deno.serve(async (req) => {
     return Response.json({ sent: n });
   }
   if (!b.to_id) return new Response('bad request', { status: 400 });
-  return Response.json({ sent: await sendTo(b.to_id, b.title || 'SLOPE', b.body || '') });
+  return Response.json({ sent: await sendTo(b.to_id, b.title || 'SLOPE', b.body || '', typeof b.url === 'string' && /^\.\/[\w.?=:&%-]*$/.test(b.url) ? b.url : './') }); // 押したときに開く画面（同じサイトの中だけ）
 });

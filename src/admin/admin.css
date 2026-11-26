@@ -1970,3 +1970,20 @@ button.evst[aria-expanded="true"] svg{transform:none}
 .stkac small{color:var(--muted);font-size:11px;margin-left:auto}
 .top .stkadd{margin-left:4px;color:#B45309}
 .nr2.lk{cursor:pointer}.nr2.lk:hover{background:var(--hover)}
+
+/* 付箋：色・大きさ・ドラッグ中は文字を選ばない */
+body.stkdrag,body.stkdrag *{user-select:none !important;-webkit-user-select:none !important}
+.stk.card{position:absolute}
+.stk.card .stkms{flex:1}
+.stkrz{position:absolute;right:2px;bottom:2px;width:14px;height:14px;cursor:nwse-resize;background:linear-gradient(135deg,transparent 50%,rgba(146,64,14,.35) 50%,rgba(146,64,14,.35) 60%,transparent 60%,transparent 72%,rgba(146,64,14,.35) 72%,rgba(146,64,14,.35) 82%,transparent 82%)}
+.stk.c-p{--sb:#FCE7F3;--sl:#F9A8D4;--sm:#FBCFE8;--st:#9D174D}
+.stk.c-b{--sb:#DBEAFE;--sl:#93C5FD;--sm:#BFDBFE;--st:#1E40AF}
+.stk.c-g{--sb:#DCFCE7;--sl:#86EFAC;--sm:#BBF7D0;--st:#166534}
+.stk.c-v{--sb:#EDE9FE;--sl:#C4B5FD;--sm:#DDD6FE;--st:#5B21B6}
+.stk.c-w{--sb:#FFFFFF;--sl:#D1D5DB;--sm:#F3F4F6;--st:#374151}
+.stk.card:not(.c-y){background:var(--sb);border-color:var(--sl)}
+.stk.card:not(.c-y) .stkh,.stk.card:not(.c-y) .stkr,.stk.card:not(.c-y) .stkms{border-color:var(--sl)}
+.stk.card:not(.c-y) .stkt small,.stk.card:not(.c-y) .stkw,.stk.card:not(.c-y) .stkat{color:var(--st)}
+.stk.card:not(.c-y) .stkr input{border-color:var(--sl);background:rgba(255,255,255,.6)}
+.stk.mini:not(.c-y){background:var(--sm);color:var(--st);box-shadow:0 2px 6px rgba(0,0,0,.18)}
+.stk.card .stkb{flex:1}
