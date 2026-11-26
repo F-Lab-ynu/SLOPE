@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '3084748221', FILE = 'index.ver';
+  var VER = '7f6ac699c5', FILE = 'index.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -3469,7 +3469,7 @@ body.wide .bxfab{bottom:32px;right:32px}
 .bxrl button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
 .bxnt{flex:none;display:flex;align-items:center;gap:12px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--n12)}
 .bxpk{height:40px;padding:0 16px 0 12px;display:inline-flex;align-items:center;gap:8px;color:var(--fg);border:1px solid var(--n21);border-radius:20px;font-size:14px;font-weight:600;cursor:pointer}
-.bxpk svg{width:22px !important;height:22px !important;color:var(--ac)}
+.bxpk svg{width:22px !important;height:22px !important;color:var(--fg)}
 .bxpk.off{opacity:.35;cursor:default}
 .bxnt{overflow-x:auto;scrollbar-width:none;gap:8px !important;justify-content:space-between}.bxnt::-webkit-scrollbar{display:none}
 .bxpk.ico{width:40px;padding:0 !important;justify-content:center;border-radius:50%}
