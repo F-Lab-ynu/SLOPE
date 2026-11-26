@@ -164,7 +164,7 @@ function viewEvents () {
   var ok = can('notices');
   var row = function (c, st) {
     var pg = evInProg(c.id), fo = evFolder(c.id), att = (c.att || []).length, jn = evJoins(c);
-    var cnt = st === 'plan' ? '<span class="dim">—</span>' : st === 'pub' ? '登録 ' + jn : '出席 ' + att + (jn ? '<span class="muted"> / ' + jn + '</span>' : '');
+    var cnt = st === 'plan' ? '<span class="dim">—</span>' : st === 'pub' ? (jn ? '<button class="evjn" data-joinopen="' + c.id + '" title="参加登録した人">登録 ' + jn + '</button>' : '登録 0') : '出席 ' + att + (jn ? '<button class="evjn muted" data-joinopen="' + c.id + '" title="参加登録した人"> / ' + jn + '</button>' : '');
     var act = st === 'plan' ? '<button class="btn sm evgo" data-act="evPub" data-id="' + c.id + '"' + (ok ? '' : ' disabled') + '>公開する</button>'
       : st === 'pub' ? '<button class="pubc on nsw" data-act="evPub" data-id="' + c.id + '" title="' + (jn ? '中止する' : '非公開にする') + '">公開中</button>'
       : '<button class="btn sm evgo' + (st === 'day' ? ' primary' : '') + '" data-attopen="' + c.id + '">' + (st === 'day' ? '出欠を取る' : '出欠') + '</button>';
@@ -190,6 +190,7 @@ window.addEventListener('contextmenu', function (e) {
   e.preventDefault(); e.stopImmediatePropagation(); var c = evCal(r.dataset.calid); if (!c) return; var pg = evInProg(c.id), ok = can('notices');
   openMenu(c.title, [['編集', function () { M = { m: 'cal', id: c.id }; renderModal(); }],
     [c.state === 'pub' ? (evJoins(c) ? '中止する' : '非公開にする') : '部員に公開する', function () { evPubAsk(c.id); }, false, ok ? '' : '告知の権限が必要'],
+    ['参加登録した人', function () { var r0 = document.querySelector('.evr[data-calid="' + c.id + '"] .evc') || r; joinOpen(c.id, r0); }, false, evJoins(c) ? '' : 'まだいません'],
     'sep', [pg ? '学ぶから外す' : '学ぶに出す', function () { if (pg) { snap(); evOutProg(c.id); evSync(); save(); render(); toast('学ぶから外しました'); } else evToProg(c.id); }, false, can('tracks') ? '' : '教材の権限が必要'],
     ['ほかのイベントとまとめる', function () { evPickAsk('merge', c.id); }, false, ok ? '' : '告知の権限が必要'],
     'sep', ['削除', function () {
@@ -204,3 +205,27 @@ document.addEventListener('input', function (e) {
   if (!e.target.dataset || e.target.dataset.evf !== 'date') return;
   var b = document.querySelector('.dlg [data-act="evPubDo"]'); if (b) b.disabled = !e.target.value;
 });
+
+// 参加登録した人の一覧（見るだけ。登録が新しい順ではなく名前順）
+function joinOpen(cid, btn) {
+  var c = evCal(cid); if (!c) return; var ids = (S.joinIds || {})[cid] || [], q = '';
+  var old = document.getElementById('jnp'); if (old) old.remove();
+  var pop = document.createElement('div'); pop.id = 'jnp'; pop.className = 'tp attp jnp'; document.body.appendChild(pop);
+  var ms = ids.map(member).filter(Boolean).sort(function (a, b) { return (a.name || '').localeCompare(b.name || '', 'ja'); });
+  var draw = function () {
+    var L = ms.filter(function (m) { return !q || (m.name + (m.grade || '')).indexOf(q) >= 0; });
+    pop.querySelector('.attls').innerHTML = L.length ? L.map(function (m) { return '<div class="tpi">' + av(m.id) + '<span class="tpn">' + esc(m.name) + '</span>' + (m.grade ? '<small class="muted">' + esc(m.grade) + '</small>' : '') + ((c.att || []).indexOf(m.id) >= 0 ? '<span class="jnok">出席</span>' : '') + '</div>'; }).join('') : '<div class="empty">いません</div>';
+  };
+  pop.innerHTML = '<div class="jnh"><b>' + esc(c.title || 'イベント') + '</b><span class="muted">参加登録 <span class="num">' + ms.length + '</span>人</span></div>' + (ms.length > 8 ? '<input class="input" id="jnq" placeholder="名前で絞り込み" autocomplete="off">' : '') + '<div class="attls"></div>';
+  draw();
+  var r = btn.getBoundingClientRect(); pop.style.left = Math.max(8, Math.min(innerWidth - 328, r.right - 320)) + 'px'; pop.style.top = Math.max(8, Math.min(innerHeight - 380, r.bottom + 6)) + 'px';
+  var qi = pop.querySelector('#jnq'); if (qi) { qi.addEventListener('input', function (e) { q = e.target.value.trim(); draw(); }); qi.focus(); }
+  setTimeout(function () {
+    var close = function (ev) { if (ev.type === 'keydown' && ev.key !== 'Escape') return; if (ev.type === 'mousedown' && pop.contains(ev.target)) return; pop.remove(); document.removeEventListener('mousedown', close, true); document.removeEventListener('keydown', close, true); };
+    document.addEventListener('mousedown', close, true); document.addEventListener('keydown', close, true);
+  }, 0);
+}
+document.addEventListener('click', function (e) {
+  var b = e.target.closest && e.target.closest('[data-joinopen]'); if (!b) return;
+  e.preventDefault(); e.stopImmediatePropagation(); joinOpen(b.dataset.joinopen, b);
+}, true);

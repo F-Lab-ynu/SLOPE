@@ -186,7 +186,7 @@ function p2EventEditor(n) {
   var toggles = '<div class="opts">' +
     optRow('data-p2f="lock"', n.lock, LOCK_T, LOCK_SUB) +
     optRow('data-p2lv="1"', n.lv, 'Level-up event', n.lv ? '出席で Lv' + (i + 1) : '出席でレベルが上がる') + '</div>';
-  var stat = '<div class="p2st"><span class="p2pub' + (pubOn ? ' on' : '') + '">' + (pubOn ? '公開中' : '非公開') + '</span>' + (pubOn ? '<span class="p2stn">参加登録 <b class="num">' + joins + '</b> 人</span>' : '') + (ro ? '' : '<button class="btn sm" data-act="evPub" data-id="' + c.id + '">' + (pubOn ? (joins ? '中止する' : '非公開にする') : '部員に公開') + '</button>') + '</div>';
+  var stat = '<div class="p2st"><span class="p2pub' + (pubOn ? ' on' : '') + '">' + (pubOn ? '公開中' : '非公開') + '</span>' + (pubOn ? (joins ? '<button class="p2stn evjn" data-joinopen="' + c.id + '" title="参加登録した人">参加登録 <b class="num">' + joins + '</b> 人</button>' : '<span class="p2stn">参加登録 <b class="num">0</b> 人</span>') : '') + (ro ? '' : '<button class="btn sm" data-act="evPub" data-id="' + c.id + '">' + (pubOn ? (joins ? '中止する' : '非公開にする') : '部員に公開') + '</button>') + '</div>';
   var chips = att.map(function (id) { return '<span class="attc">' + av(id) + esc(member(id).name) + '</span>'; }).join('');
   var attend = '<div class="p2box">' + stat + '<div class="p2st"><span class="p2stn">出席 <b class="num">' + att.length + '</b> 人</span>' + (ro ? '' : '<button class="btn sm" data-attopen="' + c.id + '">' + (att.length ? '出席を変更' : '出席を付ける') + '</button>') + '</div>' + (chips ? '<div class="attl">' + chips + '</div>' : '') + '</div>';
   return '<div class="p2crumb">' + (crumb || '<span>プログラム</span>') + '</div>' +

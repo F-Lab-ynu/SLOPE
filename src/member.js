@@ -906,7 +906,7 @@ function annPop(a) {
   document.addEventListener('click', function (ev) {
     var b = ev.target.closest && ev.target.closest('#stage button[aria-label="マイページ"]'); var c = window.__comp;
     if (!b || !c || !phone()) { if (back && ev.target.closest && ev.target.closest('#stage nav button')) drop(); return; }
-    if (c.state.tab === 'me') return; var m = main(); drop();
+    if (c.state.tab === 'me') { ev.stopImmediatePropagation(); ev.preventDefault(); closeMe(); return; } var m = main(); drop();
     back = { tab: c.state.tab, sub: c.state.sub, top: m ? m.scrollTop : 0, under: m ? snap(m) : null };
     setTimeout(slideIn, 0);
   }, true);
@@ -914,6 +914,12 @@ function annPop(a) {
     var c = window.__comp, g = back; if (!c) return;
     c.setState({ tab: g ? g.tab : 'home', sub: g ? g.sub : null });
     setTimeout(function () { var n = main(); if (n) { n.style.transform = ''; n.style.transition = ''; n.scrollTop = g ? g.top : 0; } drop(); }, 0);
+  }
+  function closeMe() { // もう一度アイコンを押したとき：右へ抜けて元の画面へ
+    var m = main(), u = back && back.under, W = window.innerWidth; if (!m) return goBack();
+    if (u) { show(u, true); u.style.transition = 'none'; u.style.transform = 'translateX(' + (-W * .3) + 'px)'; u.style.opacity = '.6'; void u.offsetWidth; u.style.transition = 'transform .26s cubic-bezier(.2,.8,.2,1), opacity .26s'; u.style.transform = 'translateX(0)'; u.style.opacity = '1'; }
+    m.classList.add('medrag'); m.style.transition = 'transform .26s cubic-bezier(.2,.8,.2,1)'; m.style.transform = 'translateX(' + W + 'px)';
+    setTimeout(function () { m.classList.remove('medrag'); goBack(); }, 260);
   }
   // 右へスワイプ（どこからでも）：指についてくる
   var d = null;
