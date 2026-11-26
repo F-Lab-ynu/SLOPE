@@ -555,11 +555,11 @@ viewPerms = function () {
   html = html.replace(/(<div class="utabs">[\s\S]*?)(<\/div>)/, '$1<button data-act="utab" data-k="mtab" data-v="grp" aria-pressed="' + (S.mtab === 'grp') + '">グループ<span class="n num">' + gs.length + '</span></button>$2');
   if (S.mtab !== 'grp') return html;
   var cards = gs.map(function (g) {
-    return '<div class="grpc"><div class="grph"><b>@' + esc(g.name) + '</b>' + (g.auto ? '<span class="grpa">自動</span>' : '') + '<span class="sp"></span>' + (g.auto ? '' : '<button class="btn sm ghost" data-grp-edit="' + g.id + '">編集</button>') + '</div>' +
+    return '<div class="grpc"><div class="grph"><b>' + esc(g.name) + '</b>' + (g.auto ? '<span class="grpa">自動</span>' : '') + '<span class="sp"></span>' + (g.auto ? '' : '<button class="btn sm ghost" data-grp-edit="' + g.id + '">編集</button>') + '</div>' +
       '<div class="grpm">' + (g.members.length ? g.members.slice(0, 12).map(function (id) { return av(id); }).join('') + (g.members.length > 12 ? '<span class="muted">+' + (g.members.length - 12) + '</span>' : '') : '<span class="dim">まだいません</span>') + '</div>' +
       '<div class="grpn muted">' + g.members.map(function (id) { return esc(member(id).name); }).join('・') + '</div></div>';
   }).join('');
-  var body = '<div class="body"><p class="muted" style="margin:0 0 12px;font-size:13px">付箋で「@グループ名」と書くと、そのグループの全員を呼べます。役職ごとのグループは自動で作られます。</p><div class="grpg">' + cards + '<button class="grpc grpadd" data-grp-new>＋ グループを作る</button></div></div>';
+  var body = '<div class="body"><p class="muted" style="margin:0 0 12px;font-size:13px">付箋や業務の担当選びで「@」に続けてグループ名を入れると、そのグループの全員をまとめて呼べます・選べます。役職ごとのグループは自動で作られます。</p><div class="grpg">' + cards + '<button class="grpc grpadd" data-grp-new>＋ グループを作る</button></div></div>';
   return html.replace(/<div class="tbar">[\s\S]*$/, body);
 };
 window.__grpDlg = function () {
@@ -578,7 +578,7 @@ document.addEventListener('click', function (e) {
   if (!M || M.m !== 'grp') return;
   if ((b = t.closest('[data-grp-m]'))) { var id = b.dataset.grpM; M.name = (document.getElementById('grpName') || {}).value; setTimeout(function () { if (b.checked) { if (M.sel.indexOf(id) < 0) M.sel.push(id); } else M.sel = M.sel.filter(function (x) { return x !== id; }); var l = document.querySelector('.dlg .fld label span.muted'); if (l) l.textContent = '（' + M.sel.length + '人）'; }, 0); return; }
   if (t.closest('[data-grp-save]')) {
-    var nm = (document.getElementById('grpName').value || '').trim().replace(/^@/, ''); if (!nm) { toast('名前を入れてください'); return; }
+    var nm = (document.getElementById('grpName').value || '').trim().replace(/^[@＠]+/, ''); if (!nm) { toast('名前を入れてください'); return; }
     if (grpAll().some(function (x) { return x.name === nm && x.id !== M.id; })) { toast('同じ名前のグループがあります'); return; }
     var row = { name: nm, members: M.sel.slice() }, id0 = M.id; M = null; renderModal();
     (id0 ? sb.from('groups').update(row).eq('id', id0) : sb.from('groups').insert(row)).then(async function (r) { if (r.error) { toast('保存できませんでした'); return; } await grpLoad(); render(); toast('保存しました'); });
@@ -598,11 +598,11 @@ function stkPlace() { return S.view + ':' + (S.view === 'projects' ? (S.fcur || 
 function stkLabel() { var nm = { projects: '業務', tracks: '教材', notices: '告知', board: 'サポート', perms: 'メンバー', stats: '統計', me: '自分', dm: 'メッセージ' }[S.view] || ''; var n = S.view === 'projects' && S.fcur && S.fcur !== 'mine' ? task(S.fcur) : null; return n ? nm + ' › ' + ancestors(n).map(ttl).concat([ttl(n)]).join(' › ') : nm; }
 function stkLeft(s) { return STK_DAYS - (Date.now() - new Date(s.updated_at).getTime()) / 86400000; }
 function stkMentions(text) { // 本文から @名前・@グループ を拾う
-  var ids = []; grpAll().forEach(function (g) { if (text.indexOf('@' + g.name) >= 0) ids = ids.concat(g.members); });
+  var ids = []; text = String(text).replace(/＠/g, '@'); grpAll().forEach(function (g) { if (text.indexOf('@' + g.name) >= 0) ids = ids.concat(g.members); });
   S.members.forEach(function (m) { if (text.indexOf('@' + m.name) >= 0 || text.indexOf('@' + m.name.replace(/\s+/g, '')) >= 0) ids.push(m.id); });
   return ids.filter(function (x, i) { return ids.indexOf(x) === i; });
 }
-function stkHL(text) { var h = esc(text); var names = grpAll().map(function (g) { return g.name; }).concat(S.members.map(function (m) { return m.name; })).sort(function (a, b) { return b.length - a.length; }); names.forEach(function (n) { h = h.split('@' + esc(n)).join('<b class="stkat">@' + esc(n) + '</b>'); }); return linkify(h.replace(/&lt;b class=&quot;stkat&quot;&gt;/g, '')).replace(/\n/g, '<br>'); }
+function stkHL(text) { var h = esc(String(text).replace(/＠/g, '@')); var names = grpAll().map(function (g) { return g.name; }).concat(S.members.map(function (m) { return m.name; })).sort(function (a, b) { return b.length - a.length; }); names.forEach(function (n) { h = h.split('@' + esc(n)).join('<b class="stkat">@' + esc(n) + '</b>'); }); return linkify(h.replace(/&lt;b class=&quot;stkat&quot;&gt;/g, '')).replace(/\n/g, '<br>'); }
 function stkLayer() { var l = document.getElementById('stkl'); if (!l) { l = document.createElement('div'); l.id = 'stkl'; document.body.appendChild(l); } var v = document.getElementById('view'); if (v) { var r = v.getBoundingClientRect(); l.style.left = r.left + 'px'; l.style.top = r.top + 'px'; l.style.width = r.width + 'px'; l.style.height = r.height + 'px'; } return l; }
 function stkPaint() {
   if (!SYNC.ready || SD) return; var l = stkLayer(), here = STK.list.filter(function (s) { return s.place === stkPlace() && stkLeft(s) > 0; });
@@ -698,7 +698,7 @@ document.addEventListener('pointerup', function () {
 // 本文・返信・@の候補
 var STKAC = null;
 function stkAcShow(el) {
-  var v = el.value.slice(0, el.selectionStart), m = /@([^\s@]*)$/.exec(v), box = document.getElementById('stkac'); if (!box) return;
+  var v = el.value.slice(0, el.selectionStart), m = /[@＠]([^\s@＠]*)$/.exec(v), box = document.getElementById('stkac'); if (!box) return;
   if (!m) { box.hidden = true; STKAC = null; return; }
   var q = m[1], gs = grpAll().filter(function (g) { return g.name.indexOf(q) >= 0; }).map(function (g) { return { k: g.name, l: '@' + g.name, s: g.members.length + '人' }; });
   var ps = S.members.filter(function (x) { return x.id !== S.me && (x.name.indexOf(q) >= 0 || x.name.replace(/\s+/g, '').indexOf(q) >= 0); }).map(function (x) { return { k: x.name, l: x.name, s: postLabel(x.unit || '—') }; });

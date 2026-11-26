@@ -19,7 +19,7 @@ function openTeam(id, keep) {
       '<button class="lead" data-act="teamLead" data-id="' + id + '" data-m="' + m.id + '" aria-pressed="' + lead + '"' + (on ? '' : ' hidden') + ' title="' + (lead ? 'リーダーを外す' : 'リーダーにする') + '" aria-label="リーダー">' + CROWN + '</button></div>';
   };
   var a = S.members.filter(function (m) { return pt.indexOf(m.id) >= 0 && f(m); }), b = S.members.filter(function (m) { return pt.indexOf(m.id) < 0 && f(m); });
-  tp.innerHTML = '<input class="input tpq" type="search" placeholder="名前・役職で絞り込み" value="' + esc(q) + '" aria-label="メンバーを検索">' +
+  tp.innerHTML = '<input class="input tpq" type="search" placeholder="名前・役職で絞り込み（＠でグループ）" value="' + esc(q) + '" aria-label="メンバーを検索">' +
     '<div class="tpl">' + (a.length ? '<div class="tph"><span>' + esc(ttl(p)) + 'のメンバー</span></div>' + a.map(row).join('') : '') +
       (b.length ? (a.length ? '<div class="tph"><span>その他</span></div>' : '') + b.map(row).join('') : '') + '</div>';
   var r = btn.getBoundingClientRect(), left = Math.min(window.innerWidth - 328, Math.max(8, r.left));
@@ -32,6 +32,15 @@ function openTeam(id, keep) {
     Array.prototype.forEach.call(tp.querySelectorAll('.tph'), function (h) { if (/その他/.test(h.textContent)) { var nx = h.nextElementSibling; if (!nx || !nx.classList.contains('tpi')) h.remove(); else h.innerHTML = '<span>フォルダのメンバー外（外すだけできます）</span>'; } });
     tp.querySelector('.tpl').insertAdjacentHTML('beforeend', '<div class="tpnote' + (pf && !pk.length ? ' tpwarn' : '') + '">' + (pf ? (pk.length ? '「' + esc(ttl(pf)) + '」のメンバーから選べます' : '「' + esc(ttl(pf)) + '」の担当が未定なので、まだ選べません。先に「' + esc(ttl(pf)) + '」の担当を決めてください') : 'いちばん上の業務のメンバーは、代表が決めます') + '</div>');
     if (!pk.length) { var qq = tp.querySelector('.tpq'); if (qq) qq.remove(); }
+  }
+  var gq = /^[@＠]/.test(q) ? q.slice(1) : null;
+  if (gq != null && typeof grpAll === 'function') { // ＠でグループ：まとめて追加（上のフォルダーでメンバーが決まっていれば、その中の人だけ）
+    var pk2 = pickable(n), has2 = isFolder(n) ? teamOf(n) : fileWho(n);
+    var G = grpAll().filter(function (g) { return g.name.indexOf(gq) >= 0; });
+    UI.tpG = G.map(function (g) { return g.members.filter(function (id) { return member(id) && (!pk2 || pk2.indexOf(id) >= 0); }); });
+    tp.querySelector('.tpl').innerHTML = (G.length ? '<div class="tph"><span>グループ</span></div>' + G.map(function (g, i) { var ok = UI.tpG[i], nw = ok.filter(function (id) { return has2.indexOf(id) < 0; });
+      return '<button class="tpg" data-tpg="' + i + '" data-id="' + id + '"' + (nw.length ? '' : ' disabled') + '><b>' + esc(g.name) + '</b><span class="avs">' + ok.slice(0, 5).map(function (x) { return av(x); }).join('') + '</span><small>' + (nw.length ? nw.length + '人を追加' : ok.length ? '全員入っています' : pk2 ? '選べる人がいません' : 'いません') + (pk2 && ok.length < g.members.length ? '（' + esc(ttl(pickFrom(n))) + 'のメンバーだけ）' : '') + '</small></button>'; }).join('') : '<div class="tpnote">該当するグループはありません</div>');
+    return;
   }
   if (!isFolder(n)) { // ファイル：リーダーはなし。今の担当にチェック
     var cur = fileWho(n);
@@ -165,3 +174,13 @@ document.addEventListener('change', function (e) {
 document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && UI.vp) { closeVPanel(); var vb = document.querySelector('.vbtn'); if (vb) vb.focus(); } });
 window.addEventListener('resize', function () { if (UI.vp) openVPanel(); });
 
+
+// ＠のグループを押したら、その人たちをまとめて担当に
+document.addEventListener('click', function (e) {
+  var b = e.target.closest && e.target.closest('[data-tpg]'); if (!b || b.disabled) return; e.preventDefault(); e.stopImmediatePropagation();
+  var n = task(b.dataset.id), ids = (UI.tpG || [])[+b.dataset.tpg] || []; if (!n) return;
+  if (!canAssign(n)) { toast('担当を変えられるのは、このフォルダのリーダーです'); return; }
+  snap(); UI.tpq = '';
+  if (isFolder(n)) { var t = teamOf(n), add = ids.filter(function (x) { return t.indexOf(x) < 0; }); n.team = t.concat(add); if (!leadsOf(n).length && add.length) setLeads(n, [add[0]]); teamChanged(n, add); toast(add.length + '人を追加しました'); }
+  else { var f = fileWho(n), add2 = ids.filter(function (x) { return f.indexOf(x) < 0; }); add2.forEach(function (m) { notifyAssign(n, m); }); setFileWho(n, f.concat(add2)); save(); render(); openTeam(n.id, true); toast(add2.length + '人を追加しました'); }
+}, true);

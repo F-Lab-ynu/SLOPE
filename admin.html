@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '9117cc35ab', FILE = 'admin.ver';
+  var VER = '6e1d0386fb', FILE = 'admin.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -2015,6 +2015,14 @@ body.stkdrag,body.stkdrag *{user-select:none !important;-webkit-user-select:none
 .stk.mini:not(.c-y){background:var(--sm);color:var(--st);box-shadow:0 2px 6px rgba(0,0,0,.18)}
 .stk.card .stkb{flex:1}
 
+/* 担当選び：＠でグループ */
+.tpg{display:flex;align-items:center;gap:8px;width:100%;padding:8px 6px;border:0;border-radius:5px;background:transparent;font:inherit;font-size:13px;text-align:left;cursor:pointer;flex-wrap:wrap}
+.tpg:hover:not([disabled]){background:var(--hover)}
+.tpg[disabled]{cursor:default;opacity:.55}
+.tpg b{font-weight:600}
+.tpg small{flex-basis:100%;color:var(--muted);font-size:11px}
+.tpg .avs .av{width:20px;height:20px;font-size:10px}
+
 /* ===== 本番 ===== */
 [data-act="reset"]{display:none !important}
 #gate{position:fixed;inset:0;z-index:200;background:var(--side,#F7F8FA);display:flex;align-items:center;justify-content:center;padding:24px}
@@ -2790,7 +2798,7 @@ function openTeam(id, keep) {
       '<button class="lead" data-act="teamLead" data-id="' + id + '" data-m="' + m.id + '" aria-pressed="' + lead + '"' + (on ? '' : ' hidden') + ' title="' + (lead ? 'リーダーを外す' : 'リーダーにする') + '" aria-label="リーダー">' + CROWN + '</button></div>';
   };
   var a = S.members.filter(function (m) { return pt.indexOf(m.id) >= 0 && f(m); }), b = S.members.filter(function (m) { return pt.indexOf(m.id) < 0 && f(m); });
-  tp.innerHTML = '<input class="input tpq" type="search" placeholder="名前・役職で絞り込み" value="' + esc(q) + '" aria-label="メンバーを検索">' +
+  tp.innerHTML = '<input class="input tpq" type="search" placeholder="名前・役職で絞り込み（＠でグループ）" value="' + esc(q) + '" aria-label="メンバーを検索">' +
     '<div class="tpl">' + (a.length ? '<div class="tph"><span>' + esc(ttl(p)) + 'のメンバー</span></div>' + a.map(row).join('') : '') +
       (b.length ? (a.length ? '<div class="tph"><span>その他</span></div>' : '') + b.map(row).join('') : '') + '</div>';
   var r = btn.getBoundingClientRect(), left = Math.min(window.innerWidth - 328, Math.max(8, r.left));
@@ -2803,6 +2811,15 @@ function openTeam(id, keep) {
     Array.prototype.forEach.call(tp.querySelectorAll('.tph'), function (h) { if (/その他/.test(h.textContent)) { var nx = h.nextElementSibling; if (!nx || !nx.classList.contains('tpi')) h.remove(); else h.innerHTML = '<span>フォルダのメンバー外（外すだけできます）</span>'; } });
     tp.querySelector('.tpl').insertAdjacentHTML('beforeend', '<div class="tpnote' + (pf && !pk.length ? ' tpwarn' : '') + '">' + (pf ? (pk.length ? '「' + esc(ttl(pf)) + '」のメンバーから選べます' : '「' + esc(ttl(pf)) + '」の担当が未定なので、まだ選べません。先に「' + esc(ttl(pf)) + '」の担当を決めてください') : 'いちばん上の業務のメンバーは、代表が決めます') + '</div>');
     if (!pk.length) { var qq = tp.querySelector('.tpq'); if (qq) qq.remove(); }
+  }
+  var gq = /^[@＠]/.test(q) ? q.slice(1) : null;
+  if (gq != null && typeof grpAll === 'function') { // ＠でグループ：まとめて追加（上のフォルダーでメンバーが決まっていれば、その中の人だけ）
+    var pk2 = pickable(n), has2 = isFolder(n) ? teamOf(n) : fileWho(n);
+    var G = grpAll().filter(function (g) { return g.name.indexOf(gq) >= 0; });
+    UI.tpG = G.map(function (g) { return g.members.filter(function (id) { return member(id) && (!pk2 || pk2.indexOf(id) >= 0); }); });
+    tp.querySelector('.tpl').innerHTML = (G.length ? '<div class="tph"><span>グループ</span></div>' + G.map(function (g, i) { var ok = UI.tpG[i], nw = ok.filter(function (id) { return has2.indexOf(id) < 0; });
+      return '<button class="tpg" data-tpg="' + i + '" data-id="' + id + '"' + (nw.length ? '' : ' disabled') + '><b>' + esc(g.name) + '</b><span class="avs">' + ok.slice(0, 5).map(function (x) { return av(x); }).join('') + '</span><small>' + (nw.length ? nw.length + '人を追加' : ok.length ? '全員入っています' : pk2 ? '選べる人がいません' : 'いません') + (pk2 && ok.length < g.members.length ? '（' + esc(ttl(pickFrom(n))) + 'のメンバーだけ）' : '') + '</small></button>'; }).join('') : '<div class="tpnote">該当するグループはありません</div>');
+    return;
   }
   if (!isFolder(n)) { // ファイル：リーダーはなし。今の担当にチェック
     var cur = fileWho(n);
@@ -2936,6 +2953,16 @@ document.addEventListener('change', function (e) {
 document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && UI.vp) { closeVPanel(); var vb = document.querySelector('.vbtn'); if (vb) vb.focus(); } });
 window.addEventListener('resize', function () { if (UI.vp) openVPanel(); });
 
+
+// ＠のグループを押したら、その人たちをまとめて担当に
+document.addEventListener('click', function (e) {
+  var b = e.target.closest && e.target.closest('[data-tpg]'); if (!b || b.disabled) return; e.preventDefault(); e.stopImmediatePropagation();
+  var n = task(b.dataset.id), ids = (UI.tpG || [])[+b.dataset.tpg] || []; if (!n) return;
+  if (!canAssign(n)) { toast('担当を変えられるのは、このフォルダのリーダーです'); return; }
+  snap(); UI.tpq = '';
+  if (isFolder(n)) { var t = teamOf(n), add = ids.filter(function (x) { return t.indexOf(x) < 0; }); n.team = t.concat(add); if (!leadsOf(n).length && add.length) setLeads(n, [add[0]]); teamChanged(n, add); toast(add.length + '人を追加しました'); }
+  else { var f = fileWho(n), add2 = ids.filter(function (x) { return f.indexOf(x) < 0; }); add2.forEach(function (m) { notifyAssign(n, m); }); setFileWho(n, f.concat(add2)); save(); render(); openTeam(n.id, true); toast(add2.length + '人を追加しました'); }
+}, true);
 // ---------- ux3: 日付は短く表示し、押したらカレンダー ----------
 function shortDate(iso) { var p = String(iso || '').split('-'); if (p.length !== 3) return ''; return (+p[0] !== new Date(TODAY).getUTCFullYear() ? p[0] + '/' : '') + (+p[1]) + '/' + (+p[2]); }
 function dtxSet(inp) {
@@ -6709,11 +6736,11 @@ viewPerms = function () {
   html = html.replace(/(<div class="utabs">[\s\S]*?)(<\/div>)/, '$1<button data-act="utab" data-k="mtab" data-v="grp" aria-pressed="' + (S.mtab === 'grp') + '">グループ<span class="n num">' + gs.length + '</span></button>$2');
   if (S.mtab !== 'grp') return html;
   var cards = gs.map(function (g) {
-    return '<div class="grpc"><div class="grph"><b>@' + esc(g.name) + '</b>' + (g.auto ? '<span class="grpa">自動</span>' : '') + '<span class="sp"></span>' + (g.auto ? '' : '<button class="btn sm ghost" data-grp-edit="' + g.id + '">編集</button>') + '</div>' +
+    return '<div class="grpc"><div class="grph"><b>' + esc(g.name) + '</b>' + (g.auto ? '<span class="grpa">自動</span>' : '') + '<span class="sp"></span>' + (g.auto ? '' : '<button class="btn sm ghost" data-grp-edit="' + g.id + '">編集</button>') + '</div>' +
       '<div class="grpm">' + (g.members.length ? g.members.slice(0, 12).map(function (id) { return av(id); }).join('') + (g.members.length > 12 ? '<span class="muted">+' + (g.members.length - 12) + '</span>' : '') : '<span class="dim">まだいません</span>') + '</div>' +
       '<div class="grpn muted">' + g.members.map(function (id) { return esc(member(id).name); }).join('・') + '</div></div>';
   }).join('');
-  var body = '<div class="body"><p class="muted" style="margin:0 0 12px;font-size:13px">付箋で「@グループ名」と書くと、そのグループの全員を呼べます。役職ごとのグループは自動で作られます。</p><div class="grpg">' + cards + '<button class="grpc grpadd" data-grp-new>＋ グループを作る</button></div></div>';
+  var body = '<div class="body"><p class="muted" style="margin:0 0 12px;font-size:13px">付箋や業務の担当選びで「@」に続けてグループ名を入れると、そのグループの全員をまとめて呼べます・選べます。役職ごとのグループは自動で作られます。</p><div class="grpg">' + cards + '<button class="grpc grpadd" data-grp-new>＋ グループを作る</button></div></div>';
   return html.replace(/<div class="tbar">[\s\S]*$/, body);
 };
 window.__grpDlg = function () {
@@ -6732,7 +6759,7 @@ document.addEventListener('click', function (e) {
   if (!M || M.m !== 'grp') return;
   if ((b = t.closest('[data-grp-m]'))) { var id = b.dataset.grpM; M.name = (document.getElementById('grpName') || {}).value; setTimeout(function () { if (b.checked) { if (M.sel.indexOf(id) < 0) M.sel.push(id); } else M.sel = M.sel.filter(function (x) { return x !== id; }); var l = document.querySelector('.dlg .fld label span.muted'); if (l) l.textContent = '（' + M.sel.length + '人）'; }, 0); return; }
   if (t.closest('[data-grp-save]')) {
-    var nm = (document.getElementById('grpName').value || '').trim().replace(/^@/, ''); if (!nm) { toast('名前を入れてください'); return; }
+    var nm = (document.getElementById('grpName').value || '').trim().replace(/^[@＠]+/, ''); if (!nm) { toast('名前を入れてください'); return; }
     if (grpAll().some(function (x) { return x.name === nm && x.id !== M.id; })) { toast('同じ名前のグループがあります'); return; }
     var row = { name: nm, members: M.sel.slice() }, id0 = M.id; M = null; renderModal();
     (id0 ? sb.from('groups').update(row).eq('id', id0) : sb.from('groups').insert(row)).then(async function (r) { if (r.error) { toast('保存できませんでした'); return; } await grpLoad(); render(); toast('保存しました'); });
@@ -6752,11 +6779,11 @@ function stkPlace() { return S.view + ':' + (S.view === 'projects' ? (S.fcur || 
 function stkLabel() { var nm = { projects: '業務', tracks: '教材', notices: '告知', board: 'サポート', perms: 'メンバー', stats: '統計', me: '自分', dm: 'メッセージ' }[S.view] || ''; var n = S.view === 'projects' && S.fcur && S.fcur !== 'mine' ? task(S.fcur) : null; return n ? nm + ' › ' + ancestors(n).map(ttl).concat([ttl(n)]).join(' › ') : nm; }
 function stkLeft(s) { return STK_DAYS - (Date.now() - new Date(s.updated_at).getTime()) / 86400000; }
 function stkMentions(text) { // 本文から @名前・@グループ を拾う
-  var ids = []; grpAll().forEach(function (g) { if (text.indexOf('@' + g.name) >= 0) ids = ids.concat(g.members); });
+  var ids = []; text = String(text).replace(/＠/g, '@'); grpAll().forEach(function (g) { if (text.indexOf('@' + g.name) >= 0) ids = ids.concat(g.members); });
   S.members.forEach(function (m) { if (text.indexOf('@' + m.name) >= 0 || text.indexOf('@' + m.name.replace(/\s+/g, '')) >= 0) ids.push(m.id); });
   return ids.filter(function (x, i) { return ids.indexOf(x) === i; });
 }
-function stkHL(text) { var h = esc(text); var names = grpAll().map(function (g) { return g.name; }).concat(S.members.map(function (m) { return m.name; })).sort(function (a, b) { return b.length - a.length; }); names.forEach(function (n) { h = h.split('@' + esc(n)).join('<b class="stkat">@' + esc(n) + '</b>'); }); return linkify(h.replace(/&lt;b class=&quot;stkat&quot;&gt;/g, '')).replace(/\n/g, '<br>'); }
+function stkHL(text) { var h = esc(String(text).replace(/＠/g, '@')); var names = grpAll().map(function (g) { return g.name; }).concat(S.members.map(function (m) { return m.name; })).sort(function (a, b) { return b.length - a.length; }); names.forEach(function (n) { h = h.split('@' + esc(n)).join('<b class="stkat">@' + esc(n) + '</b>'); }); return linkify(h.replace(/&lt;b class=&quot;stkat&quot;&gt;/g, '')).replace(/\n/g, '<br>'); }
 function stkLayer() { var l = document.getElementById('stkl'); if (!l) { l = document.createElement('div'); l.id = 'stkl'; document.body.appendChild(l); } var v = document.getElementById('view'); if (v) { var r = v.getBoundingClientRect(); l.style.left = r.left + 'px'; l.style.top = r.top + 'px'; l.style.width = r.width + 'px'; l.style.height = r.height + 'px'; } return l; }
 function stkPaint() {
   if (!SYNC.ready || SD) return; var l = stkLayer(), here = STK.list.filter(function (s) { return s.place === stkPlace() && stkLeft(s) > 0; });
@@ -6852,7 +6879,7 @@ document.addEventListener('pointerup', function () {
 // 本文・返信・@の候補
 var STKAC = null;
 function stkAcShow(el) {
-  var v = el.value.slice(0, el.selectionStart), m = /@([^\s@]*)$/.exec(v), box = document.getElementById('stkac'); if (!box) return;
+  var v = el.value.slice(0, el.selectionStart), m = /[@＠]([^\s@＠]*)$/.exec(v), box = document.getElementById('stkac'); if (!box) return;
   if (!m) { box.hidden = true; STKAC = null; return; }
   var q = m[1], gs = grpAll().filter(function (g) { return g.name.indexOf(q) >= 0; }).map(function (g) { return { k: g.name, l: '@' + g.name, s: g.members.length + '人' }; });
   var ps = S.members.filter(function (x) { return x.id !== S.me && (x.name.indexOf(q) >= 0 || x.name.replace(/\s+/g, '').indexOf(q) >= 0); }).map(function (x) { return { k: x.name, l: x.name, s: postLabel(x.unit || '—') }; });
