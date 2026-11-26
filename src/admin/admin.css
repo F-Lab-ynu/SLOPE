@@ -2053,5 +2053,5 @@ body.stkdrag,body.stkdrag *{user-select:none !important;-webkit-user-select:none
 @media (max-width:760px){
   .stk.card{max-height:min(38vh,320px) !important}
   .stk.card .stkb,.stk.card .stkr input{font-size:16px}
-  .stk.card .stkrz{display:none}
+  .stk.card .stkrz{width:28px;height:28px;right:0;bottom:0;background-size:14px 14px;background-position:right 3px bottom 3px;background-repeat:no-repeat}
 }
