@@ -2058,3 +2058,7 @@ body.stkdrag,body.stkdrag *{user-select:none !important;-webkit-user-select:none
 }
 
 .acct .hic[aria-pressed="true"]{color:var(--accent,#2563EB)}
+
+/* スマホ：「自分」は下のタブの5つ目（パソコンでは左の下の段にある） */
+#nav .navme{display:none}
+@media (max-width:760px){ #nav .navme{display:flex !important} }

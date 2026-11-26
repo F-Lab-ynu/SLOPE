@@ -205,10 +205,10 @@ function renderChrome() {
     var SH = { dash: 'ホーム', tracks: '教材', notices: '告知', board: 'サポート', projects: '業務', perms: 'メンバー', stats: '統計', me: '自分', stk: '付箋', dm: 'メッセージ' };
     return '<button data-act="go" data-view="' + v.id + '"' + (S.view === v.id ? ' aria-current="page"' : '') + '>' + ic(v.id) + '<span class="full">' + v.name + '</span><span class="short">' + (SH[v.id] || v.name) + '</span>' + (c[v.id] ? '<span class="n" title="' + ((typeof BADGE !== 'undefined' && BADGE[v.id]) || (v.id === 'perms' ? '承認待ち' : '')) + ' ' + c[v.id] + '件">' + c[v.id] + '</span>' : '') + '</button>';
   };
-  var NV = navItems(); document.getElementById('nav').innerHTML = NV.filter(function (v) { return !v.low; }).map(navBtn).join('');
+  var NV = navItems(); document.getElementById('nav').innerHTML = NV.filter(function (v) { return !v.low; }).map(navBtn).join('') + NV.filter(function (v) { return v.id === 'me'; }).map(function (v) { return navBtn(v).replace('<button ', '<button class="navme" '); }).join('');
   var n2 = document.getElementById('nav2'); if (n2) n2.innerHTML = NV.filter(function (v) { return v.low; }).map(navBtn).join('');
   var hic = function (id, lab) { return '<button class="hic" data-hic="' + id + '"' + (S.view === id ? ' aria-pressed="true"' : '') + ' data-view="' + id + '" aria-label="' + lab + '">' + ic(id) + (c[id] ? '<span class="n">' + c[id] + '</span>' : '') + '</button>'; };
-  document.getElementById('acct').innerHTML = hic('me', '自分') + hic('stk', '付箋') + hic('dm', 'メッセージ') + '<div class="mode"><span>運営</span><button class="msw on" data-to="./" role="switch" aria-checked="true" aria-label="部員画面に切り替える"><i></i></button></div>' + '<button data-act="acct" aria-haspopup="true" aria-expanded="' + UI.acct + '">' + av(m.id, 'lg') + '<span class="who"><b>' + esc(m.name) + '</b><span>' + esc(m.unit === '—' ? '部員' : m.unit) + '</span></span>' + ic('chev') + '</button>' +
+  document.getElementById('acct').innerHTML = hic('stk', '付箋') + hic('dm', 'メッセージ') + '<div class="mode"><span>運営</span><button class="msw on" data-to="./" role="switch" aria-checked="true" aria-label="部員画面に切り替える"><i></i></button></div>' + '<button data-act="acct" aria-haspopup="true" aria-expanded="' + UI.acct + '">' + av(m.id, 'lg') + '<span class="who"><b>' + esc(m.name) + '</b><span>' + esc(m.unit === '—' ? '部員' : m.unit) + '</span></span>' + ic('chev') + '</button>' +
     (UI.acct ? '<div class="menu" role="menu"><div class="msm">' + (isAdmin() ? '<button role="menuitem" data-act="go" data-view="perms">' + ic('perms') + '<span>メンバー</span></button>' : '') + '<button role="menuitem" data-act="go" data-view="stats">' + ic('stats') + '<span>統計</span></button>' + '<button role="menuitem" class="mtomem" onclick="location.replace(\'./\')">' + ic('back') + '<span>部員画面に切り替える</span></button>' + '<button role="menuitem" data-act="nset">' + ic('bell') + '<span>通知の設定</span></button></div><div class="mh">' + esc(m.email || '') + '</div><button role="menuitem" data-act="logout"><span>ログアウト</span></button></div>' : '');
 }
 function counts() {
@@ -678,7 +678,7 @@ function stkPaint() {
   if (keep && keep.id) { var el = document.getElementById(keep.id); if (el) { el.value = keep.v; el.focus(); try { el.setSelectionRange(keep.s, keep.s); } catch (er) {} } }
   var add = document.querySelector('#view .top .stkadd'); if (!add) { var tp = document.querySelector('#view .top'); if (tp) tp.insertAdjacentHTML('beforeend', '<button class="ib stkadd" data-stk-new title="付箋を貼る（画面を右クリックでも）" aria-label="付箋を貼る">' + STKI + '</button>'); }
 }
-var STKC = [['y', '黄色'], ['p', 'ピンク'], ['b', '青'], ['g', '緑'], ['v', '紫'], ['w', '白']];
+var STKC = [['b', '青'], ['y', '黄色'], ['p', 'ピンク'], ['g', '緑'], ['v', '紫'], ['w', '白']];
 function stkMenuItems(s) {
   var fn = S.view === 'projects' && S.fcur && task(S.fcur) && !isFolder(task(S.fcur)) ? task(S.fcur) : null, it = [];
   STKC.forEach(function (c) { it.push([((s.color || 'y') === c[0] ? '✓ ' : '　 ') + c[1], function () { s.color = c[0]; stkPaint(); sb.from('stickies').update({ color: c[0] }).eq('id', s.id).then(function () {}); }]); });
@@ -693,7 +693,7 @@ function stkMenuItems(s) {
 window.addEventListener('contextmenu', function (e) { var el = e.target.closest && e.target.closest('#stkl .stk, #stksh .stk'); if (!el || e.target.closest('textarea, input')) return; e.preventDefault(); e.stopImmediatePropagation(); STKCX = null; var s = STK.list.filter(function (x) { return x.id === el.dataset.stk; })[0]; if (s) openMenu('付箋', stkMenuItems(s), e.clientX, e.clientY); }, true);
 var STKI = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v10l-6 6H5z"/><path d="M13 20v-6h6"/></svg>';
 async function stkNew(x, y) {
-  var r = await sb.from('stickies').insert({ place: stkPlace(), label: stkLabel(), x: x, y: y, body: '' }).select().single();
+  var r = await sb.from('stickies').insert({ place: stkPlace(), label: stkLabel(), x: x, y: y, body: '', color: 'b' }).select().single();
   if (r.error) { toast('付箋を貼れませんでした'); return; }
   STK.list.push(stkNorm(r.data)); STK.open = r.data.id; stkPaint(); var t = document.getElementById('stkb-' + r.data.id); if (t) t.focus();
 }
@@ -873,7 +873,7 @@ var HICB = null;
 document.addEventListener('click', function (e) {
   var b = e.target.closest && e.target.closest('[data-hic]'); if (!b) return;
   e.preventDefault(); e.stopImmediatePropagation();
-  var id = b.dataset.hic, H = ['me', 'stk', 'dm'];
+  var id = b.dataset.hic, H = ['stk', 'dm'];
   if (S.view === id) { S.view = (HICB && HICB !== id && navItems().some(function (t) { return t.id === HICB; })) ? HICB : (navItems()[0] || {}).id; HICB = null; }
   else { if (H.indexOf(S.view) < 0) HICB = S.view; S.view = id; }
   M = null; UI.acct = false; save(); render();
