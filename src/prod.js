@@ -854,13 +854,11 @@ document.addEventListener('contextmenu', function (e) {
 }, true);
 
 
-// スマホ：付箋の外を押したら閉じる（書いた内容は保存）
+// スマホ：付箋の外を押したら入力だけ終える（付箋は開いたまま。たたむのはボタンだけ）
 document.addEventListener('pointerdown', function (e) {
   if (window.innerWidth > 760 || !STK.open || !e.target.closest) return;
   if (e.target.closest('#stkl .stk.card, #cm, #stkac')) return;
-  var id = STK.open, ta = document.getElementById('stkb-' + id); if (ta) stkSaveBody(id, ta.value);
-  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-  if (e.target.closest('.stk.mini[data-stk="' + id + '"]')) e.preventDefault();
-  stkClose(id);
+  var id = STK.open, ta = document.getElementById('stkb-' + id); if (!ta || document.activeElement !== ta) return;
+  stkSaveBody(id, ta.value); ta.blur();
 }, true);
 
