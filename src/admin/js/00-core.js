@@ -123,6 +123,9 @@ function sample() {
   };
 }
 
+// 日本語入力の変換中（確定の Enter を含む）のキーは、画面の操作として扱わない
+// （名前の入力などで、変換を確定する Enter で保存されてしまい、ひらがなのまま入る問題を防ぐ。Safari は keyCode 229 で来る）
+document.addEventListener('keydown', function (e) { if (e.isComposing || e.keyCode === 229) e.stopImmediatePropagation(); }, true);
 var S;
 try { S = JSON.parse(localStorage.getItem(KEY)); } catch (e) { S = null; }
 if (!S || !S.projects) S = sample();
