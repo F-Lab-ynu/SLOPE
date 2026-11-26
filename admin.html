@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '04b8306244', FILE = 'admin.ver';
+  var VER = '80f90ad6bc', FILE = 'admin.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -650,7 +650,8 @@ textarea.cell.ct{display:block;resize:none;overflow:hidden;height:auto;min-heigh
 @media (max-width:760px){
   .menu .msm{display:block;border-bottom:1px solid var(--line);margin-bottom:4px;padding-bottom:4px}
   .menu .msm svg.i{width:16px;height:16px}
-  .acct .mode{display:none !important}
+  .acct .mode{display:flex !important;gap:6px;margin:0 4px 0 6px}
+  .acct .mode > span{font-size:12px}
   .nav button[data-view="perms"]{display:none !important}
 }
 /* リーダー表示 */
@@ -2056,12 +2057,12 @@ body.stkdrag,body.stkdrag *{user-select:none !important;-webkit-user-select:none
 /* スマホの運営画面：上のバーは ロゴ｜自分・付箋・メッセージ・アカウント。運営と部員の切り替えはアカウントのメニューに */
 .menu .mtomem{display:none}
 @media (max-width:760px){
-  .acct .mode{display:none !important}
+  .acct .mode{display:flex !important;gap:6px;margin:0 4px 0 6px}
+  .acct .mode > span{font-size:12px}
   .acct > button[data-act="acct"] > svg.i{display:none}
   .acct{gap:2px !important;padding-right:10px !important}
   .acct .hic{width:40px !important;height:44px}
   .acct > button[data-act="acct"]{margin-left:4px}
-  .menu .mtomem{display:flex}
   .toast{bottom:calc(76px + env(safe-area-inset-bottom))}
   /* メンバー：1行にまとめる */
   .tw table thead{display:none}
@@ -2083,15 +2084,7 @@ body.stkdrag,body.stkdrag *{user-select:none !important;-webkit-user-select:none
   .stk.card .stkrz{width:28px;height:28px;right:0;bottom:0;background-size:14px 14px;background-position:right 3px bottom 3px;background-repeat:no-repeat}
 }
 
-/* 自分の画面の一番下：部員画面へ（部員画面のマイページの「運営画面」と対になる。スマホだけ） */
-.metomem{display:none}
-.metomem .mprow{display:flex;align-items:center;gap:12px;min-height:54px;padding:12px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface,#fff);color:inherit;text-decoration:none}
-.metomem .mprow:active{background:var(--hover,#F3F4F6)}
-.metomem .mpl{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;font-size:15px;font-weight:500}
-.metomem .mpl small{font-size:12px;font-weight:400;color:var(--muted)}
-.metomem .mprow svg{transform:rotate(-90deg);color:var(--muted);flex:none}
 .acct .hic[aria-pressed="true"]{color:var(--accent,#2563EB)}
-@media (max-width:760px){ .metomem{display:block} }
 
 /* ===== 本番 ===== */
 [data-act="reset"]{display:none !important}
@@ -2642,7 +2635,7 @@ function render() {
   if (S.view === 'perms' && lvNodes().length) Array.prototype.forEach.call(document.querySelectorAll('.mname[data-id] .cell2 > span:first-child'), function (sp) { var id = sp.closest('.mname').dataset.id; if (!sp.querySelector('.mlv')) sp.insertAdjacentHTML('beforeend', '<span class="mlv num">Lv' + lvOf(id) + '</span>'); });
 }
 // 自分（通知と担当）・統計は、もとのダッシュボードの中身をそのまま使う
-function viewMe() { return top('自分') + '<div class="body dash">' + dashSelf() + '<section class="dsec metomem"><h2>部員</h2><a class="mprow" href="./" onclick="location.replace(\'./\');return false"><span class="mpl">部員画面<small>ホーム・掲示板・教材</small></span>' + ic('chev') + '</a></section></div>'; }
+function viewMe() { return top('自分') + '<div class="body dash">' + dashSelf() + '</div>'; }
 function viewStats() { var k = S.dtab; S.dtab = 'stats'; var h = viewDash(); S.dtab = k; return h.replace(/<div class="utabs">[\s\S]*?<\/div>/, '').replace('<h1>ダッシュボード</h1>', '<h1>統計</h1>').replace(/<section class="dsec"><h2>統計<\/h2>/, '<section class="dsec">'); }
 function renderMain() {
   if (S.projects && S.projects.length) evMigrate();
