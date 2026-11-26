@@ -124,8 +124,10 @@ window.__inqUpdate = function (id, patch) { sb.from('inquiries').update(patch).e
 window.__inqDelete = function (id) { sb.from('inquiries').delete().eq('id', id).then(function (r) { if (r.error) toast('削除できませんでした'); }); };
 window.notify = function (to, text, sub) {
   if (!to) return;
-  if (to === S.me && !(window.__nBlocked && window.__nBlocked(to, text, sub))) S.notifs.unshift({ to: to, text: text, sub: sub, at: nowLabel() });
-  sb.from('notifications').insert({ to_id: to, text: text, sub: sub || '' }).then(function (r) { if (r.error) console.warn(r.error); });
+  var mine = to === S.me && !(window.__nBlocked && window.__nBlocked(to, text, sub)) ? { id: 'tmp' + Date.now() + Math.random(), to: to, text: text, sub: sub, at: nowLabel() } : null;
+  if (mine) S.notifs.unshift(mine);
+  var q = sb.from('notifications').insert({ to_id: to, text: text, sub: sub || '' });
+  (mine && q.select ? q.select('id').single() : q).then(function (r) { if (r.error) { console.warn(r.error); return; } if (!mine || !r.data) return; if (mine.gone) sb.from('notifications').delete().eq('id', r.data.id).then(function () {}); else mine.id = r.data.id; }); // 自分宛ては id をもらって、すぐ消せるように
 };
 
 // ---------- ほかの人の変更をその場で反映 ----------
@@ -396,9 +398,11 @@ render = function () {
 document.addEventListener('visibilitychange', function () { if (!document.hidden && SYNC.ready) trackVisit('open'); });
 
 // 通知の削除（自分あての通知だけ消せる）
-window.__delNotif = function (id) {
-  var me0 = S.me; S.notifs = (S.notifs || []).filter(function (n) { return id === 'all' ? n.to !== me0 : n.id !== id; });
-  var q = sb.from('notifications').delete(); (id === 'all' ? q.eq('to_id', me0) : q.eq('id', id)).then(function (r) { if (r.error) toast('削除できませんでした'); });
+window.__delNotif = function (id) { // id は数（画面からは文字で来る）。保存中（tmp）のものは、id が届いたら消す
+  var me0 = S.me; (S.notifs || []).forEach(function (n) { if (id !== 'all' && String(n.id) === String(id)) n.gone = true; });
+  S.notifs = (S.notifs || []).filter(function (n) { return id === 'all' ? n.to !== me0 : String(n.id) !== String(id); });
+  if (/^tmp/.test(String(id))) return;
+  var q = sb.from('notifications').delete(); (id === 'all' ? q.eq('to_id', me0) : q.eq('id', /^\d+$/.test(String(id)) ? +id : id)).then(function (r) { if (r.error) toast('削除できませんでした'); });
 };
 
 // ---------- 通知の設定（部員アプリと同じ profiles.notif_off / notif_mute）・この端末へのプッシュ ----------

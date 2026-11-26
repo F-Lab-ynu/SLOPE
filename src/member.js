@@ -124,7 +124,7 @@
         .map(function (n) { return { id: n.id, title: n.title, end: n.end_date, nodate: !!(n.data && n.data.nodate), event: (root(n) || {}).title || '', parent: by[n.parent_id] }; });
     },
     notifs: function () { return NOTIFS; },
-    delNotif: function (id) { NOTIFS = NOTIFS.filter(function (n) { return id !== 'all' && n.id !== id; }); bump(); var q = sb.from('notifications').delete(); (id === 'all' ? q.eq('to_id', DB.me) : q.eq('id', id)).then(function (r) { if (r.error) DB.flash('削除できませんでした'); }); },
+    delNotif: function (id) { NOTIFS = NOTIFS.filter(function (n) { return id !== 'all' && String(n.id) !== String(id); }); /* id は数（画面からは文字で来る） */ bump(); var q = sb.from('notifications').delete(); (id === 'all' ? q.eq('to_id', DB.me) : q.eq('id', /^\d+$/.test(String(id)) ? +id : id)).then(function (r) { if (r.error) DB.flash('削除できませんでした'); }); },
     flash: function (msg) {
       var t = document.getElementById('mtoast'); if (!t) { t = document.createElement('div'); t.id = 'mtoast'; document.body.appendChild(t); }
       t.textContent = msg; t.className = 'on'; clearTimeout(DB._t); DB._t = setTimeout(function () { t.className = ''; }, 2200);
