@@ -53,7 +53,7 @@ async def main():
         print('after reload h2', await pg.locator('.fh2r h2').text_content(), 'mira folder?', await pg.locator('.fcard.isfc:has-text("MIRA 2026"), .gname:has-text("MIRA 2026")').count())
         await pg.click('[data-act=go][data-view=perms]'); await pg.wait_for_timeout(300)
         print('pending box', await pg.locator('.pendrow').count())
-        await pg.click('[data-act=go][data-view=dash]'); await pg.wait_for_timeout(300)
+        await pg.click('[data-act=go][data-view=me]'); await pg.wait_for_timeout(300)
         await pg.evaluate("window.notify(S_ME_PLACEHOLDER, 'テスト通知', 'x')".replace('S_ME_PLACEHOLDER', "document.querySelector('.acct') ? '' : ''")) if False else None
         await pg.evaluate("(()=>{ window.notify && 0; })()")
         nb = await pg.locator('.nclr').count()

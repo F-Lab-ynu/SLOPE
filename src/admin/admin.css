@@ -1852,3 +1852,71 @@ button.evst[aria-expanded="true"] svg{transform:none}
 /* メモの書式バー：いちばん上にくっつけ、後ろの文字が透けないように */
 .wkm > .body:has(> .fpage2){padding-top:0}
 .fpage2 .dtb{top:0;padding:12px 0 8px;margin:0 -8px 10px;padding-left:8px;padding-right:8px;background:#fff;box-shadow:0 1px 0 var(--line);border-bottom:0}
+
+/* 左のメニュー：下に「メッセージ」「自分」（アカウントのすぐ上） */
+.nav2{margin-top:auto;padding-bottom:6px}
+.nav2 + .acct{margin-top:0}
+.nav button .n.dot{min-width:8px;width:8px;height:8px;padding:0}
+.acct .hic{display:none}
+@media (max-width:760px){
+  .nav2{display:none !important}
+  .nav button[data-view="stats"],.nav button[data-view="me"],.nav button[data-view="dm"]{display:none !important}
+  .acct .hic{display:flex;position:relative;width:40px;height:40px;align-items:center;justify-content:center;border:0;background:transparent;color:var(--text);padding:0}
+  .acct .hic svg.i{width:22px;height:22px}
+  .acct .hic .n{position:absolute;top:4px;right:2px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#DC2626;color:#fff;font-size:10px;line-height:16px;text-align:center}
+}
+
+@media (min-width:761px){ .menu .msm [data-view="stats"]{display:none} }
+
+/* メッセージ */
+.dmaw{flex:1;min-height:0;display:grid;grid-template-columns:320px minmax(0,1fr);border-top:1px solid var(--line)}
+.dmal{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--line)}
+.dmah{display:flex;align-items:center;gap:8px;height:52px;padding:0 12px 0 16px;border-bottom:1px solid var(--line);flex:none}
+.dmah b{font-size:14px}.dmah .sp,.dmach .sp{flex:1}
+.dmah .input{flex:1;height:32px}
+.dmalist{flex:1;min-height:0;overflow:auto;padding:6px}
+.dmar{display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border:0;border-radius:8px;background:transparent;text-align:left;font:inherit;color:var(--text);cursor:pointer}
+.dmar:hover{background:var(--hover)}
+.dmar.on{background:#EEF2FF}
+.dmar .av{width:36px;height:36px;font-size:13px;flex:none}
+.dmam{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.dmam b{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dmam small{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dmar.new .dmam b,.dmar.new .dmam small{color:var(--text);font-weight:700}
+.dmat{flex:none;font-size:11px;color:var(--dim);align-self:flex-start;margin-top:3px}
+.dmadot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.dmac{display:flex;flex-direction:column;min-height:0;min-width:0}
+.dmach{display:flex;align-items:center;gap:10px;height:52px;padding:0 12px 0 16px;border-bottom:1px solid var(--line);flex:none}
+.dmamsgs{flex:1;min-height:0;overflow:auto;padding:16px 20px;display:flex;flex-direction:column;gap:3px}
+.dmaempty{margin:auto;display:flex;flex-direction:column;align-items:center;gap:8px;max-width:320px;text-align:center;color:var(--muted);font-size:13px}
+.dmaempty svg.i{width:36px;height:36px;color:var(--dim)}
+.dmaempty b{color:var(--text);font-size:15px}
+.dmats{align-self:center;margin:12px 0 6px;font-size:11px;color:var(--dim)}
+.dmam2{max-width:min(520px,72%);align-self:flex-start;display:flex;flex-direction:column;gap:3px}
+.dmam2.me{align-self:flex-end;align-items:flex-end}
+.dmab{padding:7px 12px;border-radius:16px;background:#F3F4F6;font-size:14px;line-height:1.5;overflow-wrap:anywhere}
+.dmab a{color:inherit}
+.dmam2.me .dmab{background:#111827;color:#fff}
+.dmaim{display:flex;gap:3px;flex-wrap:wrap}
+.dmaim img,.dmaim .ph{width:180px;height:180px;object-fit:cover;border-radius:12px;background:#F3F4F6;cursor:zoom-in;display:block}
+.dmard{align-self:flex-end;font-size:11px;color:var(--dim);margin:0 4px 4px}
+.dmafs{display:flex;gap:8px;padding:8px 16px 0;flex:none}
+.dmafs span{position:relative}.dmafs img{width:64px;height:64px;object-fit:cover;border-radius:8px;display:block}
+.dmafs button{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;border:0;background:#111827;color:#fff;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer}
+.dmafs button svg.i{width:12px;height:12px}
+.dmacp{display:flex;align-items:flex-end;gap:8px;padding:10px 16px 14px;border-top:1px solid var(--line);flex:none}
+.dmacp label{cursor:pointer;flex:none}
+.dmacp textarea{flex:1;min-width:0;height:36px;max-height:160px;resize:none;padding:7px 12px;border:1px solid var(--line2);border-radius:18px;font:inherit;font-size:14px;line-height:20px;outline:none;box-sizing:border-box}
+.dmacp textarea:focus{border-color:var(--text)}
+.dmacp .btn{height:36px;border-radius:18px;padding:0 16px}
+.dmablk{display:flex;align-items:center;justify-content:center;gap:12px;padding:14px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}
+.dmalb{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;cursor:zoom-out}
+.dmalb img{max-width:92vw;max-height:92vh;object-fit:contain}
+.main:has(.dmaw){display:flex;flex-direction:column;min-height:0}
+@media (max-width:760px){
+  .dmaw{grid-template-columns:minmax(0,1fr)}
+  .dmaw:has(.dmach) .dmal{display:none}
+  .dmaw:not(:has(.dmach)) .dmac{display:none}
+}
+.dmaback{display:none !important}
+@media (max-width:760px){ .dmaback{display:flex !important} }

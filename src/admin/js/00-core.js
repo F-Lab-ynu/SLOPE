@@ -384,6 +384,7 @@ var ICON = {
   projects: '<path d="M4 6h9M7 12h11M5 18h7"/>',
   dash: '<rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="4" rx="1"/><rect x="13" y="10" width="7" height="10" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/>',
   perms: '<circle cx="9" cy="8" r="3"/><path d="M3 19c.8-3 3-4.5 6-4.5s5.2 1.5 6 4.5"/><path d="M16 5.5a3 3 0 0 1 0 5M18 14.5c1.5.6 2.5 2 3 4.5"/>',
+  stats: '<path d="M5 19V11M12 19V5M19 19v-6"/>', dm: '<path d="M21 3L10 14"/><path d="M21 3l-7 18-4-7-7-4z"/>', me: '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
   plus: '<path d="M12 5v14M5 12h14"/>', back: '<path d="M15 6l-6 6 6 6"/>', more: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
   x: '<path d="M6 6l12 12M18 6L6 18"/>', users: '<circle cx="9" cy="8" r="3"/><path d="M3 19c.8-3 3-4.5 6-4.5s5.2 1.5 6 4.5"/><path d="M16 5.5a3 3 0 0 1 0 5M18 14.5c1.5.6 2.5 2 3 4.5"/>',
   chev: '<path d="M8 10l4 4 4-4"/>', bell: '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>', ext: '<path d="M14 5h5v5M19 5l-8 8M17 14v5H5V7h5"/>'
@@ -402,7 +403,7 @@ function counts() {
     dash: myTasks(S.me).filter(function (o) { return !isDone(o.k); }).length
   };
 }
-function navItems() { var l = TABS.filter(function (t) { return can(t.id); }).slice(); if (l.length) l.unshift({ id: 'dash', name: 'ダッシュボード' }); if (isAdmin()) l.push({ id: 'perms', name: 'メンバー' }); return l; }
+function navItems() { var l = TABS.filter(function (t) { return can(t.id); }).slice(); if (l.length) l.push({ id: 'stats', name: '統計' }), l.push({ id: 'me', name: '自分', low: 1 }), l.push({ id: 'dm', name: 'メッセージ', low: 1 }); if (isAdmin()) l.push({ id: 'perms', name: 'メンバー' }); return l; }
 var BADGE = { dash: '自分の未完了の作業', notices: '部員からの情報（未確認）', board: '通報された投稿', projects: '期限切れの作業' };
 function renderChrome() {
   var m = me(), c = counts();
@@ -497,6 +498,9 @@ function render() {
   if (!drag) Array.prototype.forEach.call(document.querySelectorAll('.dguide'), function (g) { g.remove(); });
   if (S.view === 'perms' && lvNodes().length) Array.prototype.forEach.call(document.querySelectorAll('.mname[data-id] .cell2 > span:first-child'), function (sp) { var id = sp.closest('.mname').dataset.id; if (!sp.querySelector('.mlv')) sp.insertAdjacentHTML('beforeend', '<span class="mlv num">Lv' + lvOf(id) + '</span>'); });
 }
+// 自分（通知と担当）・統計は、もとのダッシュボードの中身をそのまま使う
+function viewMe() { return top('自分') + '<div class="body dash">' + dashSelf() + '</div>'; }
+function viewStats() { var k = S.dtab; S.dtab = 'stats'; var h = viewDash(); S.dtab = k; return h.replace(/<div class="utabs">[\s\S]*?<\/div>/, '').replace('<h1>ダッシュボード</h1>', '<h1>統計</h1>').replace(/<section class="dsec"><h2>統計<\/h2>/, '<section class="dsec">'); }
 function renderMain() {
   if (S.projects && S.projects.length) evMigrate();
   var items = navItems().map(function (t) { return t.id; });
@@ -504,7 +508,7 @@ function renderMain() {
   renderChrome();
   var v = document.getElementById('view');
   if (S.view === 'none') { v.innerHTML = top('SLOPE') + '<div class="locked">このアカウントには運営画面の権限がありません</div>'; renderModal(); return; }
-  v.innerHTML = ({ dash: viewDash, tracks: viewTracks, notices: viewNotices, board: viewBoard, projects: viewWork, perms: viewPerms, nset: viewNset }[S.view] || viewDash)();
+  v.innerHTML = ({ dash: viewDash, me: viewMe, stats: viewStats, dm: (typeof viewDm === 'function' ? viewDm : viewMe), tracks: viewTracks, notices: viewNotices, board: viewBoard, projects: viewWork, perms: viewPerms, nset: viewNset }[S.view] || viewDash)();
   if (S.view === 'projects' && S.wtab === 'gantt') {
     var gs = document.getElementById('gs'), now = document.querySelector('.gnow');
     if (UI.sp === 'g') { gs.scrollLeft = UI.sl; gs.scrollTop = UI.st; }
