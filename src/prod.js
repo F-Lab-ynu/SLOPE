@@ -142,15 +142,42 @@ function onRemote(p) {
 async function applyRemote() {
   var v;
   do { v = SYNC.ver; await SYNC.busy; } while (v !== SYNC.ver); // 手元の変更を送り切ってから読む
-  if (isBusyEditing()) { SYNC.pendingRemote = true; return; }
+  var inDoc = document.activeElement && document.activeElement.id === 'fdoc'; // メモを書いている最中も、ほかの人の変更は取り込む
+  if (isBusyEditing() && !inDoc) { SYNC.pendingRemote = true; return; }
   SYNC.pendingRemote = false;
   var y = window.scrollY;
   loadAll.guard = v; var ok = await loadAll(); loadAll.guard = null;
   if (ok === false) { onRemote(); return; } // 手元が変わったので、送ってからもう一度
+  if (window.__docRemote) window.__docRemote();
   render(); window.scrollTo(0, y);
 }
 document.addEventListener('focusout', function () { setTimeout(function () { if (SYNC.pendingRemote && !isBusyEditing()) applyRemote(); }, 80); });
 document.addEventListener('pointerup', function () { setTimeout(function () { if (SYNC.pendingRemote && !isBusyEditing()) applyRemote(); }, 300); });
+// 同じメモを開いている人を出す（Google ドキュメントの右上のアイコンのように）
+var DOCP = { id: null, ch: null, others: [] };
+function docPresence() {
+  var d = document.getElementById('fdoc'), id = d ? d.dataset.id : null;
+  if (id !== DOCP.id) {
+    if (DOCP.ch) { try { sb.removeChannel(DOCP.ch); } catch (e) {} DOCP.ch = null; }
+    DOCP.id = id; DOCP.others = [];
+    if (id) try {
+      var ch = sb.channel('doc-' + id, { config: { presence: { key: S.me } } });
+      if (ch.track && ch.presenceState) {
+        ch.on('presence', { event: 'sync' }, function () { var st = ch.presenceState(); DOCP.others = Object.keys(st).filter(function (k) { return k !== S.me && member(k); }); paintPres(); })
+          .subscribe(function (s) { if (s === 'SUBSCRIBED') ch.track({ at: Date.now() }); });
+        DOCP.ch = ch;
+      }
+    } catch (e) {}
+  }
+  paintPres();
+}
+function paintPres() {
+  var host = document.querySelector('.fpage2'); if (!host) return; var el = host.querySelector('.dpres'), o = DOCP.others;
+  var html = o.length ? o.slice(0, 4).map(function (k) { return av(k); }).join('') + '<span>' + esc(member(o[0]).name) + (o.length > 1 ? ' ほか' + (o.length - 1) + '人' : '') + 'も開いています</span>' : '';
+  if (!el) { if (!html) return; el = document.createElement('div'); el.className = 'dpres'; host.insertBefore(el, host.firstChild); }
+  if (el.innerHTML !== html) el.innerHTML = html; el.hidden = !html;
+}
+setInterval(docPresence, 1000);
 function subscribe() {
   sb.channel('slope-live')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'nodes' }, onRemote)

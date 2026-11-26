@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '54089cb5a1', FILE = 'admin.ver';
+  var VER = '54b165864e', FILE = 'admin.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -1868,6 +1868,11 @@ button.evst[aria-expanded="true"] svg{transform:none}
 .attck svg.i{width:14px;height:14px}
 .attr.on .attck{background:var(--text);border-color:var(--text);color:#fff}
 @media (max-width:760px){ .dlg.attd{max-width:none;height:100%;max-height:none;border-radius:0} .ov:has(.attd){padding:0} .attbar{flex-wrap:wrap} .attbar .seg,.attbar .input{width:100%} .attbar .seg button{flex:1} }
+
+/* 同じメモを開いている人 */
+.dpres{display:flex;align-items:center;gap:4px;margin:0 0 8px;font-size:12px;color:var(--muted)}
+.dpres .av{width:22px;height:22px;font-size:10px;margin-right:-2px;box-shadow:0 0 0 2px #fff}
+.dpres span{margin-left:8px}
 
 /* ===== 本番 ===== */
 [data-act="reset"]{display:none !important}
@@ -4145,17 +4150,21 @@ function docBar() {
 }
 var _docT = null;
 function docEl() { return document.getElementById('fdoc'); }
+// 同時に書いても消し合わないように：開いたとき（最後にそろえたとき）の中身を覚えておき、手元で書き換えたかどうかを持つ
+var DOCB = { id: null, base: '', dirty: false };
+function docInit() { var d = docEl(); if (!d) return null; if (!d._b || DOCB.id !== d.dataset.id) { d._b = 1; var n = task(d.dataset.id); DOCB = { id: d.dataset.id, base: (n && n.memo) || '', dirty: false }; } return d; }
+function docNow(d) { return d.textContent.trim() || d.querySelector('hr, li') ? docSanitize(d.innerHTML) : ''; }
 function docSave(now) {
-  clearTimeout(_docT);
+  clearTimeout(_docT); if (docInit() && !now) DOCB.dirty = true;
   var go = function () {
-    var d = docEl(); if (!d || d.getAttribute('contenteditable') !== 'true') return;
+    var d = docInit(); if (!d || d.getAttribute('contenteditable') !== 'true' || !DOCB.dirty) return;
     var n = task(d.dataset.id); if (!n) return;
-    var html = d.textContent.trim() || d.querySelector('hr, li') ? docSanitize(d.innerHTML) : '';
-    if (html === (n.memo || '')) return;
-    n.memo = html; save();
+    var html = docNow(d); DOCB.dirty = false;
+    if (html === (n.memo || '')) { DOCB.base = html; return; }
+    n.memo = html; DOCB.base = html; save();
     var st = document.getElementById('dts'); if (st) { var t = new Date(); st.textContent = '保存しました ' + t.getHours() + ':' + String(t.getMinutes()).padStart(2, '0'); }
   };
-  if (now) go(); else { var st = document.getElementById('dts'); if (st) st.textContent = '編集中…'; _docT = setTimeout(go, 700); }
+  if (now) go(); else { var st = document.getElementById('dts'); if (st) st.textContent = '編集中…'; _docT = setTimeout(go, 400); }
 }
 // 空のときやブロックの外に文字があるときは、段落（div）に入れてから書く
 function docFix() {
@@ -4394,6 +4403,48 @@ document.addEventListener('scroll', function (e) { if (UI.gsel && e.target && e.
 window.addEventListener('resize', function () { if (UI.gsel) bpopShow(); });
 
 
+
+// ---------- メモの共有：ほかの人の変更をその場で取り込む（段落ごとに合わせる） ----------
+function docBlocks(html) { var t = document.createElement('div'); t.innerHTML = html || ''; var out = []; [].forEach.call(t.childNodes, function (c) { var h = c.nodeType === 1 ? c.outerHTML : c.nodeType === 3 ? esc(c.textContent) : ''; if (h) out.push(h); }); return out; }
+function docMatch(a, b) { // 共通部分（LCS）：a[i] と b[j] の組
+  var n = a.length, m = b.length, L = []; for (var i = 0; i <= n; i++) { L.push(new Array(m + 1).fill(0)); }
+  for (i = n - 1; i >= 0; i--) for (var j = m - 1; j >= 0; j--) L[i][j] = a[i] === b[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  var r = {}; i = 0; j = 0; while (i < n && j < m) { if (a[i] === b[j]) { r[i] = j; i++; j++; } else if (L[i + 1][j] >= L[i][j + 1]) i++; else j++; } return r;
+}
+function docMerge(base, mine, theirs) { // 3者マージ：片方だけが変えた段落はその変更を、両方が変えた段落は両方残す
+  var B = docBlocks(base), A = docBlocks(mine), C = docBlocks(theirs), ma = docMatch(B, A), mc = docMatch(B, C), out = [], ia = 0, ic2 = 0, last = -1;
+  var flush = function (bEnd, aEnd, cEnd) {
+    var b = B.slice(last + 1, bEnd), a = A.slice(ia, aEnd), c = C.slice(ic2, cEnd), J = function (x) { return x.join(''); };
+    if (J(a) === J(b)) out = out.concat(c); else if (J(c) === J(b) || J(a) === J(c)) out = out.concat(a);
+    else if (a.length === b.length && c.length === b.length) b.forEach(function (x, i) { out = out.concat(a[i] === x ? [c[i]] : c[i] === x || c[i] === a[i] ? [a[i]] : [a[i], c[i]]); }); // 同じ段落数なら段落ごとに
+    else out = out.concat(a, c);
+  };
+  for (var k = 0; k < B.length; k++) { if (ma[k] == null || mc[k] == null) continue; flush(k, ma[k], mc[k]); out.push(B[k]); last = k; ia = ma[k] + 1; ic2 = mc[k] + 1; }
+  flush(B.length, A.length, C.length);
+  return out.join('');
+}
+function docSet(d, html) { // 書いている場所（段落と文字の位置）を保ったまま入れ替える
+  var sel = getSelection(), keep = null;
+  if (document.activeElement === d && sel.rangeCount && d.contains(sel.anchorNode)) {
+    var blk = sel.anchorNode; while (blk && blk.parentNode !== d) blk = blk.parentNode;
+    if (blk) { var r = document.createRange(); r.setStart(blk, 0); r.setEnd(sel.anchorNode, sel.anchorOffset); keep = { h: blk.nodeType === 1 ? blk.outerHTML : blk.textContent, i: [].indexOf.call(d.childNodes, blk), off: r.toString().length }; }
+  }
+  d.innerHTML = html; if (!keep) return;
+  var kids = [].slice.call(d.childNodes), best = null, bd = 1e9;
+  kids.forEach(function (c, i) { var h = c.nodeType === 1 ? c.outerHTML : c.textContent; if (h === keep.h && Math.abs(i - keep.i) < bd) { best = c; bd = Math.abs(i - keep.i); } });
+  if (!best) best = kids[Math.min(keep.i, kids.length - 1)]; if (!best) return;
+  var w = document.createTreeWalker(best, NodeFilter.SHOW_TEXT), left = keep.off, tn, rr = document.createRange(), done = false;
+  while ((tn = w.nextNode())) { if (left <= tn.length) { rr.setStart(tn, left); done = true; break; } left -= tn.length; }
+  if (!done) { rr.selectNodeContents(best); rr.collapse(false); } else rr.collapse(true);
+  sel.removeAllRanges(); sel.addRange(rr);
+}
+window.__docRemote = function () {
+  var d = docInit(); if (!d) return; var n = task(d.dataset.id); if (!n) return;
+  var R = n.memo || ''; if (R === DOCB.base) return;
+  if (!DOCB.dirty) { docSet(d, docHTML(R)); DOCB.base = R; return; }
+  var L = docNow(d), mg = docMerge(DOCB.base, L, R); DOCB.base = R; docSet(d, docHTML(mg)); docSave();
+};
+window.__docMerge = docMerge;
 // ---------- ux42 告知タブ：部内イベントの告知・カレンダー（部内の予定）・外部告知 ----------
 function calsInit() {
   if (!S.cals) {
@@ -6097,15 +6148,42 @@ function onRemote(p) {
 async function applyRemote() {
   var v;
   do { v = SYNC.ver; await SYNC.busy; } while (v !== SYNC.ver); // 手元の変更を送り切ってから読む
-  if (isBusyEditing()) { SYNC.pendingRemote = true; return; }
+  var inDoc = document.activeElement && document.activeElement.id === 'fdoc'; // メモを書いている最中も、ほかの人の変更は取り込む
+  if (isBusyEditing() && !inDoc) { SYNC.pendingRemote = true; return; }
   SYNC.pendingRemote = false;
   var y = window.scrollY;
   loadAll.guard = v; var ok = await loadAll(); loadAll.guard = null;
   if (ok === false) { onRemote(); return; } // 手元が変わったので、送ってからもう一度
+  if (window.__docRemote) window.__docRemote();
   render(); window.scrollTo(0, y);
 }
 document.addEventListener('focusout', function () { setTimeout(function () { if (SYNC.pendingRemote && !isBusyEditing()) applyRemote(); }, 80); });
 document.addEventListener('pointerup', function () { setTimeout(function () { if (SYNC.pendingRemote && !isBusyEditing()) applyRemote(); }, 300); });
+// 同じメモを開いている人を出す（Google ドキュメントの右上のアイコンのように）
+var DOCP = { id: null, ch: null, others: [] };
+function docPresence() {
+  var d = document.getElementById('fdoc'), id = d ? d.dataset.id : null;
+  if (id !== DOCP.id) {
+    if (DOCP.ch) { try { sb.removeChannel(DOCP.ch); } catch (e) {} DOCP.ch = null; }
+    DOCP.id = id; DOCP.others = [];
+    if (id) try {
+      var ch = sb.channel('doc-' + id, { config: { presence: { key: S.me } } });
+      if (ch.track && ch.presenceState) {
+        ch.on('presence', { event: 'sync' }, function () { var st = ch.presenceState(); DOCP.others = Object.keys(st).filter(function (k) { return k !== S.me && member(k); }); paintPres(); })
+          .subscribe(function (s) { if (s === 'SUBSCRIBED') ch.track({ at: Date.now() }); });
+        DOCP.ch = ch;
+      }
+    } catch (e) {}
+  }
+  paintPres();
+}
+function paintPres() {
+  var host = document.querySelector('.fpage2'); if (!host) return; var el = host.querySelector('.dpres'), o = DOCP.others;
+  var html = o.length ? o.slice(0, 4).map(function (k) { return av(k); }).join('') + '<span>' + esc(member(o[0]).name) + (o.length > 1 ? ' ほか' + (o.length - 1) + '人' : '') + 'も開いています</span>' : '';
+  if (!el) { if (!html) return; el = document.createElement('div'); el.className = 'dpres'; host.insertBefore(el, host.firstChild); }
+  if (el.innerHTML !== html) el.innerHTML = html; el.hidden = !html;
+}
+setInterval(docPresence, 1000);
 function subscribe() {
   sb.channel('slope-live')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'nodes' }, onRemote)

@@ -57,17 +57,21 @@ function docBar() {
 }
 var _docT = null;
 function docEl() { return document.getElementById('fdoc'); }
+// 同時に書いても消し合わないように：開いたとき（最後にそろえたとき）の中身を覚えておき、手元で書き換えたかどうかを持つ
+var DOCB = { id: null, base: '', dirty: false };
+function docInit() { var d = docEl(); if (!d) return null; if (!d._b || DOCB.id !== d.dataset.id) { d._b = 1; var n = task(d.dataset.id); DOCB = { id: d.dataset.id, base: (n && n.memo) || '', dirty: false }; } return d; }
+function docNow(d) { return d.textContent.trim() || d.querySelector('hr, li') ? docSanitize(d.innerHTML) : ''; }
 function docSave(now) {
-  clearTimeout(_docT);
+  clearTimeout(_docT); if (docInit() && !now) DOCB.dirty = true;
   var go = function () {
-    var d = docEl(); if (!d || d.getAttribute('contenteditable') !== 'true') return;
+    var d = docInit(); if (!d || d.getAttribute('contenteditable') !== 'true' || !DOCB.dirty) return;
     var n = task(d.dataset.id); if (!n) return;
-    var html = d.textContent.trim() || d.querySelector('hr, li') ? docSanitize(d.innerHTML) : '';
-    if (html === (n.memo || '')) return;
-    n.memo = html; save();
+    var html = docNow(d); DOCB.dirty = false;
+    if (html === (n.memo || '')) { DOCB.base = html; return; }
+    n.memo = html; DOCB.base = html; save();
     var st = document.getElementById('dts'); if (st) { var t = new Date(); st.textContent = '保存しました ' + t.getHours() + ':' + String(t.getMinutes()).padStart(2, '0'); }
   };
-  if (now) go(); else { var st = document.getElementById('dts'); if (st) st.textContent = '編集中…'; _docT = setTimeout(go, 700); }
+  if (now) go(); else { var st = document.getElementById('dts'); if (st) st.textContent = '編集中…'; _docT = setTimeout(go, 400); }
 }
 // 空のときやブロックの外に文字があるときは、段落（div）に入れてから書く
 function docFix() {
@@ -306,3 +310,45 @@ document.addEventListener('scroll', function (e) { if (UI.gsel && e.target && e.
 window.addEventListener('resize', function () { if (UI.gsel) bpopShow(); });
 
 
+
+// ---------- メモの共有：ほかの人の変更をその場で取り込む（段落ごとに合わせる） ----------
+function docBlocks(html) { var t = document.createElement('div'); t.innerHTML = html || ''; var out = []; [].forEach.call(t.childNodes, function (c) { var h = c.nodeType === 1 ? c.outerHTML : c.nodeType === 3 ? esc(c.textContent) : ''; if (h) out.push(h); }); return out; }
+function docMatch(a, b) { // 共通部分（LCS）：a[i] と b[j] の組
+  var n = a.length, m = b.length, L = []; for (var i = 0; i <= n; i++) { L.push(new Array(m + 1).fill(0)); }
+  for (i = n - 1; i >= 0; i--) for (var j = m - 1; j >= 0; j--) L[i][j] = a[i] === b[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  var r = {}; i = 0; j = 0; while (i < n && j < m) { if (a[i] === b[j]) { r[i] = j; i++; j++; } else if (L[i + 1][j] >= L[i][j + 1]) i++; else j++; } return r;
+}
+function docMerge(base, mine, theirs) { // 3者マージ：片方だけが変えた段落はその変更を、両方が変えた段落は両方残す
+  var B = docBlocks(base), A = docBlocks(mine), C = docBlocks(theirs), ma = docMatch(B, A), mc = docMatch(B, C), out = [], ia = 0, ic2 = 0, last = -1;
+  var flush = function (bEnd, aEnd, cEnd) {
+    var b = B.slice(last + 1, bEnd), a = A.slice(ia, aEnd), c = C.slice(ic2, cEnd), J = function (x) { return x.join(''); };
+    if (J(a) === J(b)) out = out.concat(c); else if (J(c) === J(b) || J(a) === J(c)) out = out.concat(a);
+    else if (a.length === b.length && c.length === b.length) b.forEach(function (x, i) { out = out.concat(a[i] === x ? [c[i]] : c[i] === x || c[i] === a[i] ? [a[i]] : [a[i], c[i]]); }); // 同じ段落数なら段落ごとに
+    else out = out.concat(a, c);
+  };
+  for (var k = 0; k < B.length; k++) { if (ma[k] == null || mc[k] == null) continue; flush(k, ma[k], mc[k]); out.push(B[k]); last = k; ia = ma[k] + 1; ic2 = mc[k] + 1; }
+  flush(B.length, A.length, C.length);
+  return out.join('');
+}
+function docSet(d, html) { // 書いている場所（段落と文字の位置）を保ったまま入れ替える
+  var sel = getSelection(), keep = null;
+  if (document.activeElement === d && sel.rangeCount && d.contains(sel.anchorNode)) {
+    var blk = sel.anchorNode; while (blk && blk.parentNode !== d) blk = blk.parentNode;
+    if (blk) { var r = document.createRange(); r.setStart(blk, 0); r.setEnd(sel.anchorNode, sel.anchorOffset); keep = { h: blk.nodeType === 1 ? blk.outerHTML : blk.textContent, i: [].indexOf.call(d.childNodes, blk), off: r.toString().length }; }
+  }
+  d.innerHTML = html; if (!keep) return;
+  var kids = [].slice.call(d.childNodes), best = null, bd = 1e9;
+  kids.forEach(function (c, i) { var h = c.nodeType === 1 ? c.outerHTML : c.textContent; if (h === keep.h && Math.abs(i - keep.i) < bd) { best = c; bd = Math.abs(i - keep.i); } });
+  if (!best) best = kids[Math.min(keep.i, kids.length - 1)]; if (!best) return;
+  var w = document.createTreeWalker(best, NodeFilter.SHOW_TEXT), left = keep.off, tn, rr = document.createRange(), done = false;
+  while ((tn = w.nextNode())) { if (left <= tn.length) { rr.setStart(tn, left); done = true; break; } left -= tn.length; }
+  if (!done) { rr.selectNodeContents(best); rr.collapse(false); } else rr.collapse(true);
+  sel.removeAllRanges(); sel.addRange(rr);
+}
+window.__docRemote = function () {
+  var d = docInit(); if (!d) return; var n = task(d.dataset.id); if (!n) return;
+  var R = n.memo || ''; if (R === DOCB.base) return;
+  if (!DOCB.dirty) { docSet(d, docHTML(R)); DOCB.base = R; return; }
+  var L = docNow(d), mg = docMerge(DOCB.base, L, R); DOCB.base = R; docSet(d, docHTML(mg)); docSave();
+};
+window.__docMerge = docMerge;

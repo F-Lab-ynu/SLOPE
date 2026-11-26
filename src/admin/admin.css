@@ -1841,3 +1841,8 @@ button.evst[aria-expanded="true"] svg{transform:none}
 .attck svg.i{width:14px;height:14px}
 .attr.on .attck{background:var(--text);border-color:var(--text);color:#fff}
 @media (max-width:760px){ .dlg.attd{max-width:none;height:100%;max-height:none;border-radius:0} .ov:has(.attd){padding:0} .attbar{flex-wrap:wrap} .attbar .seg,.attbar .input{width:100%} .attbar .seg button{flex:1} }
+
+/* 同じメモを開いている人 */
+.dpres{display:flex;align-items:center;gap:4px;margin:0 0 8px;font-size:12px;color:var(--muted)}
+.dpres .av{width:22px;height:22px;font-size:10px;margin-right:-2px;box-shadow:0 0 0 2px #fff}
+.dpres span{margin-left:8px}
