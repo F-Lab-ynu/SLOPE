@@ -456,6 +456,7 @@ function dlg(title, body, foot, wide) {
 function renderModal() {
   var el = document.getElementById('modal'), f;
   if (!M) { el.innerHTML = ''; return; }
+  if (M.m === 'grp' && window.__grpDlg) { el.innerHTML = window.__grpDlg(); var gi = document.getElementById('grpName'); if (gi && !gi.value) gi.focus(); return; }
   if (M.m === 'att') { el.innerHTML = attDlg(); attDraw(); return; }
   if (M.m === 'cfm') { el.innerHTML = cfmDlg(); f = el.querySelector('.btn.danger, .btn.primary'); if (f) f.focus(); return; }
   if (M.m === 'ann') { el.innerHTML = annDlg(); f = document.getElementById('anT'); if (f) f.focus(); return; }

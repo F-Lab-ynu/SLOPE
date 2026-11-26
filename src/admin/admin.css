@@ -1927,3 +1927,46 @@ button.evst[aria-expanded="true"] svg{transform:none}
 .gg .gr.hldim:hover > .gl > *,.gg .gr.hldim:hover > .gt .bar{filter:opacity(.8)}
 /* チェックボックスの枠を濃く */
 .check.wck{border-color:#9CA3AF}
+
+/* グループ */
+.grpg{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.grpc{display:flex;flex-direction:column;gap:8px;padding:14px;border:1px solid var(--line);border-radius:10px;background:#fff;text-align:left;font:inherit;color:var(--text)}
+.grph{display:flex;align-items:center;gap:8px}.grph .sp{flex:1}
+.grpa{font-size:11px;color:var(--muted);border:1px solid var(--line2);border-radius:9px;padding:0 6px}
+.grpm{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.grpm .av{width:24px;height:24px;font-size:11px}
+.grpn{font-size:12px;line-height:1.5}
+.grpadd{align-items:center;justify-content:center;min-height:96px;border-style:dashed;color:var(--muted);cursor:pointer}
+.grpadd:hover{color:var(--text);border-color:var(--text)}
+.grpl{max-height:280px;overflow:auto;display:flex;flex-direction:column;margin-top:6px}
+.grpl .tpi{cursor:pointer}.grpl .tpn{flex:1}
+/* 付箋 */
+#stkl{position:fixed;z-index:40;pointer-events:none}
+.stk{position:absolute;pointer-events:auto}
+.stk.mini{width:30px;height:30px;border:0;border-radius:8px 8px 8px 2px;background:#FDE68A;color:#78350F;font:inherit;font-size:12px;font-weight:700;box-shadow:0 2px 6px rgba(120,53,15,.25);cursor:grab;display:flex;align-items:center;justify-content:center;padding:0;transition:transform .12s}
+.stk.mini:hover{transform:scale(1.1)}
+.stk.mini i{position:absolute;top:-6px;right:-6px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#111827;color:#fff;font-size:10px;font-style:normal;line-height:16px;text-align:center}
+.stk.card{width:260px;max-height:min(420px,70vh);display:flex;flex-direction:column;background:#FEF3C7;border:1px solid #FCD34D;border-radius:10px;box-shadow:0 12px 32px rgba(17,24,39,.18);font-size:13px;color:#1F2937}
+.stk.old{opacity:.6}
+.stk.drag{cursor:grabbing;opacity:.9}
+.stkh{display:flex;align-items:center;gap:6px;padding:6px 4px 6px 10px;border-bottom:1px solid #FCD34D;cursor:grab;flex:none}
+.stkh .av{width:22px;height:22px;font-size:10px}
+.stkt{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.25;font-weight:600;font-size:12px}
+.stkt small{font-weight:400;color:#92400E;font-size:11px}
+.stkh .ib{width:26px;height:26px}
+.stkb{border:0;background:transparent;resize:none;padding:10px;font:inherit;font-size:13px;line-height:1.5;outline:none;min-height:56px;color:inherit}
+.stkbt{padding:10px;line-height:1.55;overflow-wrap:anywhere}
+.stkat{color:#B45309;font-weight:600}
+.stkms{overflow:auto;min-height:0;border-top:1px dashed #FCD34D;padding:6px 10px;display:flex;flex-direction:column;gap:6px}
+.stkm{line-height:1.5;overflow-wrap:anywhere}.stkm b{margin-right:6px;font-size:12px}
+.stkr{padding:6px 8px;border-top:1px solid #FCD34D;flex:none}
+.stkr input{width:100%;box-sizing:border-box;height:30px;padding:0 8px;border:1px solid #FCD34D;border-radius:6px;background:#FFFBEB;font:inherit;font-size:13px;outline:none}
+.stkr input:focus{border-color:#B45309}
+.stkw{padding:0 10px 8px;font-size:11px;color:#92400E}
+.stkac{position:absolute;pointer-events:auto;z-index:2;width:240px;background:#fff;border:1px solid var(--line2);border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.12);padding:4px;display:flex;flex-direction:column}
+.stkac[hidden]{display:none}
+.stkac button{display:flex;align-items:baseline;gap:8px;padding:6px 8px;border:0;border-radius:5px;background:transparent;font:inherit;font-size:13px;text-align:left;cursor:pointer}
+.stkac button.on,.stkac button:hover{background:var(--hover)}
+.stkac small{color:var(--muted);font-size:11px;margin-left:auto}
+.top .stkadd{margin-left:4px;color:#B45309}
+.nr2.lk{cursor:pointer}.nr2.lk:hover{background:var(--hover)}
