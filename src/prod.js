@@ -656,6 +656,9 @@ function stkPaint() {
     var W = l.clientWidth, H = l.clientHeight, open = !asMini && STK.open === s.id, ms = STK.msgs.filter(function (m) { return m.sticky_id === s.id; }), left = stkLeft(s), mine = s.author === S.me;
     var x = Math.max(4, Math.min(W - (open ? 264 : 36), s.x * W)), y = Math.max(4, Math.min(H - (open ? 120 : 36), s.y * H));
     var cw = Math.max(200, Math.min(520, s.w || 260)), ch = s.h ? Math.max(120, Math.min(640, s.h)) : 0; if (open) { x = Math.max(4, Math.min(W - cw - 4, s.x * W)); }
+    if (open && PH) { // スマホ：その場で開く。下半分にあるとキーボードに隠れるので、開いている間だけ上の方へ寄せる（閉じれば元の場所）
+      cw = Math.min(cw, W - 16); ch = 0; x = Math.max(8, Math.min(W - cw - 8, s.x * W));
+      var top0 = l.getBoundingClientRect().top, lim = window.innerHeight * 0.42 - top0; if (y + 180 > lim) y = 8; }
     if (!open) return '<button class="stk mini c-' + (s.color || 'y') + (left < 1 ? ' old' : '') + '" data-stk="' + s.id + '" style="left:' + x + 'px;top:' + y + 'px" title="' + esc((s.body || '付箋').slice(0, 60)) + '">' + esc(initials(member(s.author) ? member(s.author).name : '?')) + (ms.length ? '<i>' + ms.length + '</i>' : '') + '</button>';
     var who = s.mentions.filter(member).map(function (id) { return member(id).name; });
     return '<div class="stk card c-' + (s.color || 'y') + (left < 1 ? ' old' : '') + '" data-stk="' + s.id + '" style="left:' + x + 'px;top:' + y + 'px;width:' + cw + 'px' + (ch ? ';height:' + ch + 'px;max-height:none' : '') + '">' +
@@ -666,10 +669,7 @@ function stkPaint() {
       (who.length ? '<div class="stkw">' + who.slice(0, 4).map(esc).join('・') + (who.length > 4 ? ' ほか' + (who.length - 4) + '人' : '') + '</div>' : '') + '<i class="stkrz" data-stk-rz="' + s.id + '" title="ドラッグで大きさを変える"></i></div>';
   };
   // スマホ：開いた付箋は下から出る入力の枠に（キーボードの上に付く）。画面の付箋は小さいまま
-  l.innerHTML = here.map(function (s) { if (PH && STK.open === s.id) { sheet = one(s); return one(s, true); } return one(s); }).join('') + (PH ? '' : '<div class="stkac" id="stkac" hidden></div>');
-  var sh = document.getElementById('stksh');
-  if (sheet) { if (!sh) { sh = document.createElement('div'); sh.id = 'stksh'; document.body.appendChild(sh); } sh.innerHTML = '<div class="stkshbg" data-stk-shx></div>' + sheet + '<div class="stkac" id="stkac" hidden></div>'; stkShFit(); }
-  else if (sh) sh.remove();
+  l.innerHTML = here.map(function (s) { return one(s); }).join('') + '<div class="stkac" id="stkac" hidden></div>';
   if (keep && keep.id) { var el = document.getElementById(keep.id); if (el) { el.value = keep.v; el.focus(); try { el.setSelectionRange(keep.s, keep.s); } catch (er) {} } }
   var add = document.querySelector('#view .top .stkadd'); if (!add) { var tp = document.querySelector('#view .top'); if (tp) tp.insertAdjacentHTML('beforeend', '<button class="ib stkadd" data-stk-new title="付箋を貼る（画面を右クリックでも）" aria-label="付箋を貼る">' + STKI + '</button>'); }
 }
@@ -855,8 +855,12 @@ document.addEventListener('contextmenu', function (e) {
 }, true);
 
 
-// スマホの付箋の枠：見えている範囲（キーボードの上）にぴったり合わせる
-function stkShFit() { var sh = document.getElementById('stksh'), vv = window.visualViewport; if (!sh || !vv) return; sh.style.top = vv.offsetTop + 'px'; sh.style.height = vv.height + 'px'; }
-if (window.visualViewport) { window.visualViewport.addEventListener('resize', stkShFit); window.visualViewport.addEventListener('scroll', stkShFit); }
-document.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('[data-stk-shx]')) { e.stopImmediatePropagation(); var id = STK.open, ta = document.getElementById('stkb-' + id); if (ta) stkSaveBody(id, ta.value); stkClose(id); } }, true);
-document.addEventListener('touchmove', function (e) { var sh = e.target.closest && e.target.closest('#stksh'); if (!sh) return; var sc = e.target.closest('.stkms, textarea'); if (sc && sc.scrollHeight > sc.clientHeight + 1) return; e.preventDefault(); }, { passive: false });
+// スマホ：付箋の外を押したら閉じる（書いた内容は保存）
+document.addEventListener('pointerdown', function (e) {
+  if (window.innerWidth > 760 || !STK.open || !e.target.closest) return;
+  if (e.target.closest('#stkl .stk.card, #cm, #stkac')) return;
+  var id = STK.open, ta = document.getElementById('stkb-' + id); if (ta) stkSaveBody(id, ta.value);
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  if (e.target.closest('.stk.mini[data-stk="' + id + '"]')) e.preventDefault();
+  stkClose(id);
+}, true);
