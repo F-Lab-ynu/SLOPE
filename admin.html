@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = 'c3727208e9', FILE = 'admin.ver';
+  var VER = 'e96125b050', FILE = 'admin.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -6893,10 +6893,10 @@ function stkMentions(text) { // 本文から @名前・@グループ を拾う
 }
 function stkHL(text) { var h = esc(String(text).replace(/＠/g, '@')); var names = grpAll().map(function (g) { return g.name; }).concat(S.members.map(function (m) { return m.name; })).sort(function (a, b) { return b.length - a.length; }); names.forEach(function (n) { h = h.split('@' + esc(n)).join('<b class="stkat">@' + esc(n) + '</b>'); }); return linkify(h.replace(/&lt;b class=&quot;stkat&quot;&gt;/g, '')).replace(/\n/g, '<br>'); }
 function stkLayer() { var l = document.getElementById('stkl'); if (!l) { l = document.createElement('div'); l.id = 'stkl'; document.body.appendChild(l); } var v = document.getElementById('view'); if (v) { var r = v.getBoundingClientRect(); l.style.left = (r.left + window.scrollX) + 'px'; l.style.top = (r.top + window.scrollY) + 'px'; l.style.width = r.width + 'px'; l.style.height = r.height + 'px'; } return l; }
-// 開いている付箋：パソコンは何枚でも（最後に触ったものが一番上）、スマホは1枚
+// 開いている付箋：パソコンは何枚でも（最後に触ったものが一番上）、スマホは2枚まで（3枚目を開くと一番古いものがたたまれる）
 STK.opens = [];
-Object.defineProperty(STK, 'open', { configurable: true, get: function () { return STK.opens.length ? STK.opens[STK.opens.length - 1] : null; }, set: function (v) { STK.opens = v ? (window.innerWidth <= 760 ? [v] : STK.opens.filter(function (x) { return x !== v; }).concat([v])) : []; } });
-function stkIsOpen(id) { return window.innerWidth <= 760 ? STK.open === id : STK.opens.indexOf(id) >= 0; }
+Object.defineProperty(STK, 'open', { configurable: true, get: function () { return STK.opens.length ? STK.opens[STK.opens.length - 1] : null; }, set: function (v) { if (!v) { STK.opens = []; return; } STK.opens = STK.opens.filter(function (x) { return x !== v; }).concat([v]); if (window.innerWidth <= 760) STK.opens = STK.opens.slice(-2); } });
+function stkIsOpen(id) { return (window.innerWidth <= 760 ? STK.opens.slice(-2) : STK.opens).indexOf(id) >= 0; }
 function stkFront(id) { if (STK.opens.indexOf(id) < 0) return; STK.opens = STK.opens.filter(function (x) { return x !== id; }).concat([id]); STK.opens.forEach(function (x, i) { var c = document.querySelector('#stkl .stk.card[data-stk="' + x + '"]'); if (c) c.style.zIndex = 2 + i; }); }
 function stkPaint() {
   if (!SYNC.ready || SD) return; var l = stkLayer(), here = STK.list.filter(function (s) { return s.place === stkPlace() && stkLeft(s) > 0; });
@@ -7108,8 +7108,8 @@ document.addEventListener('contextmenu', function (e) {
 document.addEventListener('pointerdown', function (e) {
   if (window.innerWidth > 760 || !STK.open || !e.target.closest) return;
   if (e.target.closest('#stkl .stk.card, #cm, #stkac')) return;
-  var id = STK.open, ta = document.getElementById('stkb-' + id); if (!ta || document.activeElement !== ta) return;
-  stkSaveBody(id, ta.value); ta.blur();
+  var ta = document.activeElement; if (!ta || !ta.dataset || !ta.dataset.stkBody) return;
+  stkSaveBody(ta.dataset.stkBody, ta.value); ta.blur();
 }, true);
 
 
@@ -7125,7 +7125,7 @@ document.addEventListener('click', function (e) {
 }, true);
 
 // パソコン：触った付箋を一番上へ
-document.addEventListener('pointerdown', function (e) { var c = e.target.closest && e.target.closest('#stkl .stk.card'); if (c && window.innerWidth > 760) stkFront(c.dataset.stk); }, true);
+document.addEventListener('pointerdown', function (e) { var c = e.target.closest && e.target.closest('#stkl .stk.card'); if (c) stkFront(c.dataset.stk); }, true);
 
 boot();
 })();
