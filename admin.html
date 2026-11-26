@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '5142a00562', FILE = 'admin.ver';
+  var VER = '6b123f89b6', FILE = 'admin.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -1947,6 +1947,13 @@ button.evst[aria-expanded="true"] svg{transform:none}
 }
 .dmaback{display:none !important}
 @media (max-width:760px){ .dmaback{display:flex !important} }
+/* ガント：完了を薄く・強調以外を薄くしても、左の列の後ろ（今日の線・区切り線）が透けないように。行ごとではなく中身を薄くする */
+.gg .gr.dndim,.gg .gr.hldim,.gg .gr.hldim:hover{opacity:1}
+.gg .gr.dndim > .gl > *,.gg .gr.dndim > .gt .bar{filter:opacity(.45)}
+.gg .gr.hldim > .gl > *,.gg .gr.hldim > .gt .bar{filter:opacity(.35)}
+.gg .gr.hldim:hover > .gl > *,.gg .gr.hldim:hover > .gt .bar{filter:opacity(.8)}
+/* チェックボックスの枠を濃く */
+.check.wck{border-color:#9CA3AF}
 
 /* ===== 本番 ===== */
 [data-act="reset"]{display:none !important}
