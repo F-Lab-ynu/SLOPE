@@ -4,7 +4,7 @@
 (function () {
   var sb = window.supabase.createClient('https://addvjcwwlklwmkwhhsjv.supabase.co', 'sb_publishable_L8VP_h67F3FupHwqC_3pTw_YRbBVghw');
   window.sb = sb;
-  var P = {}, ITEMS = [], REACT = [], NODES = [], NOTIFS = [];
+  var P = {}, ITEMS = [], REACT = [], NODES = [], NOTIFS = [], DMS = [], BLOCKS = [];
   var POSTS = { '代表': 1, '教育部': 1, '外務部 渉外局': 1, '外務部 広報局': 1, '催事部': 1, '会計': 1 };
   var bump = function () { if (window.__comp) window.__comp.forceUpdate(); };
   var DB = window.DB = {
@@ -160,6 +160,41 @@
     inqs: null,
     loadInq: function () { sb.from('inquiries').select('*').eq('user_id', DB.me).order('created_at', { ascending: false }).then(function (r) { DB.inqs = r.data || []; bump(); }); },
     sendInq: function (kind, body) { return sb.from('inquiries').insert({ user_id: DB.me, kind: kind, body: body }).then(function (r) { if (r.error) { DB.flash('送れませんでした'); return false; } DB.flash('送りました'); DB.loadInq(); return true; }); },
+    // ---------- DM（部員どうし） ----------
+    conv: function (a, b) { return a < b ? a + '_' + b : b + '_' + a; },
+    dms: function () { return DMS; },
+    dmWith: function (uid) { var c = DB.conv(DB.me, uid); return DMS.filter(function (m) { return m.conv === c; }).sort(function (a, b) { return a.created_at < b.created_at ? -1 : 1; }); },
+    dmThreads: function () { // 相手ごとに最新の1件
+      var by = {}; DMS.forEach(function (m) { var o = m.from_id === DB.me ? m.to_id : m.from_id; if (!by[o] || by[o].created_at < m.created_at) by[o] = m; });
+      return Object.keys(by).filter(function (o) { return P[o]; }).map(function (o) { return { uid: o, last: by[o], unread: DMS.filter(function (m) { return m.from_id === o && m.to_id === DB.me && !m.read_at; }).length }; })
+        .sort(function (a, b) { return a.last.created_at < b.last.created_at ? 1 : -1; });
+    },
+    dmUnread: function () { return DMS.filter(function (m) { return m.to_id === DB.me && !m.read_at && !DB.blocked(m.from_id); }).length; },
+    dmSend: function (uid, body, imgs) {
+      var row = { conv: DB.conv(DB.me, uid), from_id: DB.me, to_id: uid, body: body || '', imgs: imgs || [] }, tmp = Object.assign({ id: 'tmp' + Date.now(), created_at: new Date().toISOString(), read_at: null, sending: true }, row);
+      DMS.push(tmp); bump();
+      return sb.from('dms').insert(row).select().single().then(function (r) {
+        DMS = DMS.filter(function (m) { return m !== tmp; });
+        if (r.error) { DB.flash(/row-level/.test(r.error.message) ? '送れませんでした（ブロック中の相手には送れません）' : '送れませんでした'); bump(); return null; }
+        if (!DMS.some(function (m) { return m.id === r.data.id; })) DMS.push(r.data); bump(); return r.data;
+      });
+    },
+    dmRead: function (uid) {
+      var c = DB.conv(DB.me, uid), now = new Date().toISOString(), any = false;
+      DMS.forEach(function (m) { if (m.conv === c && m.to_id === DB.me && !m.read_at) { m.read_at = now; any = true; } });
+      if (!any) return; bump(); sb.from('dms').update({ read_at: now }).eq('conv', c).eq('to_id', DB.me).is('read_at', null).then(function () {});
+    },
+    dmDel: function (id) { DMS = DMS.filter(function (m) { return m.id !== id; }); bump(); sb.from('dms').delete().eq('id', id).then(function (r) { if (r.error) { DB.flash('取り消せませんでした'); dmLoad(); } }); },
+    blocked: function (uid) { return BLOCKS.indexOf(uid) >= 0; },
+    block: function (uid, on) {
+      if (on) { BLOCKS.push(uid); sb.from('dm_blocks').insert({ blocker: DB.me, blocked: uid }).then(function (r) { if (r.error) DB.flash('ブロックできませんでした'); else DB.flash('ブロックしました'); }); }
+      else { BLOCKS = BLOCKS.filter(function (x) { return x !== uid; }); sb.from('dm_blocks').delete().eq('blocker', DB.me).eq('blocked', uid).then(function (r) { if (!r.error) DB.flash('ブロックを解除しました'); }); }
+      bump();
+    },
+    dmReport: function (uid, reason) { // 運営は DM を読めないので、通報するときだけ直近のやり取りを添える
+      var last = DB.dmWith(uid).slice(-5).map(function (m) { return (m.from_id === DB.me ? '自分' : DB.name(m.from_id)) + '：' + (m.body || '（写真）'); }).join(' / ');
+      return sb.from('reports').insert({ item_id: 'dm:' + uid, user_id: DB.me, reason: 'DM（' + DB.name(uid) + '）' + reason + ' ｜ ' + last.slice(0, 400) }).then(function (r) { DB.flash(r.error ? '通報できませんでした' : '通報しました。運営が確認します'); });
+    },
     logout: function () { sb.auth.signOut().then(function () { location.replace(location.pathname); }); }
   };
 
@@ -176,7 +211,12 @@
     DB.self = P[DB.me] || null;
     ITEMS = res[1].data; REACT = res[2].data; NODES = res[3].data; NOTIFS = res[4].data;
     DB.ready = true;
+    await dmLoad();
   }
+  async function dmLoad() { // DM は別に読む（失敗してもほかは使える）
+    try { var r = await Promise.all([sb.from('dms').select('*').order('created_at', { ascending: false }).limit(1000), sb.from('dm_blocks').select('blocked').eq('blocker', DB.me)]); if (!r[0].error) DMS = r[0].data || []; if (!r[1].error) BLOCKS = (r[1].data || []).map(function (x) { return x.blocked; }); } catch (e) { console.warn(e); }
+  }
+  var dmT = null; function dmReload() { clearTimeout(dmT); dmT = setTimeout(async function () { await dmLoad(); bump(); if (window.__dmPaint) window.__dmPaint(); }, 150); }
   var rt = null, pend = false;
   function typing() { var a = document.activeElement; return a && /^(INPUT|TEXTAREA)$/.test(a.tagName) && a.value; }
   function reload() { clearTimeout(rt); rt = setTimeout(async function () { if (typing()) { pend = true; return; } try { await load(); bump(); } catch (e) { console.warn(e); } }, 250); }
@@ -235,6 +275,7 @@
       .on('postgres_changes', { event: '*', schema: 'public', table: 'nodes' }, reload)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, reload)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: 'to_id=eq.' + DB.me }, reload)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'dms' }, dmReload)
       .subscribe();
   };
   sb.auth.onAuthStateChange(function (ev) { if (ev === 'SIGNED_OUT') location.replace(location.pathname); if (ev === 'SIGNED_IN' && !DB.me && document.getElementById('gLogin')) setTimeout(window.__memberBoot, 0); });
@@ -346,7 +387,7 @@ function memberExtras(v) {
       });
       return { has: !!e0, none: !e0, title: e0 ? e0.title : '', days: days };
     })(), boardNew: { n: String(recent.length), inis: inis.map(function (i) { return { i: i }; }), note: '募集・意見 ' + nr + ' · ペイン ' + np },
-    hasNews: false, notifs: notifs, hasNotifs: notifs.length > 0, notifsAll: notifsAll, noNotifs: !notifsAll.length, bellDot: D.notifs().some(function (n) { return !n.read; }) ? 'block' : 'none',
+    hasNews: false, notifs: notifs, hasNotifs: notifs.length > 0, notifsAll: notifsAll, noNotifs: !notifsAll.length, dmN: (function () { var n = D.dmUnread ? D.dmUnread() : 0; return n > 99 ? '99+' : String(n); })(), dmShow: D.dmUnread && D.dmUnread() ? 'block' : 'none', bellDot: D.notifs().some(function (n) { return !n.read; }) ? 'block' : 'none',
     nPop: !!s.nPop, closeNotifs: function () { self.setState({ nPop: false }); },
     goNotifs: function () { var o = !s.nPop; self.setState({ nPop: o }); if (o) setTimeout(function () { D.readAll(); }, 1500); }, delAllNotifs: function () { D.delNotif('all'); },
     level: { lv: String(Math.floor(allD / 4) + 1).padStart(2, '0'), track: myRole ? myRole + ' 受講中' : 'ロールを選んでください', ms: '修了 ' + allD + ' / ' + allN + ' 単元', w: (allN ? Math.round(allD / allN * 100) : 0) + '%' },
@@ -451,7 +492,7 @@ window.__track = function (tab) { if (/[?&]embed=1/.test(location.search)) retur
 
 // 通知の種類（運営画面・データベースと同じ決め方）
 window.__NKG = [
-  ['member', '部員向け', [['remind', '参加するイベントの前日'], ['evchange', 'イベントの中止・変更'], ['evnew', '新しいイベント'], ['comment', '自分の投稿へのコメント'], ['offer_ok', '共有した外部告知が公式になった'], ['reply', 'お問い合わせへの返信']]],
+  ['member', '部員向け', [['remind', '参加するイベントの前日'], ['evchange', 'イベントの中止・変更'], ['evnew', '新しいイベント'], ['comment', '自分の投稿へのコメント'], ['offer_ok', '共有した外部告知が公式になった'], ['reply', 'お問い合わせへの返信'], ['dm', 'メッセージ']]],
   ['ops', '運営向け', [['assign', '担当・メンバーになった'], ['done', '業務の完了'], ['due', '期限が近い'], ['late', '期限切れ'], ['inquiry', '新しいお問い合わせ'], ['report', '投稿の通報'], ['offer_wait', '外部告知の確認待ち']]]
 ];
 window.__nLabel = function (k) { var r = ''; window.__NKG.forEach(function (g) { g[2].forEach(function (x) { if (x[0] === k) r = x[1]; }); }); return r; };
@@ -581,11 +622,7 @@ function annPop(a) {
   var cur = function () { var c = window.__comp; var s = c ? c.state.seg : 'idea'; return TABS.some(function (t) { return t[0] === s; }) ? s : 'idea'; };
   // 写真：非公開の置き場から、見るための一時URLをまとめて取る
   var URLS = {}, asked = {};
-  function want(paths) {
-    var need = paths.filter(function (p) { return !URLS[p] && !asked[p]; }); if (!need.length || !window.sb || !window.sb.storage) return;
-    need.forEach(function (p) { asked[p] = 1; });
-    window.sb.storage.from('board').createSignedUrls(need, 86400).then(function (r) { (r.data || []).forEach(function (x) { if (x.signedUrl) URLS[x.path] = x.signedUrl; }); paint(true); }).catch(function () {});
-  }
+
   function pics(d) {
     var ps = (d.imgs || []).slice(0, 4); if (!ps.length) return ''; want(ps);
     return '<div class="bxp n' + ps.length + '">' + ps.map(function (p) { return URLS[p] ? '<img src="' + e(URLS[p]) + '" alt="" loading="lazy" data-bxi="' + e(p) + '">' : '<span class="bxph"></span>'; }).join('') + '</div>';
@@ -602,8 +639,8 @@ function annPop(a) {
     } else if (tab === 'idea') { title = d.title || ''; body = d.summary || ''; acts = act('rep', x.id, cm(x.id)) + act('vote', x.id, D.count(x.id, 'vote'), D.mine(x.id, 'vote')); }
     else if (tab === 'pain') { body = d.text || ''; acts = act('rep', x.id, cm(x.id)) + act('emp', x.id, D.count(x.id, 'emp'), D.mine(x.id, 'emp'), 'me2'); }
     else { body = d.text || ''; if (d.book) foot = '<div class="bxbk">📖 ' + e(d.book) + (d.bookAuthor ? ' · ' + e(d.bookAuthor) : '') + '</div>'; acts = act('rep', x.id, cm(x.id)) + act('like', x.id, D.count(x.id, 'like'), D.mine(x.id, 'like')); }
-    return '<article class="bx" data-bxid="' + e(x.id) + '" data-k="' + tab + '"><span class="bxav">' + e(D.ini(x.author)) + '</span><div class="bxm">' +
-      '<div class="bxh"><b>' + e(D.name(x.author)) + '</b><span>' + e(((D.who(x.author) || '').split(' · ')[1] || '')) + (D.who(x.author).indexOf(' · ') > 0 ? ' · ' : '') + e(D.ago(x.created_at)) + '</span><button class="bxmore" data-bxm="' + e(x.id) + '" data-mine="' + mine + '" aria-label="その他">' + IC.more + '</button></div>' +
+    return '<article class="bx" data-bxid="' + e(x.id) + '" data-k="' + tab + '"><span class="bxav" data-pf="' + e(x.author) + '">' + e(D.ini(x.author)) + '</span><div class="bxm">' +
+      '<div class="bxh"><b data-pf="' + e(x.author) + '">' + e(D.name(x.author)) + '</b><span>' + e(((D.who(x.author) || '').split(' · ')[1] || '')) + (D.who(x.author).indexOf(' · ') > 0 ? ' · ' : '') + e(D.ago(x.created_at)) + '</span><button class="bxmore" data-bxm="' + e(x.id) + '" data-mine="' + mine + '" aria-label="その他">' + IC.more + '</button></div>' +
       (title ? '<div class="bxt">' + e(title) + '</div>' : '') + (body ? '<div class="bxb">' + link(body) + '</div>' : '') + pics(d) + foot +
       '<div class="bxas">' + acts + '</div></div></article>';
   }
@@ -663,7 +700,7 @@ function annPop(a) {
     var focus = row(x, x.kind).replace('class="bx"', 'class="bx fx"').replace(/<div class="bxcs">[\s\S]*?<\/div>/, slots).replace('<div class="bxas">', '<div class="bxst"><span>' + e(stamp) + '</span><div class="bxas">').replace(/<\/div><\/div><\/article>$/, '</div></div></div></article>');
     var sc0 = old && old.querySelector('.bxths') ? old.querySelector('.bxths').scrollTop : 0;
     w.innerHTML = '<div class="bxths"><div class="nsph"><button data-bxth-x aria-label="戻る">' + IC.back + '</button><b>投稿</b></div><div class="nspb bxthb">' + focus +
-      (reps.length ? reps.map(function (c) { return '<div class="bx rep"><span class="bxav">' + e(D.ini(c.author)) + '</span><div class="bxm"><div class="bxh"><b>' + e(D.name(c.author)) + '</b><span>' + e(D.ago(c.created_at)) + '</span></div><div class="bxb">' + link((c.data || {}).text || '') + '</div>' + pics(c.data || {}) + '</div></div>'; }).join('') : '') +
+      (reps.length ? reps.map(function (c) { return '<div class="bx rep"><span class="bxav" data-pf="' + e(c.author) + '">' + e(D.ini(c.author)) + '</span><div class="bxm"><div class="bxh"><b data-pf="' + e(c.author) + '">' + e(D.name(c.author)) + '</b><span>' + e(D.ago(c.created_at)) + '</span></div><div class="bxb">' + link((c.data || {}).text || '') + '</div>' + pics(c.data || {}) + '</div></div>'; }).join('') : '') +
       '</div></div><div class="bxrp"><span class="bxav sm">' + e(D.ini(D.me)) + '</span><textarea id="bxrep" rows="1" placeholder="返信する"></textarea><button data-bxsend="' + e(id) + '" disabled>返信</button></div>';
     if (!old) { document.body.appendChild(w); document.documentElement.classList.add('invon'); try { history.pushState({ bxth: 1 }, ''); } catch (er) {} }
     var scr = w.querySelector('.bxths'); scr.scrollTop = sc0; var lastY = sc0;
@@ -672,7 +709,7 @@ function annPop(a) {
   }
   window.__bxThread = thread; // ホームやマイページから開くときも同じ投稿画面
   function closeTh(pop) { var w = document.getElementById('bxth'); if (!w) return; w.remove(); document.documentElement.classList.remove('invon'); if (!pop) try { if (history.state && history.state.bxth) history.back(); } catch (er) {} }
-  window.addEventListener('popstate', function () { if (document.getElementById('bxiv')) { ivClose(true); return; } closeTh(true); closeNew(true); });
+  window.addEventListener('popstate', function () { if (document.getElementById('bxiv')) { ivClose(true); return; } var dp = document.getElementById('dmc') || document.getElementById('dmbox'); if (dp) { dp.remove(); if (dp.id === 'dmc' && document.getElementById('dmbox')) dmBox(); return; } closeTh(true); closeNew(true); });
 
   // ---- 投稿・返信（本文と写真。下の帯：写真・種類・メンバー募集。キーボードの上に出る） ----
   var NEW = null, KIND = [['idea', 'アイデア'], ['pain', 'ペイン'], ['other', 'フリー']];
@@ -719,10 +756,10 @@ function annPop(a) {
   function fit() { // 見えている範囲（キーボードの上まで）にぴったり合わせる
     var vv = window.visualViewport; if (vv && !/^(TEXTAREA|INPUT)$/.test((document.activeElement || {}).tagName || '')) FULLH = Math.max(FULLH, vv.height);
     var kb = !!vv && (Math.max(FULLH, window.innerHeight) - vv.height > 120); // 画面の高さが変わる場合もあるので、キーボードを出す前の高さと比べる
-    ['bxnew', 'bxth'].forEach(function (id) {
+    ['bxnew', 'bxth', 'dmc', 'dmbox'].forEach(function (id) {
       var w = document.getElementById(id); if (!w) return; w.classList.toggle('kb', kb);
       if (!vv) return; w.style.top = vv.offsetTop + 'px'; w.style.height = vv.height + 'px'; w.style.bottom = 'auto'; w.style.paddingBottom = '';
-      var bar = w.querySelector('.bxnt, .bxrp'); if (bar) bar.style.transform = kb && IOS26_GAP ? 'translateY(' + IOS26_GAP + 'px)' : '';
+      var bar = w.querySelector('.bxnt, .bxrp, .dmcp'); if (bar) bar.style.transform = kb && IOS26_GAP ? 'translateY(' + IOS26_GAP + 'px)' : '';
     });
   }
   // 開いている間は後ろの画面を固定（スクロールできないように）
@@ -730,12 +767,12 @@ function annPop(a) {
   function lock(on) {
     var b = document.body;
     if (on && !LOCK) { LOCK = { y: window.scrollY }; b.style.position = 'fixed'; b.style.top = -LOCK.y + 'px'; b.style.left = '0'; b.style.right = '0'; }
-    if (!on && LOCK && !document.getElementById('bxnew') && !document.getElementById('bxth') && !document.getElementById('bxiv')) { b.style.position = ''; b.style.top = ''; b.style.left = ''; b.style.right = ''; window.scrollTo(0, LOCK.y); LOCK = null; }
+    if (!on && LOCK && !document.getElementById('bxnew') && !document.getElementById('bxth') && !document.getElementById('bxiv') && !document.querySelector('.dmpg')) { b.style.position = ''; b.style.top = ''; b.style.left = ''; b.style.right = ''; window.scrollTo(0, LOCK.y); LOCK = null; }
   }
-  new MutationObserver(function () { lock(!!(document.getElementById('bxnew') || document.getElementById('bxth') || document.getElementById('bxiv'))); }).observe(document.body, { childList: true });
+  new MutationObserver(function () { lock(!!(document.getElementById('bxnew') || document.getElementById('bxth') || document.getElementById('bxiv') || document.querySelector('.dmpg'))); }).observe(document.body, { childList: true });
   document.addEventListener('touchmove', function (ev) { // 中身のスクロールだけ許す
-    var w = ev.target.closest && ev.target.closest('#bxnew, #bxth'); if (!w) return;
-    var sc = ev.target.closest('.bxths, .bxnb, textarea'); if (sc && sc.scrollHeight > sc.clientHeight + 1) return;
+    var w = ev.target.closest && ev.target.closest('#bxnew, #bxth, .dmpg'); if (!w) return;
+    var sc = ev.target.closest('.bxths, .bxnb, textarea, .dmcs, .dml, .dmfs'); if (sc && sc.scrollHeight > sc.clientHeight + 1) return;
     ev.preventDefault();
   }, { passive: false });
   if (window.visualViewport) { window.visualViewport.addEventListener('resize', fit); window.visualViewport.addEventListener('scroll', fit); }
@@ -765,6 +802,136 @@ function annPop(a) {
     var parent = NEW.parent, res = await D.add(kind, data, parent || undefined); if (!res) { undo(); return; }
     closeNew(); paint(); if (parent && document.getElementById('bxth')) thread(parent);
   }
+
+  // ---- DM（インスタ式）：右上のアイコン → 一覧 → 会話。名前やアイコンからも始められる ----
+  IC.send = '<svg viewBox="0 0 24 24"><path d="M21 3L10 14"/><path d="M21 3l-7 18-4-7-7-4z"/></svg>';
+  IC.pen = '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>';
+  IC.more = '<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg>';
+  var DMV = { files: [], pickQ: '' };
+  function dmTime(iso) { var d = new Date(iso), n = new Date(), p = function (x) { return (x < 10 ? '0' : '') + x; };
+    if (d.toDateString() === n.toDateString()) return p(d.getHours()) + ':' + p(d.getMinutes());
+    var y = new Date(n); y.setDate(n.getDate() - 1); if (d.toDateString() === y.toDateString()) return '昨日';
+    return (d.getMonth() + 1) + '/' + d.getDate(); }
+  function dmStamp(iso) { var d = new Date(iso), p = function (x) { return (x < 10 ? '0' : '') + x; }; return (d.getMonth() + 1) + '月' + d.getDate() + '日 ' + p(d.getHours()) + ':' + p(d.getMinutes()); }
+  function dmPage(id) { var w = document.getElementById(id); if (!w) { w = document.createElement('div'); w.id = id; w.className = 'dmpg'; document.body.appendChild(w); try { history.pushState({ dm: id }, ''); } catch (er) {} } return w; }
+  function dmClose(id, pop) { var w = document.getElementById(id); if (!w) return; w.classList.add('out'); setTimeout(function () { w.remove(); }, 200); if (!pop) try { if (history.state && history.state.dm) history.back(); } catch (er) {} }
+  function dmBox() {
+    var D = window.DB, w = dmPage('dmbox'), T = D.dmThreads(), pick = DMV.pick;
+    var rows = pick ? D.profiles().filter(function (p) { return p.id !== D.me && (!DMV.pickQ || (p.name + (p.grade || '')).indexOf(DMV.pickQ) >= 0); }).map(function (p) {
+        return '<button class="dmr" data-dmto="' + e(p.id) + '"><span class="bxav">' + e(D.ini(p.id)) + '</span><span class="dmrm"><b>' + e(p.name) + '</b><small>' + e(p.grade || '') + '</small></span></button>'; }).join('')
+      : T.map(function (t) { var m = t.last, txt = (m.from_id === D.me ? 'あなた：' : '') + (m.body || '写真'); return '<button class="dmr' + (t.unread ? ' new' : '') + '" data-dmto="' + e(t.uid) + '"><span class="bxav">' + e(D.ini(t.uid)) + '</span><span class="dmrm"><b>' + e(D.name(t.uid)) + '</b><small>' + e(txt.replace(/\s+/g, ' ')) + ' · ' + e(dmTime(m.created_at)) + '</small></span>' + (t.unread ? '<i class="dmdot" aria-label="未読"></i>' : '') + '</button>'; }).join('');
+    w.innerHTML = '<div class="nsph"><button data-dmx="' + (pick ? 'pick' : 'dmbox') + '" aria-label="戻る">' + IC.back + '</button><b>' + (pick ? '新しいメッセージ' : 'メッセージ') + '</b><span class="sp"></span>' + (pick ? '' : '<button data-dmnew aria-label="新しいメッセージ">' + IC.pen + '</button>') + '</div>' +
+      (pick ? '<div class="dmq"><input id="dmq" placeholder="名前で探す" autocomplete="off" value="' + e(DMV.pickQ) + '"></div>' : '') +
+      '<div class="dml">' + (rows || '<div class="dmempty">' + (pick ? '見つかりません' : 'まだメッセージはありません<button data-dmnew>メッセージを送る</button>') + '</div>') + '</div>';
+    if (pick) { var q = w.querySelector('#dmq'); if (q && document.activeElement !== q && !DMV.typed) q.focus(); }
+  }
+  function dmConv(uid) {
+    var D = window.DB, w = dmPage('dmc'), L = D.dmWith(uid), blk = D.blocked(uid), old = w.querySelector('.dmcs'), atEnd = !old || old.scrollHeight - old.scrollTop - old.clientHeight < 80;
+    w.dataset.uid = uid; D.dmRead(uid);
+    var out = '', prev = null, lastMine = null; L.forEach(function (m) { if (m.from_id === D.me) lastMine = m; });
+    L.forEach(function (m, i) {
+      if (!prev || new Date(m.created_at) - new Date(prev.created_at) > 3600000) out += '<div class="dmts">' + e(dmStamp(m.created_at)) + '</div>';
+      var me = m.from_id === D.me, nx = L[i + 1], tail = !nx || nx.from_id !== m.from_id || new Date(nx.created_at) - new Date(m.created_at) > 3600000;
+      var ps = (m.imgs || []).filter(Boolean); if (ps.length) want(ps, 'dm');
+      out += '<div class="dmm' + (me ? ' me' : '') + (tail ? ' tail' : '') + (m.sending ? ' sending' : '') + '" data-dmid="' + e(m.id) + '">' +
+        (ps.length ? '<div class="dmim n' + Math.min(ps.length, 4) + '">' + ps.map(function (p) { return URLS[p] ? '<img src="' + e(URLS[p]) + '" alt="" data-bxi="' + e(p) + '">' : '<span class="bxph"></span>'; }).join('') + '</div>' : '') +
+        (m.body ? '<div class="dmb">' + link(m.body) + '</div>' : '') + '</div>';
+      if (m === lastMine && m.read_at) out += '<div class="dmread">既読</div>';
+      prev = m;
+    });
+    var top = '<div class="dmhero"><span class="bxav lg">' + e(D.ini(uid)) + '</span><b>' + e(D.name(uid)) + '</b><small>' + e(((D.profiles().filter(function (x) { return x.id === uid; })[0]) || {}).grade || '') + '</small><button data-pf="' + e(uid) + '">プロフィールを見る</button></div>';
+    var keep = w.querySelector('#dmtx'), val = keep ? keep.value : '', focused = keep && document.activeElement === keep;
+    w.innerHTML = '<div class="nsph"><button data-dmx="dmc" aria-label="戻る">' + IC.back + '</button><button class="dmwho" data-pf="' + e(uid) + '"><span class="bxav sm">' + e(D.ini(uid)) + '</span><b>' + e(D.name(uid)) + '</b></button><span class="sp"></span><button data-dmmenu aria-label="その他">' + IC.more + '</button></div>' +
+      '<div class="dmcs">' + top + out + '</div>' +
+      (blk ? '<div class="dmblk">ブロック中です<button data-dmunblock>解除する</button></div>' :
+      (DMV.files.length ? '<div class="dmfs">' + DMV.files.map(function (f, i) { return '<span class="bxpe"><img src="' + f.url + '" alt=""><button data-dmrm="' + i + '" aria-label="写真を外す">' + IC.x + '</button></span>'; }).join('') + '</div>' : '') +
+      '<div class="dmcp"><label class="dmph" aria-label="写真"><input type="file" accept="image/*" multiple id="dmfile">' + IC.photo + '</label><textarea id="dmtx" rows="1" placeholder="メッセージ…">' + e(val) + '</textarea><button data-dmsend aria-label="送信"' + (val.trim() || DMV.files.length ? '' : ' disabled') + '>' + IC.send + '</button></div>');
+    var sc = w.querySelector('.dmcs'); if (atEnd || !old) sc.scrollTop = sc.scrollHeight; else sc.scrollTop = old.scrollTop;
+    var t2 = w.querySelector('#dmtx'); if (t2) { t2.style.height = 'auto'; t2.style.height = Math.min(t2.scrollHeight, 140) + 'px'; if (focused) { t2.focus(); t2.setSelectionRange(t2.value.length, t2.value.length); } }
+    fit();
+  }
+  window.__dmPaint = function () { if (document.getElementById('dmc')) dmConv(document.getElementById('dmc').dataset.uid); if (document.getElementById('dmbox')) dmBox(); };
+  window.__dmOpen = function (uid) { if (uid) dmConv(uid); else { DMV.pick = false; dmBox(); } };
+  async function dmSend() {
+    var D = window.DB, w = document.getElementById('dmc'); if (!w) return; var uid = w.dataset.uid, ta = document.getElementById('dmtx'), v = ta ? ta.value.trim() : '', fs = DMV.files.slice();
+    if (!v && !fs.length) return; if (ta) ta.value = ''; DMV.files = []; var imgs = [];
+    try { for (var i = 0; i < fs.length; i++) { var b = await shrink(fs[i].file), path = D.conv(D.me, uid) + '/' + D.me + '/' + Date.now() + '_' + i + '.jpg', r = await window.sb.storage.from('dm').upload(path, b, { contentType: 'image/jpeg' }); if (r.error) throw r.error; imgs.push(path); URLS[path] = fs[i].url; } }
+    catch (er) { D.flash('写真を送れませんでした'); if (ta) ta.value = v; DMV.files = fs; dmConv(uid); return; }
+    await D.dmSend(uid, v, imgs); dmConv(uid);
+  }
+  function profile(uid) { // 人のプロフィール（下から）
+    var D = window.DB, p = (D.profiles().filter(function (x) { return x.id === uid; })[0]) || {}, me = uid === D.me, w = document.createElement('div'); w.id = 'pfs';
+    var roles = (p.roles || []).map(function (r) { return '<span class="pfr">' + e(r) + '</span>'; }).join('');
+    w.innerHTML = '<div class="anbg" data-pfx></div><div class="pfc"><span class="bxav lg">' + e(D.ini(uid)) + '</span><b>' + e(D.name(uid)) + '</b><small>' + e(p.grade || '') + (p.post && p.post !== '—' ? ' · ' + e(p.post) : '') + '</small>' + (roles ? '<div class="pfrs">' + roles + '</div>' : '') +
+      (me ? '' : D.blocked(uid) ? '<button class="pfgo off" data-dmunblock2="' + e(uid) + '">ブロックを解除</button>' : '<button class="pfgo" data-dmto="' + e(uid) + '">' + IC.send + 'メッセージ</button>') + '</div>';
+    document.body.appendChild(w); requestAnimationFrame(function () { w.classList.add('in'); });
+  }
+  function pfClose() { var w = document.getElementById('pfs'); if (w) w.remove(); }
+  function want(paths, bucket) { // 写真の一時URL（DM は別の置き場）
+    var need = paths.filter(function (p) { return !URLS[p] && !asked[p]; }); if (!need.length || !window.sb || !window.sb.storage) return;
+    need.forEach(function (p) { asked[p] = 1; });
+    window.sb.storage.from(bucket || 'board').createSignedUrls(need, 86400).then(function (r) { (r.data || []).forEach(function (x) { if (x.signedUrl) URLS[x.path] = x.signedUrl; }); if (bucket === 'dm') window.__dmPaint(); else paint(true); }).catch(function () {});
+  }
+  function dmMenu() {
+    var D = window.DB, uid = (document.getElementById('dmc') || {}).dataset.uid; if (!uid) return; var w = document.createElement('div'); w.id = 'bxmn';
+    w.innerHTML = '<div class="anbg" data-bxmn-x></div><div class="bxmnc"><button data-dmrep>通報する</button><button class="bad" data-dmblock>' + (D.blocked(uid) ? 'ブロックを解除' : 'ブロックする') + '</button><button data-bxmn-x>やめる</button></div>';
+    document.body.appendChild(w);
+    w.addEventListener('click', function (ev) {
+      var b = ev.target.closest('button, .anbg'); if (!b) return;
+      if (b.hasAttribute('data-dmrep')) { w.querySelector('.bxmnc').innerHTML = ['迷惑・勧誘', '攻撃的な言葉', 'なりすまし', 'その他'].map(function (r) { return '<button data-dmrr="' + r + '">' + r + '</button>'; }).join('') + '<button data-bxmn-x>やめる</button>'; return; }
+      if (b.dataset.dmrr) { D.dmReport(uid, b.dataset.dmrr); }
+      if (b.hasAttribute('data-dmblock')) { if (!D.blocked(uid) && !b.dataset.sure) { b.dataset.sure = '1'; b.textContent = 'ブロックすると、お互いに送れなくなります（もう一度押す）'; return; } D.block(uid, !D.blocked(uid)); dmConv(uid); }
+      w.remove();
+    });
+  }
+  function msgMenu(id) { // 自分のメッセージ：送信を取り消す
+    var w = document.createElement('div'); w.id = 'bxmn';
+    w.innerHTML = '<div class="anbg" data-bxmn-x></div><div class="bxmnc"><button class="bad" data-dmdel>送信を取り消す</button><button data-bxmn-x>やめる</button></div>';
+    document.body.appendChild(w);
+    w.addEventListener('click', function (ev) { var b = ev.target.closest('button, .anbg'); if (!b) return; if (b.hasAttribute('data-dmdel')) { window.DB.dmDel(id); var c = document.getElementById('dmc'); if (c) dmConv(c.dataset.uid); } w.remove(); });
+  }
+  document.addEventListener('click', function (ev) {
+    var t = ev.target; if (!t.closest) return; var b, D = window.DB;
+    if ((b = t.closest('[data-pf]'))) { ev.preventDefault(); ev.stopImmediatePropagation(); profile(b.dataset.pf); return; }
+    if (t.closest('[data-pfx]')) { pfClose(); return; }
+    if ((b = t.closest('[data-dm-open]'))) { ev.preventDefault(); ev.stopImmediatePropagation(); window.__dmOpen(); return; }
+    if ((b = t.closest('[data-dmto]'))) { ev.preventDefault(); ev.stopImmediatePropagation(); pfClose(); if (DMV.pick) { DMV.pick = false; DMV.pickQ = ''; } dmConv(b.dataset.dmto); return; }
+    if ((b = t.closest('[data-dmx]'))) { ev.stopImmediatePropagation(); if (b.dataset.dmx === 'pick') { DMV.pick = false; DMV.pickQ = ''; dmBox(); } else dmClose(b.dataset.dmx); if (b.dataset.dmx === 'dmc' && document.getElementById('dmbox')) dmBox(); return; }
+    if (t.closest('[data-dmnew]')) { ev.stopImmediatePropagation(); DMV.pick = true; DMV.pickQ = ''; DMV.typed = false; dmBox(); return; }
+    if (t.closest('[data-dmsend]')) { ev.stopImmediatePropagation(); dmSend(); return; }
+    if (t.closest('[data-dmmenu]')) { ev.stopImmediatePropagation(); dmMenu(); return; }
+    if ((b = t.closest('[data-dmrm]'))) { ev.stopImmediatePropagation(); DMV.files.splice(+b.dataset.dmrm, 1); dmConv(document.getElementById('dmc').dataset.uid); return; }
+    if (t.closest('[data-dmunblock]')) { var u0 = document.getElementById('dmc').dataset.uid; D.block(u0, false); dmConv(u0); return; }
+    if ((b = t.closest('[data-dmunblock2]'))) { D.block(b.dataset.dmunblock2, false); pfClose(); return; }
+  }, true);
+  document.addEventListener('input', function (ev) {
+    if (ev.target.id === 'dmq') { DMV.pickQ = ev.target.value.trim(); DMV.typed = true; var pos = ev.target.selectionStart; dmBox(); var q = document.getElementById('dmq'); if (q) { q.focus(); q.setSelectionRange(pos, pos); } }
+    if (ev.target.id === 'dmtx') { var t = ev.target; t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 140) + 'px'; var s0 = document.querySelector('[data-dmsend]'); if (s0) s0.disabled = !t.value.trim() && !DMV.files.length; }
+  });
+  document.addEventListener('change', function (ev) {
+    if (ev.target.id !== 'dmfile') return; var fs = [].slice.call(ev.target.files || []).slice(0, 4 - DMV.files.length);
+    fs.forEach(function (f) { if (/^image\//.test(f.type)) DMV.files.push({ file: f, url: URL.createObjectURL(f) }); }); dmConv(document.getElementById('dmc').dataset.uid);
+  });
+  document.addEventListener('keydown', function (ev) { if (ev.target.id === 'dmtx' && ev.key === 'Enter' && (ev.metaKey || ev.ctrlKey) && !ev.isComposing && ev.keyCode !== 229) { ev.preventDefault(); dmSend(); } });
+  // 自分のメッセージを長押し（PC は右クリック）で取り消し
+  var lp = null;
+  document.addEventListener('touchstart', function (ev) { var m = ev.target.closest && ev.target.closest('#dmc .dmm.me'); if (!m || m.classList.contains('sending')) return; lp = setTimeout(function () { lp = null; if (navigator.vibrate) navigator.vibrate(10); msgMenu(m.dataset.dmid); }, 480); }, { passive: true });
+  ['touchend', 'touchmove', 'touchcancel'].forEach(function (k) { document.addEventListener(k, function () { if (lp) { clearTimeout(lp); lp = null; } }, { passive: true }); });
+  document.addEventListener('contextmenu', function (ev) { var m = ev.target.closest && ev.target.closest('#dmc .dmm.me'); if (!m) return; ev.preventDefault(); msgMenu(m.dataset.dmid); });
+  // 左端から右へスワイプで戻る（いちばん上の DM の画面）
+  var dg = null;
+  document.addEventListener('touchstart', function (ev) { var w = document.getElementById('dmc') || document.getElementById('dmbox'); if (!w || ev.touches.length !== 1 || document.getElementById('bxiv') || document.getElementById('pfs')) return; var x = ev.touches[0].clientX; if (x > 28 && !ev.target.closest('.dml, .dmhero, .dmts')) return; dg = { x: x, y: ev.touches[0].clientY, on: false, w: w }; }, { passive: true });
+  document.addEventListener('touchmove', function (ev) {
+    if (!dg) return; var dx = ev.touches[0].clientX - dg.x, dy = ev.touches[0].clientY - dg.y;
+    if (!dg.on) { if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { dg = null; return; } if (dx < 12 || dx < Math.abs(dy) * 1.3) return; dg.on = true; dg.w.style.transition = 'none'; }
+    if (ev.cancelable) ev.preventDefault(); dg.w.style.transform = 'translateX(' + Math.max(0, dx - 12) + 'px)';
+  }, { passive: false });
+  document.addEventListener('touchend', function (ev) {
+    if (!dg) return; var g = dg; dg = null; if (!g.on) return; var dx = ev.changedTouches[0].clientX - g.x - 12;
+    g.w.style.transition = 'transform .2s ease';
+    if (dx > window.innerWidth * 0.3) { g.w.style.transform = 'translateX(100%)'; setTimeout(function () { var id = g.w.id; g.w.remove(); try { if (history.state && history.state.dm) history.back(); } catch (er) {} if (id === 'dmc' && document.getElementById('dmbox')) dmBox(); }, 200); }
+    else { g.w.style.transform = ''; setTimeout(function () { g.w.style.transition = ''; }, 220); }
+  }, { passive: true });
 
   // ---- 写真ビューア（X と同じ：黒い全画面・左右で送る・下へ払って閉じる・ピンチ／ダブルタップで拡大）----
   var IV = null;
@@ -877,7 +1044,7 @@ function annPop(a) {
   }
   // 投稿の画面：左端から右へスワイプで戻る（指についてくる）
   var eg = null;
-  document.addEventListener('touchstart', function (ev) { var w = document.getElementById('bxth'); if (!w || ev.touches.length !== 1 || ev.touches[0].clientX > 28 || document.getElementById('bxnew') || document.getElementById('bxiv')) return; eg = { x: ev.touches[0].clientX, y: ev.touches[0].clientY, on: false, w: w }; }, { passive: true });
+  document.addEventListener('touchstart', function (ev) { var w = document.getElementById('bxth'); if (!w || ev.touches.length !== 1 || ev.touches[0].clientX > 28 || document.getElementById('bxnew') || document.getElementById('bxiv') || document.querySelector('.dmpg')) return; eg = { x: ev.touches[0].clientX, y: ev.touches[0].clientY, on: false, w: w }; }, { passive: true });
   document.addEventListener('touchmove', function (ev) {
     if (!eg) return; var dx = ev.touches[0].clientX - eg.x, dy = ev.touches[0].clientY - eg.y;
     if (!eg.on) { if (Math.abs(dy) > Math.abs(dx)) { eg = null; return; } if (dx < 8) return; eg.on = true; eg.w.classList.add('drag'); }

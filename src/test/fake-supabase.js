@@ -1,6 +1,6 @@
 // テスト用：supabase-js の最小限の偽物（メモリ上のテーブル）
 (function () {
-  var DB = window.__DB = JSON.parse(localStorage.getItem('__fakedb') || 'null') || { profiles: [], nodes: [], notifications: [] }; ['items', 'reactions', 'reports'].forEach(function (k) { if (!DB[k]) DB[k] = []; });
+  var DB = window.__DB = JSON.parse(localStorage.getItem('__fakedb') || 'null') || { profiles: [], nodes: [], notifications: [] }; ['items', 'reactions', 'reports', 'dms', 'dm_blocks'].forEach(function (k) { if (!DB[k]) DB[k] = []; });
   var ME = localStorage.getItem('__fakeme');
   window.__LOG = [];
   function persist() { localStorage.setItem('__fakedb', JSON.stringify(DB)); }
@@ -9,6 +9,7 @@
   Q.prototype.order = function (k, o) { this.ord = [k, !o || o.ascending !== false]; return this; };
   Q.prototype.limit = function (n) { this.lim = n; return this; };
   Q.prototype.eq = function (k, v) { this.f.push(function (r) { return r[k] === v; }); return this; };
+  Q.prototype.is = function (k, v) { this.f.push(function (r) { return (r[k] == null ? null : r[k]) === v; }); return this; };
   Q.prototype.in = function (k, vs) { this.f.push(function (r) { return vs.indexOf(r[k]) >= 0; }); return this; };
   Q.prototype.single = function () { this.one = true; return this; };
   Q.prototype.insert = function (p) { this.op = 'insert'; this.payload = Array.isArray(p) ? p : [p]; return this; };

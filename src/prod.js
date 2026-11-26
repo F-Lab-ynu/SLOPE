@@ -322,6 +322,11 @@ function itemsIn(items, reports) {
     var reason = rs.slice().sort(function (a, b) { return rs.filter(function (v) { return v === b; }).length - rs.filter(function (v) { return v === a; }).length; })[0] || '';
     return { id: x.id, kind: x.kind, text: d.title || d.text || '', who: whoLabel(x.author), time: fmtAt(x.created_at), on: par ? '「' + ((par.data || {}).title || (par.data || {}).text || '').slice(0, 20) + '」' : '', tab: x.kind === 'other' ? (d.tag || 'その他') : KIND_LABEL[x.kind], reports: rs.length, reason: reason, state: x.state };
   });
+  // DM の通報（運営は DM を読めないので、通報した人が添えた直近のやり取りだけを見る）。できるのは「問題なし」だけ
+  Object.keys(rep).filter(function (k) { return /^dm:/.test(k); }).forEach(function (k) {
+    var rs = rep[k], first = reports.filter(function (r) { return r.item_id === k; })[0] || {};
+    S.posts.push({ id: k, kind: 'dm', dm: true, text: rs[rs.length - 1], who: whoLabel(k.slice(3)), time: fmtAt(first.created_at), on: '', tab: 'DM', reports: rs.length, reason: '', state: 'ok' });
+  });
   S.cals = items.filter(function (x) { return x.kind === 'cal' && x.state !== 'deleted'; }).map(function (x) { return Object.assign({ title: '', date: isoOf(TODAY), time: '', place: '', memo: '', state: 'pub' }, x.data, { id: x.id }); });
   S.anns = items.filter(function (x) { return x.kind === 'ann' && x.state !== 'deleted'; }).map(function (x) { return Object.assign({ title: '', body: '', until: '', at: x.created_at || '', cid: '' }, x.data, { id: x.id }); });
   var pg = items.filter(function (x) { return x.kind === 'program'; })[0]; S.program = pg ? pg.data : null;
@@ -358,6 +363,7 @@ function itemChanges() {
   S.posts.forEach(function (p) {
     seen[p.id] = 1; var key = p.state + '|' + p.reports; if (SYNC.items[p.id] === key || !can('board')) return;
     var old = (SYNC.items[p.id] || '').split('|'); SYNC.items[p.id] = key;
+    if (p.dm) { if (+old[1] > 0 && p.reports === 0) ops.push(function () { return sb.from('reports').delete().eq('item_id', p.id).then(function (r) { return r.error; }); }); return; }
     if (old[0] !== p.state) ops.push(function () { return sb.from('items').update({ state: p.state }).eq('id', p.id).select('id').then(function (r) { return r.error || (!r.data.length ? { message: '権限がありません' } : null); }); });
     if (+old[1] > 0 && p.reports === 0) ops.push(function () { return sb.from('reports').delete().eq('item_id', p.id).then(function (r) { return r.error; }); });
   });

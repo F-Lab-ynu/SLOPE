@@ -72,6 +72,7 @@ function viewBoard() {
       : (p.reports > 0 ? '<button class="ib bok" data-act="pOk" data-id="' + p.id + '" title="問題なし" aria-label="問題なし"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></button>' : '') +
         '<button class="ib bhide" data-act="pHide" data-id="' + p.id + '" title="非表示にする" aria-label="非表示にする"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 6.1A9.8 9.8 0 0 1 12 6c5 0 9 6 9 6a17 17 0 0 1-3.1 3.6M6.6 6.6C4.4 8 3 12 3 12s4 6 9 6c1.4 0 2.7-.4 3.9-1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg></button>' +
         '<button class="ib udel" data-act="pDelNow" data-id="' + p.id + '" aria-label="削除"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/></svg></button>';
+    if (p.dm) acts = acts.replace(/<button class="ib bhide"[\s\S]*$/, ''); // DM の通報は「問題なし」だけ（中身は消せない）
     return '<tr' + (gone ? ' style="color:var(--dim)"' : '') + '><td style="max-width:520px"><div class="cell2"><span>' + esc(p.text) + '</span><span class="s">' + esc(p.who) + '・<span class="num">' + esc(p.time) + '</span>' + (p.on ? '・' + esc(p.on) + ' へのコメント' : '') + '</span></div></td>' +
       '<td class="tdc"><span class="tag tagc">' + esc(p.tab) + '</span></td>' +
       '<td class="rp">' + (p.reports > 0 && !gone ? '<span class="bad num">' + p.reports + '</span> <span class="muted">' + esc(p.reason) + '</span>' : '<span class="dim">—</span>') + '</td>' +
