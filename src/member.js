@@ -311,7 +311,12 @@ function memberExtras(v) {
     todayLabel: WDJ[now.getDay()] + ' · ' + (now.getMonth() + 1) + '.' + now.getDate(), hello: 'こんにちは、' + (self0.name || '') + 'さん',
     anns: anns.map(function (a) { return { title: a.title, body: a.body || '', tfs: a.title.length > 22 ? '18px' : '21px', go: function () { annPop(a); } }; }), hasAnn: anns.length > 0,
     dots: anns.concat([0]).map(function () { return {}; }),
-    next: nextEv ? { has: true, lc: '#F2A93B', rd: 'flex', wc: 'en', tfs: '21px', go: goCalTop, aid: '', label: 'NEXT · 部内イベント', title: nextEv.title, when: md(nextEv.end) + ' ' + wd(nextEv.end), left: String(Math.max(0, daysTo(nextEv.end))) } : { has: false, lc: '#F2A93B', rd: 'flex', wc: 'en', tfs: '21px', go: goCalTop, aid: '', label: 'NEXT', title: '予定されているイベントはありません', when: '', left: '—' },
+    next: nextEv ? (function () { // あと何日：始まる日まで。当日（期間中）は TODAY
+      var st = nextEv.start || nextEv.end, d0 = daysTo(st), on = d0 <= 0;
+      return { has: true, lc: '#F2A93B', rd: 'flex', wc: 'en', tfs: '21px', go: goCalTop, aid: '', label: 'NEXT · 部内イベント', title: nextEv.title,
+        when: md(st) + ' ' + wd(st) + (nextEv.start && nextEv.start !== nextEv.end ? ' – ' + md(nextEv.end) : ''),
+        left: on ? 'TODAY' : String(d0), lfs: on ? '40px' : '64px', unit: on ? '' : d0 === 1 ? 'DAY LEFT' : 'DAYS LEFT', ud: on ? 'none' : 'block' };
+    })() : { has: false, lc: '#F2A93B', rd: 'flex', wc: 'en', tfs: '21px', go: goCalTop, aid: '', label: 'NEXT', title: '予定されているイベントはありません', when: '', left: '—', lfs: '64px', unit: 'DAYS LEFT', ud: 'block' },
     learnCard: (function () { // 運営のプログラムどおり（変えるとすぐ反映）
       var used = (window.__progSummary ? 'y' : 'n') + (window.__PROG ? window.__PROG.key + '|' + window.__PROG.jkey : '');
       setTimeout(function () { var now = (window.__progSummary ? 'y' : 'n') + (window.__PROG ? window.__PROG.key + '|' + window.__PROG.jkey : ''); if (now !== used && window.__comp) window.__comp.forceUpdate(); }, 0); // 学ぶのデータが新しくなったら描き直す

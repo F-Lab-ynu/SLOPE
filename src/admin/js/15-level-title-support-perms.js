@@ -21,26 +21,43 @@ window.addEventListener('click', function (e) {
   else if (b.dataset.qzc != null) { var q = x.d.quiz[+b.dataset.qzc]; q.c.push(''); touch(x.t); qzRe('[data-qz="' + b.dataset.qzc + '"][data-qj="' + (q.c.length - 1) + '"]'); }
   else { var p = b.dataset.qzcdel.split(':'), q2 = x.d.quiz[+p[0]], j = +p[1]; q2.c.splice(j, 1); if (q2.a === j) q2.a = 0; else if (q2.a > j) q2.a--; touch(x.t); qzRe(); }
 }, true);
-// 出席を付ける（参加登録した人が上）
-function attOpen(cid, btn) {
+// 出欠を取る（専用の画面）：参加登録した人／全員を切り替え、行を押すと出席
+function attOpen(cid) {
   var c = evCal(cid); if (!c) return; if (!c.att) c.att = [];
-  var jn = (S.joinIds || {})[cid] || [], q = '';
-  var pop = document.getElementById('attp'); if (!pop) { pop = document.createElement('div'); pop.id = 'attp'; pop.className = 'tp attp'; document.body.appendChild(pop); }
-  var draw = function () {
-    var ms = S.members.filter(function (m) { return !q || (m.name + (m.grade || '')).indexOf(q) >= 0; }).sort(function (a, b) { return (jn.indexOf(b.id) >= 0) - (jn.indexOf(a.id) >= 0); });
-    pop.querySelector('.attls').innerHTML = ms.map(function (m) { var on = c.att.indexOf(m.id) >= 0; return '<label class="tpi"><input type="checkbox" class="check" data-attm="' + m.id + '"' + (on ? ' checked' : '') + '>' + av(m.id) + '<span class="tpn">' + esc(m.name) + '</span>' + (jn.indexOf(m.id) >= 0 ? '<small class="muted">登録</small>' : '') + '</label>'; }).join('') || '<div class="muted" style="padding:8px">いません</div>';
-  };
-  pop.innerHTML = '<input class="input" id="attq" placeholder="名前で絞り込み" autocomplete="off"><div class="attls"></div>';
-  draw();
-  var r = btn.getBoundingClientRect(); pop.style.left = Math.max(8, Math.min(innerWidth - 328, r.left)) + 'px'; pop.style.top = Math.min(innerHeight - 380, r.bottom + 6) + 'px'; pop.hidden = false;
-  pop.querySelector('#attq').addEventListener('input', function (e) { q = e.target.value.trim(); draw(); });
-  pop.onchange = function (e) { var id = e.target.dataset && e.target.dataset.attm; if (!id) return; snap(); if (e.target.checked) { if (c.att.indexOf(id) < 0) c.att.push(id); } else c.att = c.att.filter(function (x) { return x !== id; }); save(); };
-  pop.querySelector('#attq').focus();
-  setTimeout(function () {
-    var close = function (ev) { if (ev.type === 'keydown' && ev.key !== 'Escape') return; if (ev.type === 'mousedown' && pop.contains(ev.target)) return; pop.remove(); document.removeEventListener('mousedown', close, true); document.removeEventListener('keydown', close, true); var ed = document.querySelector('.p2ed'); if (ed) ed.innerHTML = p2Editor(); else render(); }; // 一覧はそのまま（押した行がそのまま選べる）
-    document.addEventListener('mousedown', close, true); document.addEventListener('keydown', close, true);
-  }, 0);
+  var jn = (S.joinIds || {})[cid] || [];
+  M = { m: 'att', id: cid, tab: jn.length ? 'reg' : 'all', q: '' }; renderModal();
 }
+function attDlg() {
+  var c = evCal(M.id); if (!c) return '';
+  var when = (c.date ? pmd(c.date) + (c.to ? ' – ' + pmd(c.to) : '') : '日時未定') + (c.time ? ' ' + esc(c.time) : '') + (c.place ? ' · ' + esc(c.place) : '');
+  var body = '<div class="atth"><span class="muted">' + when + '</span><div class="attn"><span><b class="num" id="attN"></b>出席</span><span><b class="num" id="attR"></b>参加登録</span></div></div>' +
+    '<div class="attbar"><span class="seg" role="group" aria-label="表示"><button data-attt="reg" aria-pressed="' + (M.tab === 'reg') + '">参加登録した人</button><button data-attt="all" aria-pressed="' + (M.tab === 'all') + '">全員</button></span>' +
+    '<input class="input" id="attq2" placeholder="名前で絞り込み" autocomplete="off" value="' + esc(M.q) + '"></div><div class="attl" id="attl"></div>';
+  return dlg('出欠 · ' + esc(c.title || 'イベント'), body, '<button class="btn" data-act="attAll">参加登録した人を全員出席にする</button><span class="sp"></span><button class="btn primary" data-act="close">閉じる</button>', true).replace('class="dlg"', 'class="dlg attd"');
+}
+function attDraw() {
+  var c = M && M.m === 'att' && evCal(M.id), box = document.getElementById('attl'); if (!c || !box) return;
+  var jn = (S.joinIds || {})[c.id] || [], q = M.q;
+  var ms = S.members.filter(function (m) { return (M.tab === 'all' || jn.indexOf(m.id) >= 0) && (!q || (m.name + (m.grade || '')).indexOf(q) >= 0); })
+    .sort(function (a, b) { return ((jn.indexOf(b.id) >= 0) - (jn.indexOf(a.id) >= 0)) || (a.name || '').localeCompare(b.name || '', 'ja'); });
+  box.innerHTML = ms.length ? ms.map(function (m) { var on = c.att.indexOf(m.id) >= 0;
+    return '<button class="attr' + (on ? ' on' : '') + '" data-attm2="' + m.id + '" aria-pressed="' + on + '">' + av(m.id) + '<span class="attnm"><b>' + esc(m.name) + '</b>' + (m.grade ? '<small>' + esc(m.grade) + '</small>' : '') + '</span>' +
+      (M.tab === 'all' && jn.indexOf(m.id) >= 0 ? '<span class="atttag">登録</span>' : '') + '<span class="attck">' + (on ? '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12l4 4 8-8"/></svg>出席' : '欠席') + '</span></button>'; }).join('')
+    : '<div class="empty">' + (M.tab === 'reg' && !jn.length ? '参加登録した人はいません' : '見つかりません') + '</div>';
+  var n = document.getElementById('attN'), r = document.getElementById('attR'); if (n) n.textContent = c.att.length; if (r) r.textContent = jn.length;
+  var all = document.querySelector('[data-act="attAll"]'); if (all) { all.hidden = !jn.length; all.disabled = !jn.some(function (id) { return c.att.indexOf(id) < 0; }); }
+}
+new MutationObserver(function () { if (M && M.m === 'att' && document.getElementById('attl') && !document.getElementById('attl').childElementCount) attDraw(); }).observe(document.getElementById('modal') || document.body, { childList: true, subtree: true });
+document.addEventListener('click', function (e) {
+  if (!M || M.m !== 'att' || !e.target.closest) return; var c = evCal(M.id); if (!c) return;
+  var b = e.target.closest('[data-attm2]');
+  if (b) { e.preventDefault(); e.stopImmediatePropagation(); var id = b.dataset.attm2; snap(); if (c.att.indexOf(id) >= 0) c.att = c.att.filter(function (x) { return x !== id; }); else c.att.push(id); save(); attDraw(); render(); return; }
+  var t = e.target.closest('[data-attt]');
+  if (t) { e.preventDefault(); e.stopImmediatePropagation(); M.tab = t.dataset.attt; [].forEach.call(document.querySelectorAll('[data-attt]'), function (x) { x.setAttribute('aria-pressed', String(x === t)); }); attDraw(); return; }
+  if (e.target.closest('[data-act="attAll"]')) { e.preventDefault(); e.stopImmediatePropagation(); var jn = (S.joinIds || {})[c.id] || []; snap(); jn.forEach(function (id) { if (c.att.indexOf(id) < 0) c.att.push(id); }); save(); attDraw(); render(); toast('参加登録した人を出席にしました'); return; }
+}, true);
+document.addEventListener('input', function (e) { if (e.target.id === 'attq2' && M && M.m === 'att') { M.q = e.target.value.trim(); attDraw(); } });
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && M && M.m === 'att') { M = null; renderModal(); render(); } });
 // メンバー一覧にレベル
 // ---------- ux59 教材のURLから題名を自動で入れる（題名が空のときだけ） ----------
 var TITLE_TRIED = {};

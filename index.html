@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = 'ea198ae043', FILE = 'index.ver';
+  var VER = 'fc9ced8ee6', FILE = 'index.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -790,7 +790,12 @@ function memberExtras(v) {
     todayLabel: WDJ[now.getDay()] + ' · ' + (now.getMonth() + 1) + '.' + now.getDate(), hello: 'こんにちは、' + (self0.name || '') + 'さん',
     anns: anns.map(function (a) { return { title: a.title, body: a.body || '', tfs: a.title.length > 22 ? '18px' : '21px', go: function () { annPop(a); } }; }), hasAnn: anns.length > 0,
     dots: anns.concat([0]).map(function () { return {}; }),
-    next: nextEv ? { has: true, lc: 'var(--ac)', rd: 'flex', wc: 'en', tfs: '21px', go: goCalTop, aid: '', label: 'NEXT · 部内イベント', title: nextEv.title, when: md(nextEv.end) + ' ' + wd(nextEv.end), left: String(Math.max(0, daysTo(nextEv.end))) } : { has: false, lc: 'var(--ac)', rd: 'flex', wc: 'en', tfs: '21px', go: goCalTop, aid: '', label: 'NEXT', title: '予定されているイベントはありません', when: '', left: '—' },
+    next: nextEv ? (function () { // あと何日：始まる日まで。当日（期間中）は TODAY
+      var st = nextEv.start || nextEv.end, d0 = daysTo(st), on = d0 <= 0;
+      return { has: true, lc: 'var(--ac)', rd: 'flex', wc: 'en', tfs: '21px', go: goCalTop, aid: '', label: 'NEXT · 部内イベント', title: nextEv.title,
+        when: md(st) + ' ' + wd(st) + (nextEv.start && nextEv.start !== nextEv.end ? ' – ' + md(nextEv.end) : ''),
+        left: on ? 'TODAY' : String(d0), lfs: on ? '40px' : '64px', unit: on ? '' : d0 === 1 ? 'DAY LEFT' : 'DAYS LEFT', ud: on ? 'none' : 'block' };
+    })() : { has: false, lc: 'var(--ac)', rd: 'flex', wc: 'en', tfs: '21px', go: goCalTop, aid: '', label: 'NEXT', title: '予定されているイベントはありません', when: '', left: '—', lfs: '64px', unit: 'DAYS LEFT', ud: 'block' },
     learnCard: (function () { // 運営のプログラムどおり（変えるとすぐ反映）
       var used = (window.__progSummary ? 'y' : 'n') + (window.__PROG ? window.__PROG.key + '|' + window.__PROG.jkey : '');
       setTimeout(function () { var now = (window.__progSummary ? 'y' : 'n') + (window.__PROG ? window.__PROG.key + '|' + window.__PROG.jkey : ''); if (now !== used && window.__comp) window.__comp.forceUpdate(); }, 0); // 学ぶのデータが新しくなったら描き直す
@@ -1529,8 +1534,8 @@ setInterval(window.__chrome, 400);
 <span class="{{ next.wc }}" style="font-size: 14px; line-height: 1.55; color: var(--n76); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere">{{ next.when }}</span>
 </span>
 <span style="flex: none; display: {{ next.rd }}; flex-direction: column; align-items: flex-end">
-<span class="big" style="font-size: 64px; font-weight: 700; color: var(--ac); line-height: 0.85">{{ next.left }}</span>
-<span class="en" style="font-size: 10px; letter-spacing: 0.14em; font-weight: 700; color: var(--n76); margin-top: 8px">DAYS LEFT</span>
+<span class="big" style="font-size: {{ next.lfs }}; font-weight: 700; color: var(--ac); line-height: 0.85">{{ next.left }}</span>
+<span class="en" style="font-size: 10px; letter-spacing: 0.14em; font-weight: 700; color: var(--n76); margin-top: 8px; display: {{ next.ud }}">{{ next.unit }}</span>
 </span>
 </button></div><sc-if value="{{ hasAnn }}"><div class="tdots" aria-hidden="true"><sc-for list="{{ dots }}" as="d"><i></i></sc-for></div></sc-if></div>
 
