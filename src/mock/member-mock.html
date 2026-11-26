@@ -143,6 +143,13 @@ body.wide .app > nav{grid-column:1;grid-row:1 / span 2;height:auto !important;di
 body.wide .app > nav button{flex-direction:row !important;justify-content:flex-start !important;gap:12px !important;height:42px;padding:0 12px;border-top:0 !important;border-radius:6px;font-size:14px !important}
 body.wide .app > nav button:not([style*="solid transparent"]){background:#191918}
 body.wide #wchrome{display:block}
+/* iPad など：上の時計・電池の帯の下から描く（帯の下に隠れたベル・メッセージを押しやすく） */
+body.wide #stage{top:env(safe-area-inset-top) !important}
+body.wide #stage .app{height:calc(100vh - env(safe-area-inset-top)) !important}
+body.wide #wchrome .wlogo{top:env(safe-area-inset-top) !important}
+body.wide #wchrome .wacct{padding-bottom:calc(14px + env(safe-area-inset-bottom)) !important}
+body.wide .app > header{padding-right:20px !important}
+body.wide .app > header .ibtn{width:48px;height:48px}
 #wchrome .wlogo{position:fixed;left:0;top:0;width:232px;height:64px;display:flex;align-items:center;gap:10px;padding:0 20px;z-index:5}
 #wchrome .wlogo b{font-family:var(--latin);letter-spacing:.16em;font-size:17px;color:#F3F1EC}
 #wchrome .wacct{position:fixed;left:0;bottom:0;width:232px;padding:10px 12px 14px;border-top:1px solid #1C1C1B;display:flex;flex-direction:column;gap:6px;z-index:5;background:#070707}
@@ -3115,6 +3122,8 @@ button.bxpk{background:transparent;font:inherit}
 .pfgo.off{background:transparent;color:#F3F1EC;border:1px solid #383836}
 [data-pf]{cursor:pointer}
 body.wide .dmpg{left:auto;width:440px;border-left:1px solid #232322;box-shadow:-16px 0 40px rgba(0,0,0,.35)}
+.dmbg{display:none}
+body.wide .dmbg{display:block;position:fixed;inset:0;z-index:2147481400;background:rgba(0,0,0,.25);animation:anfade .2s ease}
 </style>
 </body>
 </html>

@@ -709,7 +709,7 @@ function annPop(a) {
   }
   window.__bxThread = thread; // ホームやマイページから開くときも同じ投稿画面
   function closeTh(pop) { var w = document.getElementById('bxth'); if (!w) return; w.remove(); document.documentElement.classList.remove('invon'); if (!pop) try { if (history.state && history.state.bxth) history.back(); } catch (er) {} }
-  window.addEventListener('popstate', function () { if (document.getElementById('bxiv')) { ivClose(true); return; } var dp = document.getElementById('dmc') || document.getElementById('dmbox'); if (dp) { dp.remove(); if (dp.id === 'dmc' && document.getElementById('dmbox')) dmBox(); return; } closeTh(true); closeNew(true); });
+  window.addEventListener('popstate', function () { if (document.getElementById('bxiv')) { ivClose(true); return; } if (DMV.skipPop) { DMV.skipPop = 0; return; } var dp = document.getElementById('dmc') || document.getElementById('dmbox'); if (dp) { dp.remove(); if (dp.id === 'dmc') DMV.last = null; dmBgSync(); if (dp.id === 'dmc' && document.getElementById('dmbox')) dmBox(); return; } closeTh(true); closeNew(true); });
 
   // ---- 投稿・返信（本文と写真。下の帯：写真・種類・メンバー募集。キーボードの上に出る） ----
   var NEW = null, KIND = [['idea', 'アイデア'], ['pain', 'ペイン'], ['other', 'フリー']];
@@ -813,8 +813,15 @@ function annPop(a) {
     var y = new Date(n); y.setDate(n.getDate() - 1); if (d.toDateString() === y.toDateString()) return '昨日';
     return (d.getMonth() + 1) + '/' + d.getDate(); }
   function dmStamp(iso) { var d = new Date(iso), p = function (x) { return (x < 10 ? '0' : '') + x; }; return (d.getMonth() + 1) + '月' + d.getDate() + '日 ' + p(d.getHours()) + ':' + p(d.getMinutes()); }
-  function dmPage(id) { var w = document.getElementById(id); if (!w) { w = document.createElement('div'); w.id = id; w.className = 'dmpg'; document.body.appendChild(w); try { history.pushState({ dm: id }, ''); } catch (er) {} } return w; }
-  function dmClose(id, pop) { var w = document.getElementById(id); if (!w) return; w.classList.add('out'); setTimeout(function () { w.remove(); }, 200); if (!pop) try { if (history.state && history.state.dm) history.back(); } catch (er) {} }
+  function dmPage(id) { var w = document.getElementById(id); if (!w) { if (!document.querySelector('.dmbg')) { var bg = document.createElement('div'); bg.className = 'dmbg'; bg.setAttribute('data-dmall', ''); document.body.appendChild(bg); } w = document.createElement('div'); w.id = id; w.className = 'dmpg'; document.body.appendChild(w); try { history.pushState({ dm: id }, ''); } catch (er) {} } return w; }
+  function dmBgSync() { if (!document.querySelector('.dmpg:not(.out)')) { var bg = document.querySelector('.dmbg'); if (bg) bg.remove(); } }
+  function dmCloseAll() { // 画面の外を押したとき：まとめて閉じ、次に開くときは開いていた会話へ
+    var c = document.getElementById('dmc'), n = document.querySelectorAll('.dmpg').length; DMV.last = c ? c.dataset.uid : null;
+    [].forEach.call(document.querySelectorAll('.dmpg'), function (w) { w.classList.add('out'); setTimeout(function () { w.remove(); }, 200); });
+    var bg = document.querySelector('.dmbg'); if (bg) bg.remove();
+    if (n) { DMV.skipPop = n; try { history.go(-n); } catch (er) { DMV.skipPop = 0; } }
+  }
+  function dmClose(id, pop) { var w = document.getElementById(id); if (!w) return; if (id === 'dmc') DMV.last = null; w.classList.add('out'); setTimeout(function () { w.remove(); dmBgSync(); }, 200); if (id === 'dmbox' || !document.getElementById('dmbox')) { var bg = document.querySelector('.dmbg'); if (bg) bg.remove(); } if (!pop) try { if (history.state && history.state.dm) history.back(); } catch (er) {} }
   function dmBox() {
     var D = window.DB, w = dmPage('dmbox'), T = D.dmThreads(), pick = DMV.pick;
     var rows = pick ? D.profiles().filter(function (p) { return p.id !== D.me && (!DMV.pickQ || (p.name + (p.grade || '')).indexOf(DMV.pickQ) >= 0); }).map(function (p) {
@@ -851,7 +858,7 @@ function annPop(a) {
     fit();
   }
   window.__dmPaint = function () { if (document.getElementById('dmc')) dmConv(document.getElementById('dmc').dataset.uid); if (document.getElementById('dmbox')) dmBox(); };
-  window.__dmOpen = function (uid) { if (uid) dmConv(uid); else { DMV.pick = false; dmBox(); } };
+  window.__dmOpen = function (uid) { if (uid) dmConv(uid); else { DMV.pick = false; dmBox(); if (DMV.last && window.DB.profiles().some(function (p) { return p.id === DMV.last; })) dmConv(DMV.last); } };
   async function dmSend() {
     var D = window.DB, w = document.getElementById('dmc'); if (!w) return; var uid = w.dataset.uid, ta = document.getElementById('dmtx'), v = ta ? ta.value.trim() : '', fs = DMV.files.slice();
     if (!v && !fs.length) return; if (ta) ta.value = ''; DMV.files = []; var imgs = [];
@@ -894,6 +901,7 @@ function annPop(a) {
     var t = ev.target; if (!t.closest) return; var b, D = window.DB;
     if ((b = t.closest('[data-pf]'))) { ev.preventDefault(); ev.stopImmediatePropagation(); profile(b.dataset.pf); return; }
     if (t.closest('[data-pfx]')) { pfClose(); return; }
+    if (t.closest('[data-dmall]')) { ev.stopImmediatePropagation(); dmCloseAll(); return; }
     if ((b = t.closest('[data-dm-open]'))) { ev.preventDefault(); ev.stopImmediatePropagation(); window.__dmOpen(); return; }
     if ((b = t.closest('[data-dmto]'))) { ev.preventDefault(); ev.stopImmediatePropagation(); pfClose(); if (DMV.pick) { DMV.pick = false; DMV.pickQ = ''; } dmConv(b.dataset.dmto); return; }
     if ((b = t.closest('[data-dmx]'))) { ev.stopImmediatePropagation(); if (b.dataset.dmx === 'pick') { DMV.pick = false; DMV.pickQ = ''; dmBox(); } else dmClose(b.dataset.dmx); if (b.dataset.dmx === 'dmc' && document.getElementById('dmbox')) dmBox(); return; }
@@ -929,7 +937,7 @@ function annPop(a) {
   document.addEventListener('touchend', function (ev) {
     if (!dg) return; var g = dg; dg = null; if (!g.on) return; var dx = ev.changedTouches[0].clientX - g.x - 12;
     g.w.style.transition = 'transform .2s ease';
-    if (dx > window.innerWidth * 0.3) { g.w.style.transform = 'translateX(100%)'; setTimeout(function () { var id = g.w.id; g.w.remove(); try { if (history.state && history.state.dm) history.back(); } catch (er) {} if (id === 'dmc' && document.getElementById('dmbox')) dmBox(); }, 200); }
+    if (dx > window.innerWidth * 0.3) { g.w.style.transform = 'translateX(100%)'; setTimeout(function () { var id = g.w.id; g.w.remove(); if (id === 'dmc') DMV.last = null; dmBgSync(); try { if (history.state && history.state.dm) history.back(); } catch (er) {} if (id === 'dmc' && document.getElementById('dmbox')) dmBox(); }, 200); }
     else { g.w.style.transform = ''; setTimeout(function () { g.w.style.transition = ''; }, 220); }
   }, { passive: true });
 
