@@ -24,7 +24,7 @@ document.addEventListener('contextmenu', function (e) {
   var it = [];
   if (c) it.push([c.getAttribute('role') === 'switch' ? '切り替える' : '開く', function () { c.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); }]);
   var go = Array.prototype.filter.call(document.querySelectorAll('.side .nav [data-act="go"], .nav [data-act="go"]'), function (b) { return b.getClientRects().length && b.dataset.view !== S.view; });
-  if (go.length) { if (it.length) it.push('sep'); go.slice(0, 7).forEach(function (b) { it.push([lab(b) + 'へ', function () { b.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); }]); }); }
+  if (go.length) { if (it.length) it.push('sep'); go.slice(0, 7).forEach(function (b) { it.push([((b.querySelector('.full') || {}).textContent || lab(b)) + 'へ', function () { b.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); }]); }); }
   if (!it.length) return;
   e.preventDefault(); openMenu(c ? lab(c) : '', it, e.clientX, e.clientY);
 });
