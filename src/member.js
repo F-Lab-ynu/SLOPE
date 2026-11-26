@@ -915,21 +915,23 @@ function annPop(a) {
     c.setState({ tab: g ? g.tab : 'home', sub: g ? g.sub : null });
     setTimeout(function () { var n = main(); if (n) { n.style.transform = ''; n.style.transition = ''; n.scrollTop = g ? g.top : 0; } drop(); }, 0);
   }
-  // 左端から右へ：指についてくる
+  // 右へスワイプ（どこからでも）：指についてくる
   var d = null;
   document.addEventListener('touchstart', function (ev) {
-    var c = window.__comp; if (!c || c.state.tab !== 'me' || c.state.sub || !phone() || ev.touches.length !== 1 || ev.touches[0].clientX > 24) return;
+    var c = window.__comp; if (!c || c.state.tab !== 'me' || c.state.sub || !phone() || ev.touches.length !== 1) return;
+    for (var el = ev.target; el && el !== document.body; el = el.parentElement) if (el.scrollWidth > el.clientWidth + 1 && /auto|scroll/.test(getComputedStyle(el).overflowX)) return; // 横に動く部分の中では使わない
+    if (ev.target.closest && ev.target.closest('input, textarea, select')) return;
     if (document.querySelector('#bxth, #bxnew, #bxiv, #thpop, #fnpop, .iqsheet, .nppanel')) return;
     var m = main(); if (!m) return; d = { x: ev.touches[0].clientX, y: ev.touches[0].clientY, on: false, m: m };
   }, { passive: true });
   document.addEventListener('touchmove', function (ev) {
     if (!d) return; var dx = ev.touches[0].clientX - d.x, dy = ev.touches[0].clientY - d.y;
-    if (!d.on) { if (Math.abs(dy) > Math.abs(dx)) { d = null; return; } if (dx < 8) return; d.on = true; d.m.style.transition = 'none'; if (back && back.under) { show(back.under, true); back.under.style.transition = 'none'; } }
-    var x = Math.max(0, dx), W = window.innerWidth; d.m.style.transform = 'translateX(' + x + 'px)'; d.m.classList.add('medrag');
+    if (!d.on) { if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { d = null; return; } if (dx < -10) { d = null; return; } if (dx < 12 || dx < Math.abs(dy) * 1.3) return; d.on = true; d.m.style.transition = 'none'; if (back && back.under) { show(back.under, true); back.under.style.transition = 'none'; } }
+    if (ev.cancelable) ev.preventDefault(); dx -= 12; var x = Math.max(0, dx), W = window.innerWidth; d.m.style.transform = 'translateX(' + x + 'px)'; d.m.classList.add('medrag');
     if (back && back.under) { back.under.style.transform = 'translateX(' + (-W * .3 * (1 - x / W)) + 'px)'; back.under.style.opacity = String(.6 + .4 * x / W); }
-  }, { passive: true });
+  }, { passive: false });
   document.addEventListener('touchend', function (ev) {
-    if (!d) return; var g = d; d = null; if (!g.on) return; var dx = ev.changedTouches[0].clientX - g.x, W = window.innerWidth, u = back && back.under;
+    if (!d) return; var g = d; d = null; if (!g.on) return; var dx = ev.changedTouches[0].clientX - g.x - 12, W = window.innerWidth, u = back && back.under;
     g.m.style.transition = 'transform .22s cubic-bezier(.2,.8,.2,1)'; if (u) u.style.transition = 'transform .22s cubic-bezier(.2,.8,.2,1), opacity .22s';
     if (dx > W * .3) { g.m.style.transform = 'translateX(' + W + 'px)'; if (u) { u.style.transform = 'translateX(0)'; u.style.opacity = '1'; } setTimeout(function () { g.m.classList.remove('medrag'); goBack(g.m); }, 220); }
     else { g.m.style.transform = ''; if (u) { u.style.transform = 'translateX(' + (-W * .3) + 'px)'; u.style.opacity = '.6'; } setTimeout(function () { g.m.style.transition = ''; g.m.classList.remove('medrag'); if (u) { show(u, false); u.style.transition = ''; } }, 230); }
