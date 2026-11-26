@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = 'fc19d978ca', FILE = 'admin.ver';
+  var VER = 'f3d8a2ba90', FILE = 'admin.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -2075,6 +2075,16 @@ body.stkdrag,body.stkdrag *{user-select:none !important;-webkit-user-select:none
   .acct .hic{flex:none !important;min-width:40px}
   .acct > button[data-act="acct"]{flex:none !important;width:auto !important;min-width:0 !important;padding:0 2px !important;background:transparent !important}
 }
+
+/* スマホ：開いた付箋は下から出る枠に（キーボードの上） */
+#stksh{position:fixed;left:0;right:0;top:0;height:100%;z-index:65;display:flex;flex-direction:column;justify-content:flex-end;overscroll-behavior:contain}
+.stkshbg{position:absolute;inset:0;background:rgba(17,24,39,.25)}
+#stksh .stk.card{position:relative !important;left:auto !important;top:auto !important;width:auto !important;height:auto !important;max-height:min(70%,420px) !important;margin:0 8px 8px;border-radius:14px;animation:stkup .2s ease}
+#stksh .stkh{cursor:default}
+#stksh .stkrz{display:none}
+#stksh .stkb,#stksh .stkr input{font-size:16px}
+#stksh .stkac{position:absolute}
+@keyframes stkup{from{transform:translateY(20px);opacity:0}}
 
 /* ===== 本番 ===== */
 [data-act="reset"]{display:none !important}
@@ -6885,9 +6895,10 @@ function stkHL(text) { var h = esc(String(text).replace(/＠/g, '@')); var names
 function stkLayer() { var l = document.getElementById('stkl'); if (!l) { l = document.createElement('div'); l.id = 'stkl'; document.body.appendChild(l); } var v = document.getElementById('view'); if (v) { var r = v.getBoundingClientRect(); l.style.left = r.left + 'px'; l.style.top = r.top + 'px'; l.style.width = r.width + 'px'; l.style.height = r.height + 'px'; } return l; }
 function stkPaint() {
   if (!SYNC.ready || SD) return; var l = stkLayer(), here = STK.list.filter(function (s) { return s.place === stkPlace() && stkLeft(s) > 0; });
-  var keep = document.activeElement && document.activeElement.closest && document.activeElement.closest('#stkl') ? { id: document.activeElement.id, v: document.activeElement.value, s: document.activeElement.selectionStart } : null;
-  l.innerHTML = here.map(function (s) {
-    var W = l.clientWidth, H = l.clientHeight, open = STK.open === s.id, ms = STK.msgs.filter(function (m) { return m.sticky_id === s.id; }), left = stkLeft(s), mine = s.author === S.me;
+  var keep = document.activeElement && document.activeElement.closest && document.activeElement.closest('#stkl, #stksh') ? { id: document.activeElement.id, v: document.activeElement.value, s: document.activeElement.selectionStart } : null;
+  var PH = window.innerWidth <= 760, sheet = '';
+  var one = function (s, asMini) {
+    var W = l.clientWidth, H = l.clientHeight, open = !asMini && STK.open === s.id, ms = STK.msgs.filter(function (m) { return m.sticky_id === s.id; }), left = stkLeft(s), mine = s.author === S.me;
     var x = Math.max(4, Math.min(W - (open ? 264 : 36), s.x * W)), y = Math.max(4, Math.min(H - (open ? 120 : 36), s.y * H));
     var cw = Math.max(200, Math.min(520, s.w || 260)), ch = s.h ? Math.max(120, Math.min(640, s.h)) : 0; if (open) { x = Math.max(4, Math.min(W - cw - 4, s.x * W)); }
     if (!open) return '<button class="stk mini c-' + (s.color || 'y') + (left < 1 ? ' old' : '') + '" data-stk="' + s.id + '" style="left:' + x + 'px;top:' + y + 'px" title="' + esc((s.body || '付箋').slice(0, 60)) + '">' + esc(initials(member(s.author) ? member(s.author).name : '?')) + (ms.length ? '<i>' + ms.length + '</i>' : '') + '</button>';
@@ -6898,7 +6909,12 @@ function stkPaint() {
       (ms.length ? '<div class="stkms">' + ms.map(function (m) { return '<div class="stkm"><b>' + esc(member(m.author) ? member(m.author).name : '') + '</b>' + stkHL(m.body) + '</div>'; }).join('') + '</div>' : '') +
       (mine && !ms.length ? '' : '<div class="stkr"><input id="stkr-' + s.id + '" data-stk-rep="' + s.id + '" placeholder="返信（Enter）" autocomplete="off"></div>') +
       (who.length ? '<div class="stkw">' + who.slice(0, 4).map(esc).join('・') + (who.length > 4 ? ' ほか' + (who.length - 4) + '人' : '') + '</div>' : '') + '<i class="stkrz" data-stk-rz="' + s.id + '" title="ドラッグで大きさを変える"></i></div>';
-  }).join('') + '<div class="stkac" id="stkac" hidden></div>';
+  };
+  // スマホ：開いた付箋は下から出る入力の枠に（キーボードの上に付く）。画面の付箋は小さいまま
+  l.innerHTML = here.map(function (s) { if (PH && STK.open === s.id) { sheet = one(s); return one(s, true); } return one(s); }).join('') + (PH ? '' : '<div class="stkac" id="stkac" hidden></div>');
+  var sh = document.getElementById('stksh');
+  if (sheet) { if (!sh) { sh = document.createElement('div'); sh.id = 'stksh'; document.body.appendChild(sh); } sh.innerHTML = '<div class="stkshbg" data-stk-shx></div>' + sheet + '<div class="stkac" id="stkac" hidden></div>'; stkShFit(); }
+  else if (sh) sh.remove();
   if (keep && keep.id) { var el = document.getElementById(keep.id); if (el) { el.value = keep.v; el.focus(); try { el.setSelectionRange(keep.s, keep.s); } catch (er) {} } }
   var add = document.querySelector('#view .top .stkadd'); if (!add) { var tp = document.querySelector('#view .top'); if (tp) tp.insertAdjacentHTML('beforeend', '<button class="ib stkadd" data-stk-new title="付箋を貼る（画面を右クリックでも）" aria-label="付箋を貼る">' + STKI + '</button>'); }
 }
@@ -6914,7 +6930,7 @@ function stkMenuItems(s) {
   return it;
 }
 // 付箋を右クリック：色・見せる人・大きさなど（ほかの右クリックより先に受ける）
-window.addEventListener('contextmenu', function (e) { var el = e.target.closest && e.target.closest('#stkl .stk'); if (!el || e.target.closest('textarea, input')) return; e.preventDefault(); e.stopImmediatePropagation(); STKCX = null; var s = STK.list.filter(function (x) { return x.id === el.dataset.stk; })[0]; if (s) openMenu('付箋', stkMenuItems(s), e.clientX, e.clientY); }, true);
+window.addEventListener('contextmenu', function (e) { var el = e.target.closest && e.target.closest('#stkl .stk, #stksh .stk'); if (!el || e.target.closest('textarea, input')) return; e.preventDefault(); e.stopImmediatePropagation(); STKCX = null; var s = STK.list.filter(function (x) { return x.id === el.dataset.stk; })[0]; if (s) openMenu('付箋', stkMenuItems(s), e.clientX, e.clientY); }, true);
 var STKI = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v10l-6 6H5z"/><path d="M13 20v-6h6"/></svg>';
 async function stkNew(x, y) {
   var r = await sb.from('stickies').insert({ place: stkPlace(), label: stkLabel(), x: x, y: y, body: '' }).select().single();
@@ -6957,7 +6973,7 @@ document.addEventListener('contextmenu', function (e) {
 var SD = null, SDF = 0;
 // ドラッグは transform だけで動かす（再計算なし・毎フレーム1回）。指を捕まえて、後ろのスクロールと取り合わない
 document.addEventListener('pointerdown', function (e) {
-  if (e.button !== 0 || !e.target.closest) return;
+  if (e.button !== 0 || !e.target.closest || e.target.closest('#stksh')) return;
   var rz = e.target.closest('[data-stk-rz]');
   if (rz) { e.preventDefault(); var c = rz.closest('.stk'), r0 = c.getBoundingClientRect(); SD = { el: c, id: c.dataset.stk, rz: true, w0: r0.width, h0: r0.height, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, moved: false, pid: e.pointerId }; try { rz.setPointerCapture(e.pointerId); } catch (er) {} document.body.classList.add('stkdrag'); return; }
   var h = e.target.closest('.stk.mini') || (e.target.closest('[data-stk-drag]') && !e.target.closest('button') ? e.target.closest('.stk') : null); if (!h) return;
@@ -6996,14 +7012,15 @@ function stkAcShow(el) {
   var ps = S.members.filter(function (x) { return x.id !== S.me && (x.name.indexOf(q) >= 0 || x.name.replace(/\s+/g, '').indexOf(q) >= 0); }).map(function (x) { return { k: x.name, l: x.name, s: postLabel(x.unit || '—') }; });
   var L = gs.concat(ps).slice(0, 8); if (!L.length) { box.hidden = true; STKAC = null; return; }
   STKAC = { el: el, start: el.selectionStart - m[0].length, end: el.selectionStart, i: 0, L: L };
-  var r = el.getBoundingClientRect(), lr = document.getElementById('stkl').getBoundingClientRect();
+  var r = el.getBoundingClientRect(), lr = box.parentNode.getBoundingClientRect();
   box.style.left = (r.left - lr.left) + 'px'; box.style.top = (r.bottom - lr.top + 4) + 'px'; box.hidden = false;
   box.innerHTML = L.map(function (x, i) { return '<button data-stk-ac="' + i + '"' + (i === 0 ? ' class="on"' : '') + '><b>' + esc(x.l) + '</b><small>' + esc(x.s) + '</small></button>'; }).join('');
+  if (el.closest('#stksh')) box.style.top = Math.max(4, r.top - lr.top - box.offsetHeight - 4) + 'px'; // スマホの枠では入力欄の上に出す
 }
 function stkAcPick(i) { var a = STKAC; if (!a) return; var x = a.L[+i], v = a.el.value; a.el.value = v.slice(0, a.start) + '@' + x.k + ' ' + v.slice(a.end); var p = a.start + x.k.length + 2; a.el.focus(); a.el.setSelectionRange(p, p); document.getElementById('stkac').hidden = true; STKAC = null; }
-document.addEventListener('input', function (e) { if (e.target.closest && e.target.closest('#stkl') && /^(TEXTAREA|INPUT)$/.test(e.target.tagName)) stkAcShow(e.target); });
+document.addEventListener('input', function (e) { if (e.target.closest && e.target.closest('#stkl, #stksh') && /^(TEXTAREA|INPUT)$/.test(e.target.tagName)) stkAcShow(e.target); });
 document.addEventListener('keydown', function (e) {
-  var el = e.target; if (!el.closest || !el.closest('#stkl')) return;
+  var el = e.target; if (!el.closest || !el.closest('#stkl, #stksh')) return;
   if (STKAC && STKAC.el === el) {
     var box = document.getElementById('stkac'), bs = box.querySelectorAll('button');
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); STKAC.i = (STKAC.i + (e.key === 'ArrowDown' ? 1 : -1) + bs.length) % bs.length; [].forEach.call(bs, function (b, i) { b.classList.toggle('on', i === STKAC.i); }); return; }
@@ -7061,7 +7078,7 @@ document.addEventListener('contextmenu', function (e) {
 }, true);
 // 付箋の入力欄を右クリック：編集のメニュー＋付箋のメニュー
 window.addEventListener('contextmenu', function (e) {
-  var el = e.target.closest && e.target.closest('#stkl textarea, #stkl input'); if (!el) return; e.preventDefault(); e.stopImmediatePropagation();
+  var el = e.target.closest && e.target.closest('#stkl textarea, #stkl input, #stksh textarea, #stksh input'); if (!el) return; e.preventDefault(); e.stopImmediatePropagation();
   STKCX = null; var s = STK.list.filter(function (x) { return x.id === (el.dataset.stkBody || el.dataset.stkRep); })[0], a = el.selectionStart, z = el.selectionEnd, sel = el.value.slice(a, z);
   var put = function (t) { el.focus(); el.setRangeText(t, el.selectionStart, el.selectionEnd, 'end'); el.dispatchEvent(new Event('input', { bubbles: true })); };
   var it = [['切り取り', function () { if (!sel) return; navigator.clipboard && navigator.clipboard.writeText(sel); el.focus(); el.setSelectionRange(a, z); put(''); }, false, sel ? '' : '選んでいません'],
@@ -7082,21 +7099,12 @@ document.addEventListener('contextmenu', function (e) {
     ['削除', function () { askConfirm({ title: '「' + esc(g.name) + '」を削除', body: 'グループだけを消します。メンバーはそのままです。', ok: '削除する', run: function () { sb.from('groups').delete().eq('id', g.id).then(async function () { await grpLoad(); render(); toast('グループを削除しました'); }); } }); }, true, g.auto ? '役職から自動で作られます' : '']], e.clientX, e.clientY);
 }, true);
 
-// スマホ：付箋に書くとき、キーボードで画面が上にずれても付箋はその場に留め、キーボードに隠れる分だけ上げる
-(function () {
-  var vv = window.visualViewport; if (!vv) return; var raf = 0;
-  function place() {
-    raf = 0; var l = document.getElementById('stkl'); if (!l) return;
-    var a = document.activeElement, card = a && a.closest && a.closest('#stkl .stk.card'), t = vv.offsetTop;
-    if (card) { l.style.transform = 'translateY(' + t + 'px)'; var r = card.getBoundingClientRect(), bottom = r.bottom, lim = vv.height - 8; if (bottom > lim) t -= (bottom - lim); }
-    else if (!t) { l.style.transform = ''; return; }
-    l.style.transform = 'translateY(' + t + 'px)';
-  }
-  var go = function () { if (!raf) raf = requestAnimationFrame(place); };
-  vv.addEventListener('resize', go); vv.addEventListener('scroll', go);
-  document.addEventListener('focusin', function (e) { if (e.target.closest && e.target.closest('#stkl')) { go(); setTimeout(go, 50); setTimeout(go, 300); } });
-  document.addEventListener('focusout', function (e) { if (e.target.closest && e.target.closest('#stkl')) setTimeout(go, 60); });
-})();
+
+// スマホの付箋の枠：見えている範囲（キーボードの上）にぴったり合わせる
+function stkShFit() { var sh = document.getElementById('stksh'), vv = window.visualViewport; if (!sh || !vv) return; sh.style.top = vv.offsetTop + 'px'; sh.style.height = vv.height + 'px'; }
+if (window.visualViewport) { window.visualViewport.addEventListener('resize', stkShFit); window.visualViewport.addEventListener('scroll', stkShFit); }
+document.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('[data-stk-shx]')) { e.stopImmediatePropagation(); var id = STK.open, ta = document.getElementById('stkb-' + id); if (ta) stkSaveBody(id, ta.value); stkClose(id); } }, true);
+document.addEventListener('touchmove', function (e) { var sh = e.target.closest && e.target.closest('#stksh'); if (!sh) return; var sc = e.target.closest('.stkms, textarea'); if (sc && sc.scrollHeight > sc.clientHeight + 1) return; e.preventDefault(); }, { passive: false });
 
 boot();
 })();
