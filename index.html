@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '5c25696ead', FILE = 'index.ver';
+  var VER = '3084748221', FILE = 'index.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -769,7 +769,7 @@ function memberExtras(v) {
   var roleChips = ROLES.map(function (r) { var on = (self0.roles || []).indexOf(r) >= 0; return { name: r, on: String(on), op: on ? 1 : 0, bg: on ? A : 'transparent', fg: on ? INK : 'var(--n85)', bd: on ? A : 'var(--n21)',
     pick: function () { var rs = (self0.roles || []).slice(), i = rs.indexOf(r); if (i >= 0) rs.splice(i, 1); else rs.push(r); D.saveProfile({ roles: rs }); } }; });
   var myProjects = D.items('recruit').filter(function (x) { return x.author === D.me || ((x.data || {}).roles || []).some(function (r) { return D.mine(x.id, 'slot:' + r); }); })
-    .map(function (x) { var d = x.data || {}; var mine = ((d.roles || []).filter(function (r) { return D.mine(x.id, 'slot:' + r); })[0]) || (x.author === D.me ? '発起人' : ''); return { label: (d.frame || '') + ' · ' + mine, title: d.title, open: function () { self.setState({ sub: 'post', post: x.id }); } }; });
+    .map(function (x) { var d = x.data || {}; var mine = ((d.roles || []).filter(function (r) { return D.mine(x.id, 'slot:' + r); })[0]) || (x.author === D.me ? '発起人' : ''); return { label: (d.frame || '') + ' · ' + mine, title: d.title, open: function () { if (window.__bxThread) window.__bxThread(x.id); else self.setState({ sub: 'post', post: x.id }); } }; });
 
   // 投稿・コメント
   var cur = v.cur || {};
@@ -1127,6 +1127,7 @@ function annPop(a) {
     scr.addEventListener('scroll', function () { var h = w.querySelector('.nsph'); if (h) h.classList.toggle('hide', scr.scrollTop > 40); }, { passive: true }); // 下へ読むと見出しが隠れ、いちばん上に戻ったときだけ出る
     fit();
   }
+  window.__bxThread = thread; // ホームやマイページから開くときも同じ投稿画面
   function closeTh(pop) { var w = document.getElementById('bxth'); if (!w) return; w.remove(); document.documentElement.classList.remove('invon'); if (!pop) try { if (history.state && history.state.bxth) history.back(); } catch (er) {} }
   window.addEventListener('popstate', function () { if (document.getElementById('bxiv')) { ivClose(true); return; } closeTh(true); closeNew(true); });
 
@@ -2537,13 +2538,13 @@ class Component extends DCLogic {
       const openSlots = slots.filter((z) => z.open);
       return { id: x.id, author: x.author, frame: d.frame || '実プロジェクト枠', title: d.title || '', owner: D.who(x.author), initial: D.ini(x.author), time: D.ago(x.created_at), purpose: d.purpose || '', end: d.end || '', endShort: (d.end || '').replace(/した時点で解散|に解散/, '').slice(0, 14), fb: cmCount(x.id), pain: d.pain || '',
         isRecruit: true, isIdea: false, typeLabel: 'メンバー募集 · ' + (d.frame || ''), typeBg: RT, typeBd: RT, typeFg: INK, purposeLabel: '目的', fbTitle: 'フィードバック', hasPain: !!d.pain, asks: [], slots: slots,
-        openCount: openSlots.length, openList: openSlots.map((z) => ({ role: z.role })), openRoles: openSlots.map((z) => z.role).join(' / ') || '満員', open: () => this.setState({ sub: 'post', post: x.id }), t: x.created_at };
+        openCount: openSlots.length, openList: openSlots.map((z) => ({ role: z.role })), openRoles: openSlots.map((z) => z.role).join(' / ') || '満員', open: () => (window.__bxThread ? window.__bxThread(x.id) : this.setState({ sub: 'post', post: x.id })), t: x.created_at };
     });
     const ideas = D.items('idea').map((x) => {
       const d = x.data || {};
       return { id: x.id, author: x.author, title: d.title || '', owner: D.who(x.author), initial: D.ini(x.author), time: D.ago(x.created_at), summary: d.summary || '', asks: (d.asks || []).filter(Boolean).map((t) => ({ text: t })), fb: cmCount(x.id), votes: D.count(x.id, 'vote'), pain: d.pain || '',
         isIdea: true, isRecruit: false, typeLabel: '意見募集', typeBg: 'transparent', typeBd: 'var(--fg)', typeFg: 'var(--fg)', purposeLabel: '概要', purpose: d.summary || '', fbTitle: '寄せられた意見', hasPain: !!d.pain, slots: [],
-        open: () => this.setState({ sub: 'post', post: x.id }), t: x.created_at };
+        open: () => (window.__bxThread ? window.__bxThread(x.id) : this.setState({ sub: 'post', post: x.id })), t: x.created_at };
     });
     const allPosts = recruits.concat(ideas).sort((a, b) => (a.t < b.t ? 1 : -1));
     const feed = allPosts.filter((p) => s.bfilter === 'all' || (s.bfilter === 'recruit' ? p.isRecruit : p.isIdea));

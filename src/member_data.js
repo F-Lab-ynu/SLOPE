@@ -16,13 +16,13 @@
       const openSlots = slots.filter((z) => z.open);
       return { id: x.id, author: x.author, frame: d.frame || '実プロジェクト枠', title: d.title || '', owner: D.who(x.author), initial: D.ini(x.author), time: D.ago(x.created_at), purpose: d.purpose || '', end: d.end || '', endShort: (d.end || '').replace(/した時点で解散|に解散/, '').slice(0, 14), fb: cmCount(x.id), pain: d.pain || '',
         isRecruit: true, isIdea: false, typeLabel: 'メンバー募集 · ' + (d.frame || ''), typeBg: RT, typeBd: RT, typeFg: INK, purposeLabel: '目的', fbTitle: 'フィードバック', hasPain: !!d.pain, asks: [], slots: slots,
-        openCount: openSlots.length, openList: openSlots.map((z) => ({ role: z.role })), openRoles: openSlots.map((z) => z.role).join(' / ') || '満員', open: () => this.setState({ sub: 'post', post: x.id }), t: x.created_at };
+        openCount: openSlots.length, openList: openSlots.map((z) => ({ role: z.role })), openRoles: openSlots.map((z) => z.role).join(' / ') || '満員', open: () => (window.__bxThread ? window.__bxThread(x.id) : this.setState({ sub: 'post', post: x.id })), t: x.created_at };
     });
     const ideas = D.items('idea').map((x) => {
       const d = x.data || {};
       return { id: x.id, author: x.author, title: d.title || '', owner: D.who(x.author), initial: D.ini(x.author), time: D.ago(x.created_at), summary: d.summary || '', asks: (d.asks || []).filter(Boolean).map((t) => ({ text: t })), fb: cmCount(x.id), votes: D.count(x.id, 'vote'), pain: d.pain || '',
         isIdea: true, isRecruit: false, typeLabel: '意見募集', typeBg: 'transparent', typeBd: '#F3F1EC', typeFg: '#F3F1EC', purposeLabel: '概要', purpose: d.summary || '', fbTitle: '寄せられた意見', hasPain: !!d.pain, slots: [],
-        open: () => this.setState({ sub: 'post', post: x.id }), t: x.created_at };
+        open: () => (window.__bxThread ? window.__bxThread(x.id) : this.setState({ sub: 'post', post: x.id })), t: x.created_at };
     });
     const allPosts = recruits.concat(ideas).sort((a, b) => (a.t < b.t ? 1 : -1));
     const feed = allPosts.filter((p) => s.bfilter === 'all' || (s.bfilter === 'recruit' ? p.isRecruit : p.isIdea));

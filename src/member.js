@@ -301,7 +301,7 @@ function memberExtras(v) {
   var roleChips = ROLES.map(function (r) { var on = (self0.roles || []).indexOf(r) >= 0; return { name: r, on: String(on), op: on ? 1 : 0, bg: on ? A : 'transparent', fg: on ? INK : '#D2CFC8', bd: on ? A : '#383836',
     pick: function () { var rs = (self0.roles || []).slice(), i = rs.indexOf(r); if (i >= 0) rs.splice(i, 1); else rs.push(r); D.saveProfile({ roles: rs }); } }; });
   var myProjects = D.items('recruit').filter(function (x) { return x.author === D.me || ((x.data || {}).roles || []).some(function (r) { return D.mine(x.id, 'slot:' + r); }); })
-    .map(function (x) { var d = x.data || {}; var mine = ((d.roles || []).filter(function (r) { return D.mine(x.id, 'slot:' + r); })[0]) || (x.author === D.me ? '発起人' : ''); return { label: (d.frame || '') + ' · ' + mine, title: d.title, open: function () { self.setState({ sub: 'post', post: x.id }); } }; });
+    .map(function (x) { var d = x.data || {}; var mine = ((d.roles || []).filter(function (r) { return D.mine(x.id, 'slot:' + r); })[0]) || (x.author === D.me ? '発起人' : ''); return { label: (d.frame || '') + ' · ' + mine, title: d.title, open: function () { if (window.__bxThread) window.__bxThread(x.id); else self.setState({ sub: 'post', post: x.id }); } }; });
 
   // 投稿・コメント
   var cur = v.cur || {};
@@ -659,6 +659,7 @@ function annPop(a) {
     scr.addEventListener('scroll', function () { var h = w.querySelector('.nsph'); if (h) h.classList.toggle('hide', scr.scrollTop > 40); }, { passive: true }); // 下へ読むと見出しが隠れ、いちばん上に戻ったときだけ出る
     fit();
   }
+  window.__bxThread = thread; // ホームやマイページから開くときも同じ投稿画面
   function closeTh(pop) { var w = document.getElementById('bxth'); if (!w) return; w.remove(); document.documentElement.classList.remove('invon'); if (!pop) try { if (history.state && history.state.bxth) history.back(); } catch (er) {} }
   window.addEventListener('popstate', function () { if (document.getElementById('bxiv')) { ivClose(true); return; } closeTh(true); closeNew(true); });
 
