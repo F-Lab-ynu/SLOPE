@@ -4,7 +4,7 @@
 (function () {
   var sb = window.supabase.createClient('https://addvjcwwlklwmkwhhsjv.supabase.co', 'sb_publishable_L8VP_h67F3FupHwqC_3pTw_YRbBVghw');
   window.sb = sb;
-  var P = {}, ITEMS = [], REACT = [], NODES = [], NOTIFS = [], DMS = [], BLOCKS = [];
+  var P = {}, ITEMS = [], REACT = [], NODES = [], NOTIFS = [], DMS = [], BLOCKS = [], ROOMS = [], READS = {}, GROUPS = [];
   var POSTS = { '代表': 1, '教育部': 1, '外務部 渉外局': 1, '外務部 広報局': 1, '催事部': 1, '会計': 1 };
   var bump = function () { if (window.__comp) window.__comp.forceUpdate(); };
   var DB = window.DB = {
@@ -163,26 +163,49 @@
     // ---------- DM（部員どうし） ----------
     conv: function (a, b) { return a < b ? a + '_' + b : b + '_' + a; },
     dms: function () { return DMS; },
-    dmWith: function (uid) { var c = DB.conv(DB.me, uid); return DMS.filter(function (m) { return m.conv === c; }).sort(function (a, b) { return a.created_at < b.created_at ? -1 : 1; }); },
-    dmThreads: function () { // 相手ごとに最新の1件
-      var by = {}; DMS.forEach(function (m) { var o = m.from_id === DB.me ? m.to_id : m.from_id; if (!by[o] || by[o].created_at < m.created_at) by[o] = m; });
-      return Object.keys(by).filter(function (o) { return P[o]; }).map(function (o) { return { uid: o, last: by[o], unread: DMS.filter(function (m) { return m.from_id === o && m.to_id === DB.me && !m.read_at; }).length }; })
-        .sort(function (a, b) { return a.last.created_at < b.last.created_at ? 1 : -1; });
+    // 会話の鍵：1対1は相手の id、グループは 'r-<room>'
+    isRoom: function (k) { return /^r-/.test(k || ''); },
+    room: function (k) { var id = String(k).replace(/^r-/, ''); return ROOMS.filter(function (r) { return r.id === id; })[0] || null; },
+    rooms: function () { return ROOMS; },
+    roomName: function (r) { return r ? (r.name || r.members.filter(function (u) { return u !== DB.me && P[u]; }).map(function (u) { return DB.name(u); }).join('・') || 'グループ') : ''; },
+    dmWith: function (k) { var c = DB.isRoom(k) ? k : DB.conv(DB.me, k); return DMS.filter(function (m) { return m.conv === c; }).sort(function (a, b) { return a.created_at < b.created_at ? -1 : 1; }); },
+    roomUnread: function (k) { var at = READS[k] || ''; return DMS.filter(function (m) { return m.conv === k && m.from_id !== DB.me && m.created_at > at; }).length; },
+    dmThreads: function () { // 相手ごと・グループごとに最新の1件
+      var by = {}; DMS.forEach(function (m) { if (m.room) return; var o = m.from_id === DB.me ? m.to_id : m.from_id; if (!by[o] || by[o].created_at < m.created_at) by[o] = m; });
+      var one = Object.keys(by).filter(function (o) { return P[o]; }).map(function (o) { return { key: o, uid: o, last: by[o], t: by[o].created_at, unread: DMS.filter(function (m) { return m.from_id === o && m.to_id === DB.me && !m.read_at; }).length }; });
+      var rs = ROOMS.map(function (r) { var k = 'r-' + r.id, ms = DMS.filter(function (m) { return m.conv === k; }), last = ms.reduce(function (a, m) { return !a || a.created_at < m.created_at ? m : a; }, null); return { key: k, room: r, last: last, t: last ? last.created_at : r.created_at, unread: DB.roomUnread(k) }; });
+      return one.concat(rs).sort(function (a, b) { return a.t < b.t ? 1 : -1; });
     },
-    dmUnread: function () { return DMS.filter(function (m) { return m.to_id === DB.me && !m.read_at && !DB.blocked(m.from_id); }).length; },
-    dmSend: function (uid, body, imgs) {
-      var row = { conv: DB.conv(DB.me, uid), from_id: DB.me, to_id: uid, body: body || '', imgs: imgs || [] }, tmp = Object.assign({ id: 'tmp' + Date.now(), created_at: new Date().toISOString(), read_at: null, sending: true }, row);
+    dmUnread: function () { return DMS.filter(function (m) { return !m.room && m.to_id === DB.me && !m.read_at && !DB.blocked(m.from_id); }).length + ROOMS.reduce(function (n, r) { return n + DB.roomUnread('r-' + r.id); }, 0); },
+    dmSend: function (k, body, imgs) {
+      var rm = DB.isRoom(k), row = rm ? { conv: k, room: k.slice(2), from_id: DB.me, to_id: null, body: body || '', imgs: imgs || [] } : { conv: DB.conv(DB.me, k), from_id: DB.me, to_id: k, body: body || '', imgs: imgs || [] }, tmp = Object.assign({ id: 'tmp' + Date.now(), created_at: new Date().toISOString(), read_at: null, sending: true }, row);
       DMS.push(tmp); bump();
       return sb.from('dms').insert(row).select().single().then(function (r) {
         DMS = DMS.filter(function (m) { return m !== tmp; });
-        if (r.error) { DB.flash(/row-level/.test(r.error.message) ? '送れませんでした（ブロック中の相手には送れません）' : '送れませんでした'); bump(); return null; }
-        if (!DMS.some(function (m) { return m.id === r.data.id; })) DMS.push(r.data); bump(); return r.data;
+        if (r.error) { DB.flash(/row-level/.test(r.error.message) ? (rm ? '送れませんでした' : '送れませんでした（ブロック中の相手には送れません）') : '送れませんでした'); bump(); return null; }
+        if (!DMS.some(function (m) { return m.id === r.data.id; })) DMS.push(r.data); if (rm) DB.dmRead(k); bump(); return r.data;
       });
     },
-    dmRead: function (uid) {
-      var c = DB.conv(DB.me, uid), now = new Date().toISOString(), any = false;
+    dmRead: function (k) {
+      var now = new Date().toISOString();
+      if (DB.isRoom(k)) { if (!DB.roomUnread(k) && READS[k]) return; READS[k] = now; bump(); sb.from('dm_reads').upsert({ user_id: DB.me, conv: k, at: now }, { onConflict: 'user_id,conv' }).then(function () {}); return; }
+      var c = DB.conv(DB.me, k), any = false;
       DMS.forEach(function (m) { if (m.conv === c && m.to_id === DB.me && !m.read_at) { m.read_at = now; any = true; } });
       if (!any) return; bump(); sb.from('dms').update({ read_at: now }).eq('conv', c).eq('to_id', DB.me).is('read_at', null).then(function () {});
+    },
+    roomCreate: function (name, members) {
+      var ms = [DB.me].concat(members.filter(function (u) { return u !== DB.me; }));
+      return sb.from('dm_rooms').insert({ name: name || '', members: ms, created_by: DB.me }).select().single().then(function (r) { if (r.error) { DB.flash('グループを作れませんでした'); return null; } ROOMS.push(r.data); READS['r-' + r.data.id] = new Date().toISOString(); bump(); return 'r-' + r.data.id; });
+    },
+    roomUpdate: function (k, patch) { var r = DB.room(k); if (!r) return; Object.assign(r, patch); bump(); return sb.from('dm_rooms').update(patch).eq('id', r.id).then(function (x) { if (x.error) DB.flash('変更できませんでした'); }); },
+    roomLeave: function (k) { var r = DB.room(k); if (!r) return; var ms = r.members.filter(function (u) { return u !== DB.me; }); ROOMS = ROOMS.filter(function (x) { return x !== r; }); bump(); return sb.from('dm_rooms').update({ members: ms }).eq('id', r.id).then(function () {}); },
+    groups: function () { // ＠で選べるまとまり：役職ごと（自動）＋運営が作ったグループ
+      var out = [], ps = DB.profiles(), posts = {};
+      ps.forEach(function (p) { if (p.post && p.post !== '—') (posts[p.post] = posts[p.post] || []).push(p.id); });
+      var ops = ps.filter(function (p) { return p.post && p.post !== '—'; }).map(function (p) { return p.id; }); if (ops.length) out.push({ name: '運営全員', members: ops });
+      Object.keys(posts).forEach(function (k) { out.push({ name: k, members: posts[k] }); });
+      GROUPS.forEach(function (g) { out.push({ name: g.name, members: (g.members || []).filter(function (u) { return P[u]; }) }); });
+      return out;
     },
     dmDel: function (id) { DMS = DMS.filter(function (m) { return m.id !== id; }); bump(); sb.from('dms').delete().eq('id', id).then(function (r) { if (r.error) { DB.flash('取り消せませんでした'); dmLoad(); } }); },
     blocked: function (uid) { return BLOCKS.indexOf(uid) >= 0; },
@@ -214,7 +237,8 @@
     await dmLoad();
   }
   async function dmLoad() { // DM は別に読む（失敗してもほかは使える）
-    try { var r = await Promise.all([sb.from('dms').select('*').order('created_at', { ascending: false }).limit(1000), sb.from('dm_blocks').select('blocked').eq('blocker', DB.me)]); if (!r[0].error) DMS = r[0].data || []; if (!r[1].error) BLOCKS = (r[1].data || []).map(function (x) { return x.blocked; }); } catch (e) { console.warn(e); }
+    try { var r = await Promise.all([sb.from('dms').select('*').order('created_at', { ascending: false }).limit(1000), sb.from('dm_blocks').select('blocked').eq('blocker', DB.me), sb.from('dm_rooms').select('*'), sb.from('dm_reads').select('*').eq('user_id', DB.me), sb.from('groups').select('*')]);
+      if (!r[0].error) DMS = r[0].data || []; if (!r[1].error) BLOCKS = (r[1].data || []).map(function (x) { return x.blocked; }); if (!r[2].error) ROOMS = (r[2].data || []).filter(function (x) { return (x.members || []).indexOf(DB.me) >= 0; }); if (!r[3].error) { READS = {}; (r[3].data || []).forEach(function (x) { READS[x.conv] = x.at; }); } if (!r[4].error) GROUPS = r[4].data || []; } catch (e) { console.warn(e); }
   }
   var dmT = null; function dmReload() { clearTimeout(dmT); dmT = setTimeout(async function () { await dmLoad(); bump(); if (window.__dmPaint) window.__dmPaint(); }, 150); }
   var rt = null, pend = false;
@@ -276,6 +300,7 @@
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, reload)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: 'to_id=eq.' + DB.me }, reload)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'dms' }, dmReload)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'dm_rooms' }, dmReload)
       .subscribe();
   };
   sb.auth.onAuthStateChange(function (ev) { if (ev === 'SIGNED_OUT') location.replace(location.pathname); if (ev === 'SIGNED_IN' && !DB.me && document.getElementById('gLogin')) setTimeout(window.__memberBoot, 0); });
@@ -822,33 +847,42 @@ function annPop(a) {
     if (n) { DMV.skipPop = n; try { history.go(-n); } catch (er) { DMV.skipPop = 0; } }
   }
   function dmClose(id, pop) { var w = document.getElementById(id); if (!w) return; if (id === 'dmc') DMV.last = null; w.classList.add('out'); setTimeout(function () { w.remove(); dmBgSync(); }, 200); if (id === 'dmbox' || !document.getElementById('dmbox')) { var bg = document.querySelector('.dmbg'); if (bg) bg.remove(); } if (!pop) try { if (history.state && history.state.dm) history.back(); } catch (er) {} }
+  function dmAv(t) { var D = window.DB; if (t.room) { var o = t.room.members.filter(function (u) { return u !== D.me; }); return '<span class="bxav grp"><i>' + e(D.ini(o[0] || D.me)) + '</i><i>' + e(D.ini(o[1] || o[0] || D.me)) + '</i></span>'; } return '<span class="bxav">' + e(D.ini(t.uid)) + '</span>'; }
   function dmBox() {
-    var D = window.DB, w = dmPage('dmbox'), T = D.dmThreads(), pick = DMV.pick;
-    var rows = pick ? D.profiles().filter(function (p) { return p.id !== D.me && (!DMV.pickQ || (p.name + (p.grade || '')).indexOf(DMV.pickQ) >= 0); }).map(function (p) {
-        return '<button class="dmr" data-dmto="' + e(p.id) + '"><span class="bxav">' + e(D.ini(p.id)) + '</span><span class="dmrm"><b>' + e(p.name) + '</b><small>' + e(p.grade || '') + '</small></span></button>'; }).join('')
-      : T.map(function (t) { var m = t.last, txt = (m.from_id === D.me ? 'あなた：' : '') + (m.body || '写真'); return '<button class="dmr' + (t.unread ? ' new' : '') + '" data-dmto="' + e(t.uid) + '"><span class="bxav">' + e(D.ini(t.uid)) + '</span><span class="dmrm"><b>' + e(D.name(t.uid)) + '</b><small>' + e(txt.replace(/\s+/g, ' ')) + ' · ' + e(dmTime(m.created_at)) + '</small></span>' + (t.unread ? '<i class="dmdot" aria-label="未読"></i>' : '') + '</button>'; }).join('');
+    var D = window.DB, w = dmPage('dmbox'), T = D.dmThreads(), pick = DMV.pick, rows, foot = '';
+    if (pick) {
+      var q = DMV.pickQ || '', gq = /^[@＠]/.test(q) ? q.slice(1) : null, sel = DMV.sel || [];
+      if (gq != null) rows = D.groups().filter(function (g) { return g.name.indexOf(gq) >= 0; }).map(function (g, i) { var ms = g.members.filter(function (u) { return u !== D.me; }); return '<button class="dmr" data-dmgrp="' + e(g.name) + '"' + (ms.length ? '' : ' disabled') + '><span class="bxav grp"><i>' + e(D.ini(ms[0] || D.me)) + '</i><i>' + e(D.ini(ms[1] || ms[0] || D.me)) + '</i></span><span class="dmrm"><b>' + e(g.name) + '</b><small>' + ms.length + '人をまとめて選ぶ</small></span></button>'; }).join('');
+      else rows = D.profiles().filter(function (p) { var R1 = DMV.addTo && D.room(DMV.addTo); return p.id !== D.me && !(R1 && R1.members.indexOf(p.id) >= 0) && (!q || (p.name + (p.grade || '')).indexOf(q) >= 0); }).map(function (p) { var on = sel.indexOf(p.id) >= 0;
+        return '<button class="dmr pk' + (on ? ' on' : '') + '" data-dmsel="' + e(p.id) + '"><span class="bxav">' + e(D.ini(p.id)) + '</span><span class="dmrm"><b>' + e(p.name) + '</b><small>' + e(p.grade || '') + '</small></span><i class="dmck"></i></button>'; }).join('');
+      foot = sel.length ? '<div class="dmpf">' + (sel.length > 1 && !DMV.addTo ? '<input id="dmrn" placeholder="グループの名前（なくてもよい）" maxlength="40" value="' + e(DMV.rn || '') + '">' : '') + '<button data-dmgo>' + (DMV.addTo ? sel.length + '人を追加' : sel.length > 1 ? (sel.length + 1) + '人のグループを作る' : 'チャット') + '</button></div>' : '';
+    } else rows = T.map(function (t) { var m = t.last, nm = t.room ? D.roomName(t.room) : D.name(t.uid), txt = m ? (m.from_id === D.me ? 'あなた：' : t.room ? D.name(m.from_id) + '：' : '') + (m.body || '写真') : 'グループを作りました'; return '<button class="dmr' + (t.unread ? ' new' : '') + '" data-dmto="' + e(t.key) + '">' + dmAv(t) + '<span class="dmrm"><b>' + e(nm) + '</b><small>' + e(txt.replace(/\s+/g, ' ')) + ' · ' + e(dmTime(t.t)) + '</small></span>' + (t.unread ? '<i class="dmdot" aria-label="未読"></i>' : '') + '</button>'; }).join('');
     w.innerHTML = '<div class="nsph"><button data-dmx="' + (pick ? 'pick' : 'dmbox') + '" aria-label="戻る">' + IC.back + '</button><b>' + (pick ? '新しいメッセージ' : 'メッセージ') + '</b><span class="sp"></span>' + (pick ? '' : '<button data-dmnew aria-label="新しいメッセージ">' + IC.pen + '</button>') + '</div>' +
-      (pick ? '<div class="dmq"><input id="dmq" placeholder="名前で探す" autocomplete="off" value="' + e(DMV.pickQ) + '"></div>' : '') +
-      '<div class="dml">' + (rows || '<div class="dmempty">' + (pick ? '見つかりません' : 'まだメッセージはありません<button data-dmnew>メッセージを送る</button>') + '</div>') + '</div>';
-    if (pick) { var q = w.querySelector('#dmq'); if (q && document.activeElement !== q && !DMV.typed) q.focus(); }
+      (pick ? '<div class="dmq"><input id="dmq" placeholder="名前で探す（＠でグループ）" autocomplete="off" value="' + e(DMV.pickQ) + '">' + ((DMV.sel || []).length ? '<div class="dmchips">' + DMV.sel.map(function (u) { return '<button data-dmsel="' + e(u) + '">' + e(D.name(u)) + ' ×</button>'; }).join('') + '</div>' : '') + '</div>' : '') +
+      '<div class="dml">' + (rows || '<div class="dmempty">' + (pick ? '見つかりません' : 'まだメッセージはありません<button data-dmnew>メッセージを送る</button>') + '</div>') + '</div>' + foot;
+    if (pick) { var qi = w.querySelector('#dmq'); if (qi && document.activeElement !== qi && !DMV.typed) qi.focus(); }
   }
-  function dmConv(uid) {
-    var D = window.DB, w = dmPage('dmc'), L = D.dmWith(uid), blk = D.blocked(uid), old = w.querySelector('.dmcs'), atEnd = !old || old.scrollHeight - old.scrollTop - old.clientHeight < 80;
+  function dmConv(uid) { // uid：相手の id か 'r-<room>'
+    var D = window.DB, w = dmPage('dmc'), rm = D.isRoom(uid), R0 = rm ? D.room(uid) : null; if (rm && !R0) { dmClose('dmc'); return; }
+    var L = D.dmWith(uid), blk = !rm && D.blocked(uid), old = w.querySelector('.dmcs'), atEnd = !old || old.scrollHeight - old.scrollTop - old.clientHeight < 80;
     w.dataset.uid = uid; D.dmRead(uid);
     var out = '', prev = null, lastMine = null; L.forEach(function (m) { if (m.from_id === D.me) lastMine = m; });
     L.forEach(function (m, i) {
-      if (!prev || new Date(m.created_at) - new Date(prev.created_at) > 3600000) out += '<div class="dmts">' + e(dmStamp(m.created_at)) + '</div>';
-      var me = m.from_id === D.me, nx = L[i + 1], tail = !nx || nx.from_id !== m.from_id || new Date(nx.created_at) - new Date(m.created_at) > 3600000;
+      var gap = !prev || new Date(m.created_at) - new Date(prev.created_at) > 3600000;
+      if (gap) out += '<div class="dmts">' + e(dmStamp(m.created_at)) + '</div>';
+      var me = m.from_id === D.me, nx = L[i + 1], tail = !nx || nx.from_id !== m.from_id || new Date(nx.created_at) - new Date(m.created_at) > 3600000, head = gap || !prev || prev.from_id !== m.from_id;
       var ps = (m.imgs || []).filter(Boolean); if (ps.length) want(ps, 'dm');
-      out += '<div class="dmm' + (me ? ' me' : '') + (tail ? ' tail' : '') + (m.sending ? ' sending' : '') + '" data-dmid="' + e(m.id) + '">' +
+      out += '<div class="dmm' + (me ? ' me' : '') + (tail ? ' tail' : '') + (m.sending ? ' sending' : '') + '" data-dmid="' + e(m.id) + '">' + (rm && !me && head ? '<span class="dmfrom">' + e(D.name(m.from_id)) + '</span>' : '') +
         (ps.length ? '<div class="dmim n' + Math.min(ps.length, 4) + '">' + ps.map(function (p) { return URLS[p] ? '<img src="' + e(URLS[p]) + '" alt="" data-bxi="' + e(p) + '">' : '<span class="bxph"></span>'; }).join('') + '</div>' : '') +
         (m.body ? '<div class="dmb">' + link(m.body) + '</div>' : '') + '</div>';
-      if (m === lastMine && m.read_at) out += '<div class="dmread">既読</div>';
+      if (!rm && m === lastMine && m.read_at) out += '<div class="dmread">既読</div>';
       prev = m;
     });
-    var top = '<div class="dmhero"><span class="bxav lg">' + e(D.ini(uid)) + '</span><b>' + e(D.name(uid)) + '</b><small>' + e(((D.profiles().filter(function (x) { return x.id === uid; })[0]) || {}).grade || '') + '</small><button data-pf="' + e(uid) + '">プロフィールを見る</button></div>';
+    var others = rm ? R0.members.filter(function (u) { return u !== D.me; }) : [];
+    var top = rm ? '<div class="dmhero"><span class="bxav lg grp"><i>' + e(D.ini(others[0] || D.me)) + '</i><i>' + e(D.ini(others[1] || others[0] || D.me)) + '</i></span><b>' + e(D.roomName(R0)) + '</b><small>' + (others.length + 1) + '人のグループ</small><button data-dmmenu>メンバー・名前</button></div>'
+      : '<div class="dmhero"><span class="bxav lg">' + e(D.ini(uid)) + '</span><b>' + e(D.name(uid)) + '</b><small>' + e(((D.profiles().filter(function (x) { return x.id === uid; })[0]) || {}).grade || '') + '</small><button data-pf="' + e(uid) + '">プロフィールを見る</button></div>';
     var keep = w.querySelector('#dmtx'), val = keep ? keep.value : '', focused = keep && document.activeElement === keep;
-    w.innerHTML = '<div class="nsph"><button data-dmx="dmc" aria-label="戻る">' + IC.back + '</button><button class="dmwho" data-pf="' + e(uid) + '"><span class="bxav sm">' + e(D.ini(uid)) + '</span><b>' + e(D.name(uid)) + '</b></button><span class="sp"></span><button data-dmmenu aria-label="その他">' + IC.more + '</button></div>' +
+    w.innerHTML = '<div class="nsph"><button data-dmx="dmc" aria-label="戻る">' + IC.back + '</button>' + (rm ? '<button class="dmwho" data-dmmenu><span class="bxav sm grp"><i>' + e(D.ini(others[0] || D.me)) + '</i><i>' + e(D.ini(others[1] || others[0] || D.me)) + '</i></span><b>' + e(D.roomName(R0)) + '</b></button>' : '<button class="dmwho" data-pf="' + e(uid) + '"><span class="bxav sm">' + e(D.ini(uid)) + '</span><b>' + e(D.name(uid)) + '</b></button>') + '<span class="sp"></span><button data-dmmenu aria-label="その他">' + IC.more + '</button></div>' +
       '<div class="dmcs">' + top + out + '</div>' +
       (blk ? '<div class="dmblk">ブロック中です<button data-dmunblock>解除する</button></div>' :
       (DMV.files.length ? '<div class="dmfs">' + DMV.files.map(function (f, i) { return '<span class="bxpe"><img src="' + f.url + '" alt=""><button data-dmrm="' + i + '" aria-label="写真を外す">' + IC.x + '</button></span>'; }).join('') + '</div>' : '') +
@@ -858,11 +892,11 @@ function annPop(a) {
     fit();
   }
   window.__dmPaint = function () { if (document.getElementById('dmc')) dmConv(document.getElementById('dmc').dataset.uid); if (document.getElementById('dmbox')) dmBox(); };
-  window.__dmOpen = function (uid) { if (uid) dmConv(uid); else { DMV.pick = false; dmBox(); if (DMV.last && window.DB.profiles().some(function (p) { return p.id === DMV.last; })) dmConv(DMV.last); } };
+  window.__dmOpen = function (uid) { if (uid) dmConv(uid); else { DMV.pick = false; dmBox(); if (DMV.last && (window.DB.isRoom(DMV.last) ? window.DB.room(DMV.last) : window.DB.profiles().some(function (p) { return p.id === DMV.last; }))) dmConv(DMV.last); } };
   async function dmSend() {
     var D = window.DB, w = document.getElementById('dmc'); if (!w) return; var uid = w.dataset.uid, ta = document.getElementById('dmtx'), v = ta ? ta.value.trim() : '', fs = DMV.files.slice();
     if (!v && !fs.length) return; if (ta) ta.value = ''; DMV.files = []; var imgs = [];
-    try { for (var i = 0; i < fs.length; i++) { var b = await shrink(fs[i].file), path = D.conv(D.me, uid) + '/' + D.me + '/' + Date.now() + '_' + i + '.jpg', r = await window.sb.storage.from('dm').upload(path, b, { contentType: 'image/jpeg' }); if (r.error) throw r.error; imgs.push(path); URLS[path] = fs[i].url; } }
+    try { for (var i = 0; i < fs.length; i++) { var b = await shrink(fs[i].file), path = (D.isRoom(uid) ? uid : D.conv(D.me, uid)) + '/' + D.me + '/' + Date.now() + '_' + i + '.jpg', r = await window.sb.storage.from('dm').upload(path, b, { contentType: 'image/jpeg' }); if (r.error) throw r.error; imgs.push(path); URLS[path] = fs[i].url; } }
     catch (er) { D.flash('写真を送れませんでした'); if (ta) ta.value = v; DMV.files = fs; dmConv(uid); return; }
     await D.dmSend(uid, v, imgs); dmConv(uid);
   }
@@ -879,8 +913,22 @@ function annPop(a) {
     need.forEach(function (p) { asked[p] = 1; });
     window.sb.storage.from(bucket || 'board').createSignedUrls(need, 86400).then(function (r) { (r.data || []).forEach(function (x) { if (x.signedUrl) URLS[x.path] = x.signedUrl; }); if (bucket === 'dm') window.__dmPaint(); else paint(true); }).catch(function () {});
   }
+  function roomMenu(k) { // グループ：名前・メンバー・抜ける
+    var D = window.DB, r = D.room(k); if (!r) return; var w = document.createElement('div'); w.id = 'bxmn';
+    var ms = r.members.filter(function (u) { return u !== D.me; });
+    w.innerHTML = '<div class="anbg" data-bxmn-x></div><div class="bxmnc dmrmc"><div class="dmrmh">' + (r.members.length) + '人のグループ</div><input id="dmrn2" placeholder="グループの名前" maxlength="40" value="' + e(r.name || '') + '"><div class="dmrml">' + [D.me].concat(ms).map(function (u) { return '<span>' + e(D.name(u)) + (u === D.me ? '（自分）' : '') + '</span>'; }).join('') + '</div><button data-dmradd>メンバーを追加</button><button class="bad" data-dmrleave>グループを抜ける</button><button data-bxmn-x>閉じる</button></div>';
+    document.body.appendChild(w);
+    var nm = w.querySelector('#dmrn2'); nm.addEventListener('change', function () { D.roomUpdate(k, { name: nm.value.trim() }); dmConv(k); });
+    w.addEventListener('click', function (ev) {
+      var b = ev.target.closest('button, .anbg'); if (!b) return;
+      if (b.hasAttribute('data-dmradd')) { w.remove(); DMV.pick = true; DMV.addTo = k; DMV.sel = []; DMV.pickQ = ''; DMV.typed = false; dmBox(); return; }
+      if (b.hasAttribute('data-dmrleave')) { if (!b.dataset.sure) { b.dataset.sure = '1'; b.textContent = 'もう一度押すと抜けます'; return; } D.roomLeave(k); w.remove(); dmClose('dmc'); if (document.getElementById('dmbox')) dmBox(); return; }
+      if (nm.value.trim() !== (r.name || '')) { D.roomUpdate(k, { name: nm.value.trim() }); dmConv(k); }
+      w.remove();
+    });
+  }
   function dmMenu() {
-    var D = window.DB, uid = (document.getElementById('dmc') || {}).dataset.uid; if (!uid) return; var w = document.createElement('div'); w.id = 'bxmn';
+    var D = window.DB, uid = (document.getElementById('dmc') || {}).dataset.uid; if (!uid) return; if (D.isRoom(uid)) { roomMenu(uid); return; } var w = document.createElement('div'); w.id = 'bxmn';
     w.innerHTML = '<div class="anbg" data-bxmn-x></div><div class="bxmnc"><button data-dmrep>通報する</button><button class="bad" data-dmblock>' + (D.blocked(uid) ? 'ブロックを解除' : 'ブロックする') + '</button><button data-bxmn-x>やめる</button></div>';
     document.body.appendChild(w);
     w.addEventListener('click', function (ev) {
@@ -904,8 +952,15 @@ function annPop(a) {
     if (t.closest('[data-dmall]')) { ev.stopImmediatePropagation(); dmCloseAll(); return; }
     if ((b = t.closest('[data-dm-open]'))) { ev.preventDefault(); ev.stopImmediatePropagation(); window.__dmOpen(); return; }
     if ((b = t.closest('[data-dmto]'))) { ev.preventDefault(); ev.stopImmediatePropagation(); pfClose(); if (DMV.pick) { DMV.pick = false; DMV.pickQ = ''; } dmConv(b.dataset.dmto); return; }
-    if ((b = t.closest('[data-dmx]'))) { ev.stopImmediatePropagation(); if (b.dataset.dmx === 'pick') { DMV.pick = false; DMV.pickQ = ''; dmBox(); } else dmClose(b.dataset.dmx); if (b.dataset.dmx === 'dmc' && document.getElementById('dmbox')) dmBox(); return; }
-    if (t.closest('[data-dmnew]')) { ev.stopImmediatePropagation(); DMV.pick = true; DMV.pickQ = ''; DMV.typed = false; dmBox(); return; }
+    if ((b = t.closest('[data-dmx]'))) { ev.stopImmediatePropagation(); if (b.dataset.dmx === 'pick') { DMV.pick = false; DMV.pickQ = ''; DMV.sel = []; DMV.addTo = null; dmBox(); } else dmClose(b.dataset.dmx); if (b.dataset.dmx === 'dmc' && document.getElementById('dmbox')) dmBox(); return; }
+    if (t.closest('[data-dmnew]')) { ev.stopImmediatePropagation(); DMV.pick = true; DMV.sel = []; DMV.addTo = null; DMV.rn = ''; DMV.pickQ = ''; DMV.typed = false; dmBox(); return; }
+    if ((b = t.closest('[data-dmsel]'))) { ev.stopImmediatePropagation(); var u1 = b.dataset.dmsel; DMV.sel = DMV.sel || []; var ix = DMV.sel.indexOf(u1); if (ix >= 0) DMV.sel.splice(ix, 1); else DMV.sel.push(u1); var rn0 = document.getElementById('dmrn'); if (rn0) DMV.rn = rn0.value; dmBox(); return; }
+    if ((b = t.closest('[data-dmgrp]'))) { ev.stopImmediatePropagation(); var g = D.groups().filter(function (x) { return x.name === b.dataset.dmgrp; })[0]; if (g) { DMV.sel = DMV.sel || []; g.members.forEach(function (u) { if (u !== D.me && DMV.sel.indexOf(u) < 0) DMV.sel.push(u); }); } DMV.pickQ = ''; dmBox(); return; }
+    if (t.closest('[data-dmgo]')) { ev.stopImmediatePropagation(); var sel = (DMV.sel || []).slice(), rnm = (document.getElementById('dmrn') || {}).value || '';
+      if (DMV.addTo) { var r1 = D.room(DMV.addTo), k1 = DMV.addTo; DMV.pick = false; DMV.addTo = null; DMV.sel = []; if (r1) D.roomUpdate(k1, { members: r1.members.concat(sel.filter(function (u) { return r1.members.indexOf(u) < 0; })) }); dmBox(); dmConv(k1); return; }
+      DMV.pick = false; DMV.sel = []; DMV.pickQ = ''; DMV.rn = '';
+      if (sel.length === 1) { dmBox(); dmConv(sel[0]); return; }
+      D.roomCreate(rnm.trim(), sel).then(function (k) { dmBox(); if (k) dmConv(k); }); return; }
     if (t.closest('[data-dmsend]')) { ev.stopImmediatePropagation(); dmSend(); return; }
     if (t.closest('[data-dmmenu]')) { ev.stopImmediatePropagation(); dmMenu(); return; }
     if ((b = t.closest('[data-dmrm]'))) { ev.stopImmediatePropagation(); DMV.files.splice(+b.dataset.dmrm, 1); dmConv(document.getElementById('dmc').dataset.uid); return; }

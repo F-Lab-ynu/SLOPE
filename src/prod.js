@@ -191,6 +191,7 @@ function subscribe() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'reactions' }, onRemote)
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: 'to_id=eq.' + S.me }, onRemote)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'dms' }, function () { dmaRemote(); })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'dm_rooms' }, function () { dmaRemote(); })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'stickies' }, function () { stkRemote(); })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'sticky_msgs' }, function () { stkRemote(); })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'groups' }, function () { grpLoad().then(function () { if (S.view === 'perms') render(); }); })
@@ -440,92 +441,130 @@ window.__adminPush = (function () {
   return { state: state, toggle: toggle };
 })();
 
-// ---------- メッセージ（部員アプリと同じ DM。運営画面では左に一覧・右に会話） ----------
-var DMA = { list: [], blocks: [], sel: null, pick: false, q: '', files: [], urls: {}, asked: {}, ready: false };
+// ---------- メッセージ（部員アプリと同じ DM。運営画面では左に一覧・右に会話）。1対1は相手の id、グループは 'r-<room>' ----------
+var DMA = { list: [], blocks: [], rooms: [], reads: {}, sel: null, pick: false, psel: [], q: '', files: [], urls: {}, asked: {}, ready: false };
 function dmaConv(a, b) { return a < b ? a + '_' + b : b + '_' + a; }
-function dmaUnread() { return DMA.list.filter(function (m) { return m.to_id === S.me && !m.read_at && DMA.blocks.indexOf(m.from_id) < 0; }).length; }
+function dmaIsRoom(k) { return /^r-/.test(k || ''); }
+function dmaRoom(k) { var id = String(k || '').replace(/^r-/, ''); return DMA.rooms.filter(function (r) { return r.id === id; })[0] || null; }
+function dmaRoomName(r) { return r ? (r.name || r.members.filter(function (u) { return u !== S.me && member(u); }).map(function (u) { return member(u).name; }).join('・') || 'グループ') : ''; }
+function dmaRoomUnread(k) { var at = DMA.reads[k] || ''; return DMA.list.filter(function (m) { return m.conv === k && m.from_id !== S.me && m.created_at > at; }).length; }
+function dmaUnread() { return DMA.list.filter(function (m) { return !m.room && m.to_id === S.me && !m.read_at && DMA.blocks.indexOf(m.from_id) < 0; }).length + DMA.rooms.reduce(function (n, r) { return n + dmaRoomUnread('r-' + r.id); }, 0); }
 async function dmaLoad() {
-  try { var r = await Promise.all([sb.from('dms').select('*').order('created_at', { ascending: false }).limit(1000), sb.from('dm_blocks').select('blocked').eq('blocker', S.me)]);
-    if (!r[0].error) DMA.list = r[0].data || []; if (!r[1].error) DMA.blocks = (r[1].data || []).map(function (x) { return x.blocked; }); DMA.ready = true; } catch (e) { console.warn(e); }
+  try { var r = await Promise.all([sb.from('dms').select('*').order('created_at', { ascending: false }).limit(1000), sb.from('dm_blocks').select('blocked').eq('blocker', S.me), sb.from('dm_rooms').select('*'), sb.from('dm_reads').select('*').eq('user_id', S.me)]);
+    if (!r[0].error) DMA.list = r[0].data || []; if (!r[1].error) DMA.blocks = (r[1].data || []).map(function (x) { return x.blocked; });
+    if (!r[2].error) DMA.rooms = (r[2].data || []).filter(function (x) { return (x.members || []).indexOf(S.me) >= 0; }); if (!r[3].error) { DMA.reads = {}; (r[3].data || []).forEach(function (x) { DMA.reads[x.conv] = x.at; }); } DMA.ready = true; } catch (e) { console.warn(e); }
 }
 var dmaT = null;
 function dmaRemote() { clearTimeout(dmaT); dmaT = setTimeout(async function () { await dmaLoad(); renderChrome(); if (S.view === 'dm') dmaPaint(); }, 150); }
 function dmaPeople() { return S.members.filter(function (m) { return m.id !== S.me && m.approved !== false; }); }
 function dmaThreads() {
-  var by = {}; DMA.list.forEach(function (m) { var o = m.from_id === S.me ? m.to_id : m.from_id; if (!by[o] || by[o].created_at < m.created_at) by[o] = m; });
-  return Object.keys(by).filter(member).map(function (o) { return { uid: o, last: by[o], unread: DMA.list.filter(function (m) { return m.from_id === o && m.to_id === S.me && !m.read_at; }).length }; }).sort(function (a, b) { return a.last.created_at < b.last.created_at ? 1 : -1; });
+  var by = {}; DMA.list.forEach(function (m) { if (m.room) return; var o = m.from_id === S.me ? m.to_id : m.from_id; if (!by[o] || by[o].created_at < m.created_at) by[o] = m; });
+  var one = Object.keys(by).filter(member).map(function (o) { return { key: o, uid: o, last: by[o], t: by[o].created_at, unread: DMA.list.filter(function (m) { return m.from_id === o && m.to_id === S.me && !m.read_at; }).length }; });
+  var rs = DMA.rooms.map(function (r) { var k = 'r-' + r.id, last = DMA.list.filter(function (m) { return m.conv === k; }).reduce(function (a, m) { return !a || a.created_at < m.created_at ? m : a; }, null); return { key: k, room: r, last: last, t: last ? last.created_at : r.created_at, unread: dmaRoomUnread(k) }; });
+  return one.concat(rs).sort(function (a, b) { return a.t < b.t ? 1 : -1; });
 }
-function dmaWith(uid) { var c = dmaConv(S.me, uid); return DMA.list.filter(function (m) { return m.conv === c; }).sort(function (a, b) { return a.created_at < b.created_at ? -1 : 1; }); }
+function dmaWith(k) { var c = dmaIsRoom(k) ? k : dmaConv(S.me, k); return DMA.list.filter(function (m) { return m.conv === c; }).sort(function (a, b) { return a.created_at < b.created_at ? -1 : 1; }); }
 function dmaTime(iso) { var d = new Date(iso), n = new Date(), p = function (x) { return (x < 10 ? '0' : '') + x; }; if (d.toDateString() === n.toDateString()) return p(d.getHours()) + ':' + p(d.getMinutes()); return (d.getMonth() + 1) + '/' + d.getDate(); }
 function dmaWant(paths) {
   var need = paths.filter(function (p) { return !DMA.urls[p] && !DMA.asked[p]; }); if (!need.length) return; need.forEach(function (p) { DMA.asked[p] = 1; });
   sb.storage.from('dm').createSignedUrls(need, 86400).then(function (r) { (r.data || []).forEach(function (x) { if (x.signedUrl) DMA.urls[x.path] = x.signedUrl; }); if (S.view === 'dm') dmaPaint(); }).catch(function () {});
 }
+function dmaAvs(ids) { return '<span class="avs dmaavs">' + ids.slice(0, 2).map(function (u) { return av(u); }).join('') + '</span>'; }
 function dmaListHTML() {
-  if (DMA.pick) { var ps = dmaPeople().filter(function (m) { return !DMA.q || (m.name + (m.grade || '')).indexOf(DMA.q) >= 0; });
-    return ps.length ? ps.map(function (m) { return '<button class="dmar" data-dma-to="' + m.id + '">' + av(m.id) + '<span class="dmam"><b>' + esc(m.name) + '</b><small>' + esc(m.grade || '') + '</small></span></button>'; }).join('') : '<div class="empty sm">見つかりません</div>'; }
+  if (DMA.pick) {
+    var q = DMA.q || '', gq = /^[@＠]/.test(q) ? q.slice(1) : null, R1 = DMA.addTo && dmaRoom(DMA.addTo);
+    if (gq != null) { var gs = (typeof grpAll === 'function' ? grpAll() : []).filter(function (g) { return g.name.indexOf(gq) >= 0; }); return gs.length ? gs.map(function (g) { var ms = g.members.filter(function (u) { return u !== S.me; }); return '<button class="dmar" data-dma-grp="' + esc(g.name) + '"' + (ms.length ? '' : ' disabled') + '>' + dmaAvs(ms) + '<span class="dmam"><b>' + esc(g.name) + '</b><small>' + ms.length + '人をまとめて選ぶ</small></span></button>'; }).join('') : '<div class="empty sm">該当するグループはありません</div>'; }
+    var ps = dmaPeople().filter(function (m) { return !(R1 && R1.members.indexOf(m.id) >= 0) && (!q || (m.name + (m.grade || '')).indexOf(q) >= 0); });
+    return ps.length ? ps.map(function (m) { var on = DMA.psel.indexOf(m.id) >= 0; return '<button class="dmar pk' + (on ? ' on' : '') + '" data-dma-psel="' + m.id + '">' + av(m.id) + '<span class="dmam"><b>' + esc(m.name) + '</b><small>' + esc(m.grade || '') + '</small></span><input type="checkbox" class="check" tabindex="-1"' + (on ? ' checked' : '') + '></button>'; }).join('') : '<div class="empty sm">見つかりません</div>';
+  }
   var T = dmaThreads(); if (!T.length) return '<div class="empty sm">まだメッセージはありません</div>';
-  return T.map(function (t) { var m = t.last, txt = (m.from_id === S.me ? 'あなた：' : '') + (m.body || '写真'); return '<button class="dmar' + (t.unread ? ' new' : '') + (DMA.sel === t.uid ? ' on' : '') + '" data-dma-to="' + t.uid + '">' + av(t.uid) + '<span class="dmam"><b>' + esc(member(t.uid).name) + '</b><small>' + esc(txt.replace(/\s+/g, ' ')) + '</small></span><span class="dmat num">' + dmaTime(m.created_at) + '</span>' + (t.unread ? '<i class="dmadot"></i>' : '') + '</button>'; }).join('');
+  return T.map(function (t) { var m = t.last, nm = t.room ? dmaRoomName(t.room) : member(t.uid).name, txt = m ? (m.from_id === S.me ? 'あなた：' : t.room ? (member(m.from_id) ? member(m.from_id).name : '') + '：' : '') + (m.body || '写真') : 'グループを作りました';
+    return '<button class="dmar' + (t.unread ? ' new' : '') + (DMA.sel === t.key ? ' on' : '') + '" data-dma-to="' + t.key + '">' + (t.room ? dmaAvs(t.room.members.filter(function (u) { return u !== S.me; })) : av(t.uid)) + '<span class="dmam"><b>' + esc(nm) + '</b><small>' + esc(txt.replace(/\s+/g, ' ')) + '</small></span><span class="dmat num">' + dmaTime(t.t) + '</span>' + (t.unread ? '<i class="dmadot"></i>' : '') + '</button>'; }).join('');
 }
 function dmaMsgsHTML() {
-  var uid = DMA.sel; if (!uid || !member(uid)) return '<div class="dmaempty">' + ic('dm') + '<b>メッセージ</b><span>左から相手を選ぶか、「新しく送る」から始めます。部員アプリのメッセージと同じものです。</span></div>';
-  var L = dmaWith(uid), out = '', prev = null, lastMine = null; L.forEach(function (m) { if (m.from_id === S.me) lastMine = m; });
+  var k = DMA.sel, rm = dmaIsRoom(k), R0 = rm && dmaRoom(k);
+  if (!k || (rm ? !R0 : !member(k))) return '<div class="dmaempty">' + ic('dm') + '<b>メッセージ</b><span>左から相手を選ぶか、「新しく送る」から始めます。部員アプリのメッセージと同じものです。複数人を選ぶとグループになります。</span></div>';
+  var L = dmaWith(k), out = '', prev = null, lastMine = null; L.forEach(function (m) { if (m.from_id === S.me) lastMine = m; });
   L.forEach(function (m) {
-    if (!prev || new Date(m.created_at) - new Date(prev.created_at) > 3600000) { var d = new Date(m.created_at); out += '<div class="dmats num">' + (d.getMonth() + 1) + '月' + d.getDate() + '日 ' + dmaTime(m.created_at).replace(/^\d+\/\d+$/, String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0')) + '</div>'; }
-    var mine = m.from_id === S.me, ps = (m.imgs || []).filter(Boolean); if (ps.length) dmaWant(ps);
-    out += '<div class="dmam2' + (mine ? ' me' : '') + '" data-dma-id="' + m.id + '">' + (ps.length ? '<div class="dmaim">' + ps.map(function (p) { return DMA.urls[p] ? '<img src="' + esc(DMA.urls[p]) + '" alt="" data-dma-img="' + esc(DMA.urls[p]) + '">' : '<span class="ph"></span>'; }).join('') + '</div>' : '') + (m.body ? '<div class="dmab">' + linkify(m.body).replace(/\n/g, '<br>') + '</div>' : '') + '</div>';
-    if (m === lastMine && m.read_at) out += '<div class="dmard">既読</div>';
+    var gap = !prev || new Date(m.created_at) - new Date(prev.created_at) > 3600000;
+    if (gap) { var d = new Date(m.created_at); out += '<div class="dmats num">' + (d.getMonth() + 1) + '月' + d.getDate() + '日 ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') + '</div>'; }
+    var mine = m.from_id === S.me, ps = (m.imgs || []).filter(Boolean), head = gap || !prev || prev.from_id !== m.from_id; if (ps.length) dmaWant(ps);
+    out += '<div class="dmam2' + (mine ? ' me' : '') + '" data-dma-id="' + m.id + '">' + (rm && !mine && head ? '<span class="dmafrom">' + esc(member(m.from_id) ? member(m.from_id).name : '') + '</span>' : '') + (ps.length ? '<div class="dmaim">' + ps.map(function (p) { return DMA.urls[p] ? '<img src="' + esc(DMA.urls[p]) + '" alt="" data-dma-img="' + esc(DMA.urls[p]) + '">' : '<span class="ph"></span>'; }).join('') + '</div>' : '') + (m.body ? '<div class="dmab">' + linkify(m.body).replace(/\n/g, '<br>') + '</div>' : '') + '</div>';
+    if (!rm && m === lastMine && m.read_at) out += '<div class="dmard">既読</div>';
     prev = m;
   });
   return out || '<div class="empty sm">まだやり取りはありません</div>';
 }
 function viewDm() {
   if (!DMA.ready) dmaLoad().then(function () { if (S.view === 'dm') render(); });
-  var uid = DMA.sel && member(DMA.sel) ? DMA.sel : null, mm = uid && member(uid), blk = uid && DMA.blocks.indexOf(uid) >= 0;
-  var left = '<aside class="dmal"><div class="dmah">' + (DMA.pick ? '<button class="ib" data-dma-back aria-label="戻る">' + ic('back') + '</button><input class="input" id="dmaq" placeholder="名前で探す" autocomplete="off" value="' + esc(DMA.q) + '">' : '<span class="muted" style="font-size:12px">相手</span><span class="sp"></span><button class="btn sm" data-dma-new>新しく送る</button>') + '</div><div class="dmalist" id="dmalist">' + dmaListHTML() + '</div></aside>';
-  var right = '<section class="dmac">' + (uid ? '<div class="dmach"><button class="ib dmaback" data-dma-close aria-label="一覧へ">' + ic('back') + '</button>' + av(uid) + '<span class="dmam"><b>' + esc(mm.name) + '</b><small>' + esc(mm.grade || '') + '</small></span><span class="sp"></span><button class="ib" data-dma-menu aria-label="その他">' + ic('more') + '</button></div>' : '') +
-    '<div class="dmamsgs" id="dmamsgs">' + dmaMsgsHTML() + '</div>' +
-    (uid ? (blk ? '<div class="dmablk">ブロック中です<button class="btn sm" data-dma-unblock>解除する</button></div>' :
+  var k = DMA.sel, rm = dmaIsRoom(k), R0 = rm && dmaRoom(k), ok = k && (rm ? R0 : member(k)), mm = ok && !rm && member(k), blk = ok && !rm && DMA.blocks.indexOf(k) >= 0;
+  var left = '<aside class="dmal"><div class="dmah">' + (DMA.pick ? '<button class="ib" data-dma-back aria-label="戻る">' + ic('back') + '</button><input class="input" id="dmaq" placeholder="名前で探す（＠でグループ）" autocomplete="off" value="' + esc(DMA.q) + '">' : '<span class="muted" style="font-size:12px">相手</span><span class="sp"></span><button class="btn sm" data-dma-new>新しく送る</button>') + '</div>' +
+    (DMA.pick && DMA.psel.length ? '<div class="dmachips">' + DMA.psel.map(function (u) { return '<button data-dma-psel="' + u + '">' + esc(member(u).name) + ' ×</button>'; }).join('') + '</div>' : '') +
+    '<div class="dmalist" id="dmalist">' + dmaListHTML() + '</div>' +
+    (DMA.pick && DMA.psel.length ? '<div class="dmapf">' + (DMA.psel.length > 1 && !DMA.addTo ? '<input class="input" id="dmarn" placeholder="グループの名前（なくてもよい）" maxlength="40" value="' + esc(DMA.rn || '') + '">' : '') + '<button class="btn primary" data-dma-go>' + (DMA.addTo ? DMA.psel.length + '人を追加' : DMA.psel.length > 1 ? (DMA.psel.length + 1) + '人のグループを作る' : 'チャット') + '</button></div>' : '') + '</aside>';
+  var head = !ok ? '' : rm ? '<div class="dmach"><button class="ib dmaback" data-dma-close aria-label="一覧へ">' + ic('back') + '</button>' + dmaAvs(R0.members.filter(function (u) { return u !== S.me; })) + '<span class="dmam"><b>' + esc(dmaRoomName(R0)) + '</b><small>' + R0.members.length + '人のグループ</small></span><span class="sp"></span><button class="ib" data-dma-menu aria-label="その他">' + ic('more') + '</button></div>'
+    : '<div class="dmach"><button class="ib dmaback" data-dma-close aria-label="一覧へ">' + ic('back') + '</button>' + av(k) + '<span class="dmam"><b>' + esc(mm.name) + '</b><small>' + esc(mm.grade || '') + '</small></span><span class="sp"></span><button class="ib" data-dma-menu aria-label="その他">' + ic('more') + '</button></div>';
+  var right = '<section class="dmac">' + head + '<div class="dmamsgs" id="dmamsgs">' + dmaMsgsHTML() + '</div>' +
+    (ok ? (blk ? '<div class="dmablk">ブロック中です<button class="btn sm" data-dma-unblock>解除する</button></div>' :
       (DMA.files.length ? '<div class="dmafs">' + DMA.files.map(function (f, i) { return '<span><img src="' + f.url + '" alt=""><button data-dma-rm="' + i + '" aria-label="写真を外す">' + ic('x') + '</button></span>'; }).join('') + '</div>' : '') +
       '<div class="dmacp"><label class="ib" aria-label="写真" title="写真"><input type="file" accept="image/*" multiple id="dmafile" hidden><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-9 8"/></svg></label><textarea id="dmatx" rows="1" placeholder="メッセージ（Enter で送信・Shift+Enter で改行）">' + esc(DMA.draft || '') + '</textarea><button class="btn primary sm" data-dma-send>送信</button></div>') : '') + '</section>';
-  setTimeout(function () { var b = document.getElementById('dmamsgs'); if (b) b.scrollTop = b.scrollHeight; if (uid) dmaRead(uid); }, 0);
-  return top('メッセージ') + '<div class="dmaw">' + left + right + '</div>';
+  setTimeout(function () { var b = document.getElementById('dmamsgs'); if (b) b.scrollTop = b.scrollHeight; if (ok) dmaRead(k); }, 0);
+  return top('メッセージ') + '<div class="dmaw' + (DMA.pick ? ' picking' : '') + '">' + left + right + '</div>';
 }
 function dmaPaint() { // 書いている途中の入力は保ったまま、一覧と会話だけ描き直す
   var l = document.getElementById('dmalist'), b = document.getElementById('dmamsgs'); if (!l || !b) { render(); return; }
   var atEnd = b.scrollHeight - b.scrollTop - b.clientHeight < 80; l.innerHTML = dmaListHTML(); b.innerHTML = dmaMsgsHTML(); if (atEnd) b.scrollTop = b.scrollHeight; if (DMA.sel) dmaRead(DMA.sel);
 }
-function dmaRead(uid) {
-  var c = dmaConv(S.me, uid), now = new Date().toISOString(), any = false;
+function dmaRead(k) {
+  var now = new Date().toISOString();
+  if (dmaIsRoom(k)) { if (!dmaRoomUnread(k) && DMA.reads[k]) return; DMA.reads[k] = now; renderChrome(); sb.from('dm_reads').upsert({ user_id: S.me, conv: k, at: now }, { onConflict: 'user_id,conv' }).then(function () {}); return; }
+  var c = dmaConv(S.me, k), any = false;
   DMA.list.forEach(function (m) { if (m.conv === c && m.to_id === S.me && !m.read_at) { m.read_at = now; any = true; } });
   if (any) { renderChrome(); sb.from('dms').update({ read_at: now }).eq('conv', c).eq('to_id', S.me).is('read_at', null).then(function () {}); }
 }
 function dmaShrink(file) { return new Promise(function (ok, ng) { var img = new Image(), u = URL.createObjectURL(file); img.onload = function () { var k = Math.min(1, 1600 / Math.max(img.width, img.height)), c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(u); c.toBlob(function (b) { b ? ok(b) : ng(); }, 'image/jpeg', 0.82); }; img.onerror = function () { URL.revokeObjectURL(u); ng(); }; img.src = u; }); }
 async function dmaSend() {
-  var uid = DMA.sel, ta = document.getElementById('dmatx'), v = ta ? ta.value.trim() : '', fs = DMA.files.slice(); if (!uid || (!v && !fs.length)) return;
-  if (ta) ta.value = ''; DMA.draft = ''; DMA.files = []; var imgs = [];
-  try { for (var i = 0; i < fs.length; i++) { var b = await dmaShrink(fs[i].file), path = dmaConv(S.me, uid) + '/' + S.me + '/' + Date.now() + '_' + i + '.jpg', r = await sb.storage.from('dm').upload(path, b, { contentType: 'image/jpeg' }); if (r.error) throw r.error; imgs.push(path); DMA.urls[path] = fs[i].url; } }
+  var k = DMA.sel, rm = dmaIsRoom(k), ta = document.getElementById('dmatx'), v = ta ? ta.value.trim() : '', fs = DMA.files.slice(); if (!k || (!v && !fs.length)) return;
+  if (ta) ta.value = ''; DMA.draft = ''; DMA.files = []; var imgs = [], conv = rm ? k : dmaConv(S.me, k);
+  try { for (var i = 0; i < fs.length; i++) { var b = await dmaShrink(fs[i].file), path = conv + '/' + S.me + '/' + Date.now() + '_' + i + '.jpg', r = await sb.storage.from('dm').upload(path, b, { contentType: 'image/jpeg' }); if (r.error) throw r.error; imgs.push(path); DMA.urls[path] = fs[i].url; } }
   catch (er) { toast('写真を送れませんでした'); if (ta) ta.value = v; DMA.files = fs; render(); return; }
-  var row = { conv: dmaConv(S.me, uid), from_id: S.me, to_id: uid, body: v, imgs: imgs }, tmp = Object.assign({ id: 'tmp' + Date.now(), created_at: new Date().toISOString(), read_at: null }, row);
+  var row = rm ? { conv: k, room: k.slice(2), from_id: S.me, to_id: null, body: v, imgs: imgs } : { conv: conv, from_id: S.me, to_id: k, body: v, imgs: imgs }, tmp = Object.assign({ id: 'tmp' + Date.now(), created_at: new Date().toISOString(), read_at: null }, row);
   DMA.list.push(tmp); if (fs.length) render(); else dmaPaint();
   var r2 = await sb.from('dms').insert(row).select().single(); DMA.list = DMA.list.filter(function (m) { return m !== tmp; });
-  if (r2.error) toast(/row-level/.test(r2.error.message) ? '送れませんでした（ブロック中の相手には送れません）' : '送れませんでした'); else if (!DMA.list.some(function (m) { return m.id === r2.data.id; })) DMA.list.push(r2.data);
+  if (r2.error) toast(/row-level/.test(r2.error.message) && !rm ? '送れませんでした（ブロック中の相手には送れません）' : '送れませんでした'); else { if (!DMA.list.some(function (m) { return m.id === r2.data.id; })) DMA.list.push(r2.data); if (rm) { DMA.reads[k] = r2.data.created_at; } }
   dmaPaint(); var t2 = document.getElementById('dmatx'); if (t2) t2.focus();
 }
 document.addEventListener('click', function (e) {
   if (S.view !== 'dm' || !e.target.closest) return; var t = e.target, b;
   if ((b = t.closest('[data-dma-to]'))) { DMA.sel = b.dataset.dmaTo; DMA.pick = false; DMA.q = ''; DMA.files = []; render(); var x = document.getElementById('dmatx'); if (x) x.focus(); return; }
   if (t.closest('[data-dma-close]')) { DMA.sel = null; render(); return; }
-  if (t.closest('[data-dma-new]')) { DMA.pick = true; DMA.q = ''; render(); var q = document.getElementById('dmaq'); if (q) q.focus(); return; }
-  if (t.closest('[data-dma-back]')) { DMA.pick = false; DMA.q = ''; render(); return; }
+  if (t.closest('[data-dma-new]')) { DMA.pick = true; DMA.psel = []; DMA.addTo = null; DMA.rn = ''; DMA.q = ''; render(); var q = document.getElementById('dmaq'); if (q) q.focus(); return; }
+  if (t.closest('[data-dma-back]')) { DMA.pick = false; DMA.q = ''; DMA.psel = []; DMA.addTo = null; render(); return; }
+  if ((b = t.closest('[data-dma-psel]'))) { e.preventDefault(); var u = b.dataset.dmaPsel, ix = DMA.psel.indexOf(u); if (ix >= 0) DMA.psel.splice(ix, 1); else DMA.psel.push(u); var rn = document.getElementById('dmarn'); if (rn) DMA.rn = rn.value; render(); var q2 = document.getElementById('dmaq'); if (q2) q2.focus(); return; }
+  if ((b = t.closest('[data-dma-grp]'))) { var g = grpAll().filter(function (x) { return x.name === b.dataset.dmaGrp; })[0], R1 = DMA.addTo && dmaRoom(DMA.addTo); if (g) g.members.forEach(function (u) { if (u !== S.me && DMA.psel.indexOf(u) < 0 && !(R1 && R1.members.indexOf(u) >= 0)) DMA.psel.push(u); }); DMA.q = ''; render(); return; }
+  if (t.closest('[data-dma-go]')) {
+    var sel = DMA.psel.slice(), nm = ((document.getElementById('dmarn') || {}).value || '').trim();
+    if (DMA.addTo) { var R2 = dmaRoom(DMA.addTo), k2 = DMA.addTo; DMA.pick = false; DMA.addTo = null; DMA.psel = []; if (R2) { R2.members = R2.members.concat(sel.filter(function (x) { return R2.members.indexOf(x) < 0; })); sb.from('dm_rooms').update({ members: R2.members }).eq('id', R2.id).then(function (r) { if (r.error) toast('追加できませんでした'); }); } DMA.sel = k2; render(); return; }
+    DMA.pick = false; DMA.psel = []; DMA.q = ''; DMA.rn = '';
+    if (sel.length === 1) { DMA.sel = sel[0]; render(); return; }
+    sb.from('dm_rooms').insert({ name: nm, members: [S.me].concat(sel), created_by: S.me }).select().single().then(function (r) { if (r.error) { toast('グループを作れませんでした'); render(); return; } DMA.rooms.push(r.data); DMA.reads['r-' + r.data.id] = new Date().toISOString(); DMA.sel = 'r-' + r.data.id; render(); });
+    return;
+  }
   if (t.closest('[data-dma-send]')) { dmaSend(); return; }
   if ((b = t.closest('[data-dma-rm]'))) { DMA.files.splice(+b.dataset.dmaRm, 1); render(); return; }
   if (t.closest('[data-dma-unblock]')) { var u0 = DMA.sel; DMA.blocks = DMA.blocks.filter(function (x) { return x !== u0; }); sb.from('dm_blocks').delete().eq('blocker', S.me).eq('blocked', u0).then(function () { toast('ブロックを解除しました'); }); render(); return; }
   if ((b = t.closest('[data-dma-img]'))) { var ov = document.createElement('div'); ov.className = 'dmalb'; ov.innerHTML = '<img src="' + esc(b.dataset.dmaImg) + '" alt="">'; ov.onclick = function () { ov.remove(); }; document.body.appendChild(ov); return; }
   if ((b = t.closest('[data-dma-menu]'))) {
-    var uid = DMA.sel, r = b.getBoundingClientRect(), on = DMA.blocks.indexOf(uid) >= 0;
-    openMenu(member(uid).name, [['通報する', function () { var last = dmaWith(uid).slice(-5).map(function (m) { return (m.from_id === S.me ? '自分' : member(m.from_id).name) + '：' + (m.body || '（写真）'); }).join(' / '); sb.from('reports').insert({ item_id: 'dm:' + uid, user_id: S.me, reason: 'DM（' + member(uid).name + '）その他 ｜ ' + last.slice(0, 400) }).then(function (x) { toast(x.error ? '通報できませんでした' : '通報しました'); }); }],
-      [on ? 'ブロックを解除' : 'ブロックする', function () { if (on) { DMA.blocks = DMA.blocks.filter(function (x) { return x !== uid; }); sb.from('dm_blocks').delete().eq('blocker', S.me).eq('blocked', uid).then(function () {}); toast('ブロックを解除しました'); } else askConfirm({ title: member(uid).name + 'さんをブロック', body: 'お互いにメッセージを送れなくなります。', ok: 'ブロックする', run: function () { DMA.blocks.push(uid); sb.from('dm_blocks').insert({ blocker: S.me, blocked: uid }).then(function (x) { toast(x.error ? 'ブロックできませんでした' : 'ブロックしました'); }); render(); } }); render(); }, true]], r.left, r.bottom + 4);
+    var k = DMA.sel, r0 = b.getBoundingClientRect();
+    if (dmaIsRoom(k)) { var R = dmaRoom(k); if (!R) return;
+      openMenu(dmaRoomName(R), [['名前を変える', function () { var v = prompt('グループの名前', R.name || ''); if (v == null) return; R.name = v.trim().slice(0, 40); sb.from('dm_rooms').update({ name: R.name }).eq('id', R.id).then(function () {}); render(); }],
+        ['メンバーを追加', function () { DMA.pick = true; DMA.addTo = k; DMA.psel = []; DMA.q = ''; render(); }],
+        ['メンバー：' + R.members.map(function (u) { return member(u) ? member(u).name : ''; }).filter(Boolean).join('・'), function () {}, false, ' '],
+        'sep', ['グループを抜ける', function () { askConfirm({ title: 'グループを抜ける', body: '「' + esc(dmaRoomName(R)) + '」のメッセージが見られなくなります。', ok: '抜ける', run: function () { var ms = R.members.filter(function (u) { return u !== S.me; }); DMA.rooms = DMA.rooms.filter(function (x) { return x !== R; }); DMA.sel = null; sb.from('dm_rooms').update({ members: ms }).eq('id', R.id).then(function () {}); render(); } }); }, true]], r0.left, r0.bottom + 4);
+      return; }
+    var on = DMA.blocks.indexOf(k) >= 0;
+    openMenu(member(k).name, [['通報する', function () { var last = dmaWith(k).slice(-5).map(function (m) { return (m.from_id === S.me ? '自分' : member(m.from_id).name) + '：' + (m.body || '（写真）'); }).join(' / '); sb.from('reports').insert({ item_id: 'dm:' + k, user_id: S.me, reason: 'DM（' + member(k).name + '）その他 ｜ ' + last.slice(0, 400) }).then(function (x) { toast(x.error ? '通報できませんでした' : '通報しました'); }); }],
+      [on ? 'ブロックを解除' : 'ブロックする', function () { if (on) { DMA.blocks = DMA.blocks.filter(function (x) { return x !== k; }); sb.from('dm_blocks').delete().eq('blocker', S.me).eq('blocked', k).then(function () {}); toast('ブロックを解除しました'); render(); } else askConfirm({ title: member(k).name + 'さんをブロック', body: 'お互いにメッセージを送れなくなります。', ok: 'ブロックする', run: function () { DMA.blocks.push(k); sb.from('dm_blocks').insert({ blocker: S.me, blocked: k }).then(function (x) { toast(x.error ? 'ブロックできませんでした' : 'ブロックしました'); }); render(); } }); }, true]], r0.left, r0.bottom + 4);
     return;
   }
 }, true);
@@ -536,6 +575,7 @@ document.addEventListener('contextmenu', function (e) { // 自分のメッセー
 document.addEventListener('input', function (e) {
   if (e.target.id === 'dmaq') { DMA.q = e.target.value.trim(); var l = document.getElementById('dmalist'); if (l) l.innerHTML = dmaListHTML(); }
   if (e.target.id === 'dmatx') { DMA.draft = e.target.value; e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 160) + 'px'; }
+  if (e.target.id === 'dmarn') DMA.rn = e.target.value;
 });
 document.addEventListener('keydown', function (e) { if (e.target.id === 'dmatx' && e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); dmaSend(); } }, true);
 document.addEventListener('change', function (e) { if (e.target.id !== 'dmafile') return; [].slice.call(e.target.files || []).slice(0, 4 - DMA.files.length).forEach(function (f) { if (/^image\//.test(f.type)) DMA.files.push({ file: f, url: URL.createObjectURL(f) }); }); render(); });
@@ -567,8 +607,9 @@ window.__grpDlg = function () {
   var ms = S.members.filter(function (m) { return !q || (m.name + (m.grade || '') + (m.unit || '')).indexOf(q) >= 0; });
   return dlg(g ? 'グループを編集' : 'グループを作る',
     '<div class="fld"><label for="grpName">名前</label><input id="grpName" class="input" maxlength="40" value="' + esc(M.name != null ? M.name : (g ? g.name : '')) + '" autocomplete="off"></div>' +
-    '<div class="fld"><label>メンバー<span class="muted">（' + sel.length + '人）</span></label><input id="grpQ" class="input" placeholder="名前で絞り込み" value="' + esc(q) + '" autocomplete="off"><div class="grpl">' +
-    ms.map(function (m) { return '<label class="tpi"><input type="checkbox" class="check" data-grp-m="' + m.id + '"' + (sel.indexOf(m.id) >= 0 ? ' checked' : '') + '>' + av(m.id) + '<span class="tpn">' + esc(m.name) + '</span><small class="muted">' + esc(postLabel(m.unit || '—')) + '</small></label>'; }).join('') + '</div></div>',
+    '<div class="fld"><label>メンバー<span class="muted">（' + sel.length + '人）</span></label><input id="grpQ" class="input" placeholder="名前で絞り込み（＠でグループ）" value="' + esc(q) + '" autocomplete="off"><div class="grpl">' +
+    (/^[@＠]/.test(q) ? (function () { var gq = q.slice(1), gs = grpAll().filter(function (x) { return x.name.indexOf(gq) >= 0 && x.id !== M.id; }); return gs.length ? gs.map(function (x) { var nw = x.members.filter(function (u) { return sel.indexOf(u) < 0; }); return '<button class="tpg" data-grp-addg="' + esc(x.name) + '"' + (nw.length ? '' : ' disabled') + '><b>' + esc(x.name) + '</b><span class="avs">' + x.members.slice(0, 5).map(function (u) { return av(u); }).join('') + '</span><small>' + (nw.length ? nw.length + '人を追加' : '全員入っています') + '</small></button>'; }).join('') : '<div class="tpnote">該当するグループはありません</div>'; })() :
+    ms.map(function (m) { return '<label class="tpi"><input type="checkbox" class="check" data-grp-m="' + m.id + '"' + (sel.indexOf(m.id) >= 0 ? ' checked' : '') + '>' + av(m.id) + '<span class="tpn">' + esc(m.name) + '</span><small class="muted">' + esc(postLabel(m.unit || '—')) + '</small></label>'; }).join('')) + '</div></div>',
     (g ? '<button class="btn ghost mdanger" data-grp-del>削除</button><span class="sp"></span>' : '') + '<button class="btn" data-act="close">やめる</button><button class="btn primary" data-grp-save>保存</button>', true);
 };
 document.addEventListener('click', function (e) {
@@ -576,6 +617,7 @@ document.addEventListener('click', function (e) {
   if (t.closest('[data-grp-new]')) { M = { m: 'grp', id: null, sel: [], name: null }; renderModal(); return; }
   if ((b = t.closest('[data-grp-edit]'))) { var g = GRP.filter(function (x) { return x.id === b.dataset.grpEdit; })[0]; if (!g) return; M = { m: 'grp', id: g.id, sel: (g.members || []).slice(), name: null }; renderModal(); return; }
   if (!M || M.m !== 'grp') return;
+  if ((b = t.closest('[data-grp-addg]'))) { var g2 = grpAll().filter(function (x) { return x.name === b.dataset.grpAddg; })[0]; M.name = (document.getElementById('grpName') || {}).value; if (g2) g2.members.forEach(function (u) { if (M.sel.indexOf(u) < 0) M.sel.push(u); }); M.q = ''; renderModal(); return; }
   if ((b = t.closest('[data-grp-m]'))) { var id = b.dataset.grpM; M.name = (document.getElementById('grpName') || {}).value; setTimeout(function () { if (b.checked) { if (M.sel.indexOf(id) < 0) M.sel.push(id); } else M.sel = M.sel.filter(function (x) { return x !== id; }); var l = document.querySelector('.dlg .fld label span.muted'); if (l) l.textContent = '（' + M.sel.length + '人）'; }, 0); return; }
   if (t.closest('[data-grp-save]')) {
     var nm = (document.getElementById('grpName').value || '').trim().replace(/^[@＠]+/, ''); if (!nm) { toast('名前を入れてください'); return; }
@@ -740,6 +782,6 @@ new MutationObserver(function () {
 document.addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('[data-stkhere]'); if (!b) return; e.stopImmediatePropagation(); e.preventDefault(); var m = document.getElementById('cm'), fx = +m.dataset.fx, fy = +m.dataset.fy; closeCM(); stkNew(fx, fy); }, true);
 
 // 通知（プッシュ）から：?go=sticky:<id> でその付箋へ
-function goFrom(search) { var m = /[?&]go=sticky:([\w-]+)/.exec(search || ''); if (!m) return; var id = m[1]; var t = function (n) { if (STK.ready) stkGo(id); else if (n < 40) setTimeout(function () { t(n + 1); }, 250); }; t(0); }
+function goFrom(search) { var d = /[?&]go=dm:([\w-]+)/.exec(search || ''); if (d) { S.view = 'dm'; DMA.sel = d[1]; DMA.pick = false; save(); dmaLoad().then(render); return; } var m = /[?&]go=sticky:([\w-]+)/.exec(search || ''); if (!m) return; var id = m[1]; var t = function (n) { if (STK.ready) stkGo(id); else if (n < 40) setTimeout(function () { t(n + 1); }, 250); }; t(0); }
 if (/[?&]go=/.test(location.search)) { var GO0 = location.search; history.replaceState(null, '', location.pathname); var gw = setInterval(function () { if (SYNC.ready) { clearInterval(gw); goFrom(GO0); } }, 200); }
 if (navigator.serviceWorker) navigator.serviceWorker.addEventListener('message', function (e) { if (e.data && e.data.slopeGo) goFrom(e.data.slopeGo); });

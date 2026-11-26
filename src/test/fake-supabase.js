@@ -9,6 +9,7 @@
   Q.prototype.order = function (k, o) { this.ord = [k, !o || o.ascending !== false]; return this; };
   Q.prototype.limit = function (n) { this.lim = n; return this; };
   Q.prototype.eq = function (k, v) { this.f.push(function (r) { return r[k] === v; }); return this; };
+  Q.prototype.upsert = function (p, o) { var ks = ((o && o.onConflict) || 'id').split(','), rows = DB[this.t] || (DB[this.t] = []), arr = Array.isArray(p) ? p : [p]; arr.forEach(function (x) { DB[this.t] = (DB[this.t] || []).filter(function (r) { return !ks.every(function (k) { return r[k] === x[k]; }); }); }, this); this.op = 'insert'; this.payload = arr; return this; };
   Q.prototype.is = function (k, v) { this.f.push(function (r) { return (r[k] == null ? null : r[k]) === v; }); return this; };
   Q.prototype.in = function (k, vs) { this.f.push(function (r) { return vs.indexOf(r[k]) >= 0; }); return this; };
   Q.prototype.single = function () { this.one = true; return this; };

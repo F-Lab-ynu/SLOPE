@@ -1995,3 +1995,15 @@ body.stkdrag,body.stkdrag *{user-select:none !important;-webkit-user-select:none
 .tpg b{font-weight:600}
 .tpg small{flex-basis:100%;color:var(--muted);font-size:11px}
 .tpg .avs .av{width:20px;height:20px;font-size:10px}
+
+/* メッセージ：グループ */
+.dmaavs{flex:none;width:36px;height:36px;position:relative}
+.dmaavs .av{position:absolute;width:24px;height:24px;font-size:10px;margin:0;border:2px solid #fff}
+.dmaavs .av:first-child{left:0;top:0}.dmaavs .av:nth-child(2){right:0;bottom:0}
+.dmar.pk .check{margin-left:auto;pointer-events:none}
+.dmar[disabled]{opacity:.45;cursor:default}
+.dmachips{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px 0}
+.dmachips button{height:26px;padding:0 10px;border:1px solid var(--line2);border-radius:13px;background:#fff;font:inherit;font-size:12px;cursor:pointer}
+.dmapf{flex:none;display:flex;flex-direction:column;gap:8px;padding:10px 12px;border-top:1px solid var(--line)}
+.dmafrom{font-size:11px;color:var(--muted);margin:6px 0 0 10px}
+@media (max-width:760px){ .dmaw.picking .dmal{display:flex !important} .dmaw.picking .dmac{display:none !important} }
