@@ -846,3 +846,19 @@ document.addEventListener('contextmenu', function (e) {
     'sep', ['編集', function () { M = { m: 'grp', id: g.id, sel: g.members.slice(), name: null }; renderModal(); }, false, g.auto ? '役職から自動で作られます' : ''],
     ['削除', function () { askConfirm({ title: '「' + esc(g.name) + '」を削除', body: 'グループだけを消します。メンバーはそのままです。', ok: '削除する', run: function () { sb.from('groups').delete().eq('id', g.id).then(async function () { await grpLoad(); render(); toast('グループを削除しました'); }); } }); }, true, g.auto ? '役職から自動で作られます' : '']], e.clientX, e.clientY);
 }, true);
+
+// スマホ：付箋に書くとき、キーボードで画面が上にずれても付箋はその場に留め、キーボードに隠れる分だけ上げる
+(function () {
+  var vv = window.visualViewport; if (!vv) return; var raf = 0;
+  function place() {
+    raf = 0; var l = document.getElementById('stkl'); if (!l) return;
+    var a = document.activeElement, card = a && a.closest && a.closest('#stkl .stk.card'), t = vv.offsetTop;
+    if (card) { l.style.transform = 'translateY(' + t + 'px)'; var r = card.getBoundingClientRect(), bottom = r.bottom, lim = vv.height - 8; if (bottom > lim) t -= (bottom - lim); }
+    else if (!t) { l.style.transform = ''; return; }
+    l.style.transform = 'translateY(' + t + 'px)';
+  }
+  var go = function () { if (!raf) raf = requestAnimationFrame(place); };
+  vv.addEventListener('resize', go); vv.addEventListener('scroll', go);
+  document.addEventListener('focusin', function (e) { if (e.target.closest && e.target.closest('#stkl')) { go(); setTimeout(go, 50); setTimeout(go, 300); } });
+  document.addEventListener('focusout', function (e) { if (e.target.closest && e.target.closest('#stkl')) setTimeout(go, 60); });
+})();

@@ -254,7 +254,8 @@ function p2Menu(id, x, y) {
     else it.push(['プログラムに戻す', function () { snap(); p2Move(id, p2(), p2().length - 1); p2Save(); }]);
     it.push('sep', ['削除（Delete）', function () { p2Del(id); }, true]);
   } else it.push(['中をすべて開く', function () { n.open = true; p2Walk(n.items, function (z) { if (z.k === 'f') z.open = true; }); save(); render(); }]);
-  render(); openMenu(p2Name(n) || '項目', it, x, y);
+  if (window.innerWidth > 760) render(); else UI.psel = null; // スマホは選んだ項目の画面へ移らず、メニューだけ
+  openMenu(p2Name(n) || '項目', it, x, y);
 }
 document.addEventListener('contextmenu', function (e) {
   if (S.view !== 'tracks' || !e.target.closest) return;
