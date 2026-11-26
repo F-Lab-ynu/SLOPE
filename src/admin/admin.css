@@ -2025,3 +2025,26 @@ body.stkdrag,body.stkdrag *{user-select:none !important;-webkit-user-select:none
 .stkrm small{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .stkleft{flex:none;font-size:12px;color:var(--muted)}.stkleft.bad{color:var(--bad)}
 @media (max-width:420px){ .brand small{display:none !important} .acct .hic{width:34px} }
+
+/* スマホの運営画面：上のバーは ロゴ｜自分・付箋・メッセージ・アカウント。運営と部員の切り替えはアカウントのメニューに */
+.menu .mtomem{display:none}
+@media (max-width:760px){
+  .acct .mode{display:none !important}
+  .acct > button[data-act="acct"] > svg.i{display:none}
+  .acct{gap:2px !important;padding-right:10px !important}
+  .acct .hic{width:40px !important;height:44px}
+  .acct > button[data-act="acct"]{margin-left:4px}
+  .menu .mtomem{display:flex}
+  .toast{bottom:calc(76px + env(safe-area-inset-bottom))}
+  /* メンバー：1行にまとめる */
+  .tw table thead{display:none}
+  .tw table tr{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line)}
+  .tw table td{border:0 !important;padding:8px 4px}
+  .tw table td:first-child{flex:1;min-width:0}
+  .tw table td .mpost{max-width:120px}
+  .tw table td .s.muted{display:none}
+}
+@media (max-width:760px){
+  .acct .hic{flex:none !important;min-width:40px}
+  .acct > button[data-act="acct"]{flex:none !important;width:auto !important;min-width:0 !important;padding:0 2px !important;background:transparent !important}
+}

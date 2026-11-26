@@ -202,14 +202,14 @@ function subscribe() {
 function renderChrome() {
   var m = me(), c = counts();
   var navBtn = function (v) {
-    var SH = { dash: 'ホーム', tracks: '教材', notices: '告知', board: '掲示板', projects: '業務', perms: 'メンバー', stats: '統計', me: '自分', stk: '付箋', dm: 'メッセージ' };
+    var SH = { dash: 'ホーム', tracks: '教材', notices: '告知', board: 'サポート', projects: '業務', perms: 'メンバー', stats: '統計', me: '自分', stk: '付箋', dm: 'メッセージ' };
     return '<button data-act="go" data-view="' + v.id + '"' + (S.view === v.id ? ' aria-current="page"' : '') + '>' + ic(v.id) + '<span class="full">' + v.name + '</span><span class="short">' + (SH[v.id] || v.name) + '</span>' + (c[v.id] ? '<span class="n" title="' + ((typeof BADGE !== 'undefined' && BADGE[v.id]) || (v.id === 'perms' ? '承認待ち' : '')) + ' ' + c[v.id] + '件">' + c[v.id] + '</span>' : '') + '</button>';
   };
   var NV = navItems(); document.getElementById('nav').innerHTML = NV.filter(function (v) { return !v.low; }).map(navBtn).join('');
   var n2 = document.getElementById('nav2'); if (n2) n2.innerHTML = NV.filter(function (v) { return v.low; }).map(navBtn).join('');
   var hic = function (id, lab) { return '<button class="hic" data-act="go" data-view="' + id + '" aria-label="' + lab + '">' + ic(id) + (c[id] ? '<span class="n">' + c[id] + '</span>' : '') + '</button>'; };
   document.getElementById('acct').innerHTML = hic('me', '自分') + hic('stk', '付箋') + hic('dm', 'メッセージ') + '<div class="mode"><span>運営</span><button class="msw on" data-to="./" role="switch" aria-checked="true" aria-label="部員画面に切り替える"><i></i></button></div>' + '<button data-act="acct" aria-haspopup="true" aria-expanded="' + UI.acct + '">' + av(m.id, 'lg') + '<span class="who"><b>' + esc(m.name) + '</b><span>' + esc(m.unit === '—' ? '部員' : m.unit) + '</span></span>' + ic('chev') + '</button>' +
-    (UI.acct ? '<div class="menu" role="menu"><div class="msm">' + (isAdmin() ? '<button role="menuitem" data-act="go" data-view="perms">' + ic('perms') + '<span>メンバー</span></button>' : '') + '<button role="menuitem" data-act="go" data-view="stats">' + ic('stats') + '<span>統計</span></button>' + '<button role="menuitem" data-act="nset">' + ic('bell') + '<span>通知の設定</span></button></div><div class="mh">' + esc(m.email || '') + '</div><button role="menuitem" data-act="logout"><span>ログアウト</span></button></div>' : '');
+    (UI.acct ? '<div class="menu" role="menu"><div class="msm">' + (isAdmin() ? '<button role="menuitem" data-act="go" data-view="perms">' + ic('perms') + '<span>メンバー</span></button>' : '') + '<button role="menuitem" data-act="go" data-view="stats">' + ic('stats') + '<span>統計</span></button>' + '<button role="menuitem" class="mtomem" onclick="location.replace(\'./\')">' + ic('back') + '<span>部員画面に切り替える</span></button>' + '<button role="menuitem" data-act="nset">' + ic('bell') + '<span>通知の設定</span></button></div><div class="mh">' + esc(m.email || '') + '</div><button role="menuitem" data-act="logout"><span>ログアウト</span></button></div>' : '');
 }
 function counts() {
   return {
@@ -443,6 +443,7 @@ window.__adminPush = (function () {
 })();
 
 // ---------- メッセージ（部員アプリと同じ DM。運営画面では左に一覧・右に会話）。1対1は相手の id、グループは 'r-<room>' ----------
+var DMA_TOUCH = matchMedia('(hover: none)').matches || window.innerWidth <= 760; // スマホは Enter で改行、送信はボタン
 var DMA = { list: [], blocks: [], rooms: [], reads: {}, sel: null, pick: false, psel: [], q: '', files: [], urls: {}, asked: {}, ready: false };
 function dmaConv(a, b) { return a < b ? a + '_' + b : b + '_' + a; }
 function dmaIsRoom(k) { return /^r-/.test(k || ''); }
@@ -508,7 +509,7 @@ function viewDm() {
   var right = '<section class="dmac">' + head + '<div class="dmamsgs" id="dmamsgs">' + dmaMsgsHTML() + '</div>' +
     (ok ? (blk ? '<div class="dmablk">ブロック中です<button class="btn sm" data-dma-unblock>解除する</button></div>' :
       (DMA.files.length ? '<div class="dmafs">' + DMA.files.map(function (f, i) { return '<span><img src="' + f.url + '" alt=""><button data-dma-rm="' + i + '" aria-label="写真を外す">' + ic('x') + '</button></span>'; }).join('') + '</div>' : '') +
-      '<div class="dmacp"><label class="ib" aria-label="写真" title="写真"><input type="file" accept="image/*" multiple id="dmafile" hidden><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-9 8"/></svg></label><textarea id="dmatx" rows="1" placeholder="メッセージ（Enter で送信・Shift+Enter で改行）">' + esc(DMA.draft || '') + '</textarea><button class="btn primary sm" data-dma-send>送信</button></div>') : '') + '</section>';
+      '<div class="dmacp"><label class="ib" aria-label="写真" title="写真"><input type="file" accept="image/*" multiple id="dmafile" hidden><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-9 8"/></svg></label><textarea id="dmatx" rows="1" placeholder="' + (DMA_TOUCH ? 'メッセージ' : 'メッセージ（Enter で送信・Shift+Enter で改行）') + '">' + esc(DMA.draft || '') + '</textarea><button class="btn primary sm" data-dma-send>送信</button></div>') : '') + '</section>';
   setTimeout(function () { var b = document.getElementById('dmamsgs'); if (b) b.scrollTop = b.scrollHeight; if (ok) dmaRead(k); }, 0);
   return top('メッセージ') + '<div class="dmaw' + (DMA.pick ? ' picking' : '') + '">' + left + right + '</div>';
 }
@@ -578,7 +579,7 @@ document.addEventListener('input', function (e) {
   if (e.target.id === 'dmatx') { DMA.draft = e.target.value; e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 160) + 'px'; }
   if (e.target.id === 'dmarn') DMA.rn = e.target.value;
 });
-document.addEventListener('keydown', function (e) { if (e.target.id === 'dmatx' && e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); dmaSend(); } }, true);
+document.addEventListener('keydown', function (e) { if (e.target.id === 'dmatx' && e.key === 'Enter' && !DMA_TOUCH && !e.shiftKey && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); dmaSend(); } }, true);
 document.addEventListener('change', function (e) { if (e.target.id !== 'dmafile') return; [].slice.call(e.target.files || []).slice(0, 4 - DMA.files.length).forEach(function (f) { if (/^image\//.test(f.type)) DMA.files.push({ file: f, url: URL.createObjectURL(f) }); }); render(); });
 
 // ---------- グループ（@で呼べる人のまとまり）：役職ごとは自動、ほかはメンバーのタブで作る ----------
