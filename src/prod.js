@@ -207,7 +207,7 @@ function renderChrome() {
   };
   var NV = navItems(); document.getElementById('nav').innerHTML = NV.filter(function (v) { return !v.low; }).map(navBtn).join('');
   var n2 = document.getElementById('nav2'); if (n2) n2.innerHTML = NV.filter(function (v) { return v.low; }).map(navBtn).join('');
-  var hic = function (id, lab) { return '<button class="hic" data-act="go" data-view="' + id + '" aria-label="' + lab + '">' + ic(id) + (c[id] ? '<span class="n">' + c[id] + '</span>' : '') + '</button>'; };
+  var hic = function (id, lab) { return '<button class="hic" data-hic="' + id + '"' + (S.view === id ? ' aria-pressed="true"' : '') + ' data-view="' + id + '" aria-label="' + lab + '">' + ic(id) + (c[id] ? '<span class="n">' + c[id] + '</span>' : '') + '</button>'; };
   document.getElementById('acct').innerHTML = hic('me', '自分') + hic('stk', '付箋') + hic('dm', 'メッセージ') + '<div class="mode"><span>運営</span><button class="msw on" data-to="./" role="switch" aria-checked="true" aria-label="部員画面に切り替える"><i></i></button></div>' + '<button data-act="acct" aria-haspopup="true" aria-expanded="' + UI.acct + '">' + av(m.id, 'lg') + '<span class="who"><b>' + esc(m.name) + '</b><span>' + esc(m.unit === '—' ? '部員' : m.unit) + '</span></span>' + ic('chev') + '</button>' +
     (UI.acct ? '<div class="menu" role="menu"><div class="msm">' + (isAdmin() ? '<button role="menuitem" data-act="go" data-view="perms">' + ic('perms') + '<span>メンバー</span></button>' : '') + '<button role="menuitem" data-act="go" data-view="stats">' + ic('stats') + '<span>統計</span></button>' + '<button role="menuitem" class="mtomem" onclick="location.replace(\'./\')">' + ic('back') + '<span>部員画面に切り替える</span></button>' + '<button role="menuitem" data-act="nset">' + ic('bell') + '<span>通知の設定</span></button></div><div class="mh">' + esc(m.email || '') + '</div><button role="menuitem" data-act="logout"><span>ログアウト</span></button></div>' : '');
 }
@@ -862,3 +862,14 @@ document.addEventListener('pointerdown', function (e) {
   stkSaveBody(id, ta.value); ta.blur();
 }, true);
 
+
+// スマホの上のボタン（自分・付箋・メッセージ）はタブではなくボタン：押すと開き、もう一度押すと元の画面へ戻る
+var HICB = null;
+document.addEventListener('click', function (e) {
+  var b = e.target.closest && e.target.closest('[data-hic]'); if (!b) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  var id = b.dataset.hic, H = ['me', 'stk', 'dm'];
+  if (S.view === id) { S.view = (HICB && HICB !== id && navItems().some(function (t) { return t.id === HICB; })) ? HICB : (navItems()[0] || {}).id; HICB = null; }
+  else { if (H.indexOf(S.view) < 0) HICB = S.view; S.view = id; }
+  M = null; UI.acct = false; save(); render();
+}, true);

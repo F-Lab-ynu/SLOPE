@@ -2055,3 +2055,13 @@ body.stkdrag,body.stkdrag *{user-select:none !important;-webkit-user-select:none
   .stk.card .stkb,.stk.card .stkr input{font-size:16px}
   .stk.card .stkrz{width:28px;height:28px;right:0;bottom:0;background-size:14px 14px;background-position:right 3px bottom 3px;background-repeat:no-repeat}
 }
+
+/* 自分の画面の一番下：部員画面へ（部員画面のマイページの「運営画面」と対になる。スマホだけ） */
+.metomem{display:none}
+.metomem .mprow{display:flex;align-items:center;gap:12px;min-height:54px;padding:12px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface,#fff);color:inherit;text-decoration:none}
+.metomem .mprow:active{background:var(--hover,#F3F4F6)}
+.metomem .mpl{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;font-size:15px;font-weight:500}
+.metomem .mpl small{font-size:12px;font-weight:400;color:var(--muted)}
+.metomem .mprow svg{transform:rotate(-90deg);color:var(--muted);flex:none}
+.acct .hic[aria-pressed="true"]{color:var(--accent,#2563EB)}
+@media (max-width:760px){ .metomem{display:block} }

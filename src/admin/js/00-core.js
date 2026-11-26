@@ -500,7 +500,7 @@ function render() {
   if (S.view === 'perms' && lvNodes().length) Array.prototype.forEach.call(document.querySelectorAll('.mname[data-id] .cell2 > span:first-child'), function (sp) { var id = sp.closest('.mname').dataset.id; if (!sp.querySelector('.mlv')) sp.insertAdjacentHTML('beforeend', '<span class="mlv num">Lv' + lvOf(id) + '</span>'); });
 }
 // 自分（通知と担当）・統計は、もとのダッシュボードの中身をそのまま使う
-function viewMe() { return top('自分') + '<div class="body dash">' + dashSelf() + '</div>'; }
+function viewMe() { return top('自分') + '<div class="body dash">' + dashSelf() + '<section class="dsec metomem"><h2>部員</h2><a class="mprow" href="./" onclick="location.replace(\'./\');return false"><span class="mpl">部員画面<small>ホーム・掲示板・教材</small></span>' + ic('chev') + '</a></section></div>'; }
 function viewStats() { var k = S.dtab; S.dtab = 'stats'; var h = viewDash(); S.dtab = k; return h.replace(/<div class="utabs">[\s\S]*?<\/div>/, '').replace('<h1>ダッシュボード</h1>', '<h1>統計</h1>').replace(/<section class="dsec"><h2>統計<\/h2>/, '<section class="dsec">'); }
 function renderMain() {
   if (S.projects && S.projects.length) evMigrate();
