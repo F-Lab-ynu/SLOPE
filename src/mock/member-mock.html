@@ -1654,6 +1654,8 @@ body.wide .iqsheet{bottom:auto;top:50%;transform:translate(-50%,-50%);border-bot
     var inputs=[].map.call(stage.querySelectorAll('input,textarea'),function(e){return e.value;});
     var frag=document.createDocumentFragment(); refs=[];
     kids(tpl.content,vals,frag);
+    // 自前で描いている部分（掲示板など）は作り直さずに持ち越す（描き直しのたびに一瞬空になってちらつくのを防ぐ）
+    [].forEach.call(frag.querySelectorAll('[data-keep][id]'),function(n){ var o=stage.querySelector('#'+n.id+'[data-keep]'); if(o) n.replaceWith(o); });
     stage.replaceChildren(frag);
     if(key===lastKey){
       [].forEach.call(stage.querySelectorAll('.scroll'),function(e,i){ if(scrolls[i]){ e.scrollTop=scrolls[i][0]; e.scrollLeft=scrolls[i][1]; } });

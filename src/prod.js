@@ -132,7 +132,7 @@ window.notify = function (to, text, sub) {
 var remoteT = null;
 function isBusyEditing() {
   var a = document.activeElement;
-  return !!((a && a.matches && a.matches('input,textarea,select') && !a.closest('#gate')) || M || mv || drag || lmv || lwd || UI.tp || UI.pp);
+  return !!((a && a.matches && (a.matches('input,textarea,select') || a.isContentEditable) && !a.closest('#gate')) || M || mv || drag || lmv || lwd || UI.tp || UI.pp);
 }
 function onRemote(p) {
   // 自分の書き込みの「こだま」は無視（連続で動かしたときに一つ前へ戻らないように）

@@ -631,7 +631,13 @@ function annPop(a) {
     var prev = null;
     want.forEach(function (w) {
       var el = have[w.id]; delete have[w.id];
-      if (!el || el._h !== w.h) { var t = document.createElement('div'); t.innerHTML = w.h; var n = t.firstChild; n.dataset.pid = w.id; n._h = w.h; if (el) el.replaceWith(n); el = n; }
+      if (!el || el._h !== w.h) {
+        var t = document.createElement('div'); t.innerHTML = w.h; var n = t.firstChild; n.dataset.pid = w.id; n._h = w.h;
+        // 写真や本文が同じなら、違う部分（♡の数など）だけ入れ替える
+        var pa = function (x) { var q = x.cloneNode(true); [].forEach.call(q.querySelectorAll('.bxas'), function (z) { z.innerHTML = ''; }); return q.innerHTML; };
+        if (el && pa(el) === pa(n)) { var oa = el.querySelectorAll('.bxas'), na = n.querySelectorAll('.bxas'); [].forEach.call(oa, function (z, i) { if (na[i] && z.innerHTML !== na[i].innerHTML) z.innerHTML = na[i].innerHTML; }); el._h = w.h; }
+        else { if (el) el.replaceWith(n); el = n; }
+      }
       var at = prev ? prev.nextSibling : box.firstChild; if (at !== el) box.insertBefore(el, at); prev = el;
     });
     Object.keys(have).forEach(function (k) { have[k].remove(); });
@@ -837,7 +843,11 @@ function annPop(a) {
     if ((b = t.closest('[data-bxrm]'))) { NEW.files.splice(+b.dataset.bxrm, 1); drawNew(); return; }
     if (t.closest('[data-bxth-x]')) { closeTh(); return; }
     if ((b = t.closest('[data-bxsend]'))) { var ta = document.getElementById('bxrep'), v = ta ? ta.value.trim() : '', id = b.dataset.bxsend; if (!v) return; b.disabled = true; D.add('comment', { text: v }, id).then(function () { thread(id); }); return; }
-    if ((b = t.closest('[data-bxr]'))) { var kd = b.dataset.bxr, iid = b.dataset.id; if (kd === 'rep') { openNew(iid); return; } var on = b.getAttribute('aria-pressed') !== 'true', sp = b.querySelector('span:not(.bxl)'), n0 = sp ? +sp.textContent : 0; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); Promise.resolve(D.toggle(iid, kd)).then(function () { paint(); if (document.getElementById('bxth')) thread(document.getElementById('bxth').dataset.id); }); return; }
+    if ((b = t.closest('[data-bxr]'))) { var kd = b.dataset.bxr, iid = b.dataset.id; if (kd === 'rep') { openNew(iid); return; } var on = b.getAttribute('aria-pressed') !== 'true', sp = b.querySelector('span:not(.bxl)'), n0 = sp ? +sp.textContent : 0; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on));
+      // 数字もその場で変える。開いている投稿の画面は作り直さない（写真などがちらつかないように）
+      var n1 = Math.max(0, n0 + (on ? 1 : -1)); [].forEach.call(document.querySelectorAll('[data-bxr="' + kd + '"][data-id="' + iid + '"]'), function (x) { if (x === b) return; x.classList.toggle('on', on); x.setAttribute('aria-pressed', String(on)); });
+      [].forEach.call(document.querySelectorAll('[data-bxr="' + kd + '"][data-id="' + iid + '"]'), function (x) { var s1 = x.querySelector('span:not(.bxl)'); if (n1 && !s1) { s1 = document.createElement('span'); var lb = x.querySelector('.bxl'); lb ? x.insertBefore(s1, lb) : x.appendChild(s1); } if (s1) { if (n1) s1.textContent = n1; else s1.remove(); } });
+      Promise.resolve(D.toggle(iid, kd)).then(function () { paint(); }); return; }
     if ((b = t.closest('[data-bxo]'))) { thread(b.dataset.bxo); return; }
     if ((b = t.closest('[data-bxslot]'))) { var xid = b.dataset.id, role = b.dataset.bxslot, X0 = D.items('recruit').filter(function (y) { return y.id === xid; })[0]; if (X0 && X0.author === D.me) { D.flash('自分の募集には応募できません'); return; } Promise.resolve(D.toggle(xid, 'slot:' + role, true)).then(function () { setTimeout(function () { thread(xid); paint(true); }, 40); }); return; }
     if ((b = t.closest('[data-bxm]'))) { menu(b.dataset.bxm, b.dataset.mine === 'true'); return; }
