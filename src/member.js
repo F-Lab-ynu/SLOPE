@@ -883,3 +883,55 @@ function annPop(a) {
     var ids = TABS.map(function (z) { return z[0]; }), i = ids.indexOf(cur()) + (dx < 0 ? 1 : -1); if (i < 0 || i >= ids.length) return; setTab(ids[i], dx < 0 ? 1 : -1);
   }, { passive: true });
 })();
+
+// スマホ：右上の自分のアイコンでマイページを右からスライドで出し、左端から右へスワイプで元の画面へ戻す
+(function () {
+  var back = null; // { tab, sub, top, under }
+  function phone() { return !document.body.classList.contains('wide') && window.innerWidth < 600; }
+  function main() { return document.querySelector('#stage main.scroll'); }
+  function snap(m) { // 元の画面の写しを下に敷く（触れない・IDなし）
+    var u = m.cloneNode(true); u.removeAttribute('class'); u.className = 'meunder';
+    [].forEach.call(u.querySelectorAll('[id]'), function (x) { x.removeAttribute('id'); });
+    var st = document.getElementById('stage'), R = m.getBoundingClientRect();
+    u.style.cssText = 'position:fixed;left:' + R.left + 'px;top:' + R.top + 'px;width:' + R.width + 'px;height:' + R.height + 'px;overflow:hidden;';
+    var inner = document.createElement('div'); inner.style.transform = 'translateY(' + (-m.scrollTop) + 'px)'; while (u.firstChild) inner.appendChild(u.firstChild); u.appendChild(inner);
+    u.hidden = true; st.parentNode.insertBefore(u, st); return u;
+  }
+  function drop() { if (back && back.under) back.under.remove(); back = null; document.documentElement.classList.remove('meslide'); }
+  function show(u, on) { u.hidden = !on; document.documentElement.classList.toggle('meslide', on); }
+  function slideIn() {
+    var m = main(); if (!m) return; m.scrollTop = 0; m.classList.remove('meout'); void m.offsetWidth; m.classList.add('mein');
+    if (back && back.under) { show(back.under, true); back.under.classList.add('go'); setTimeout(function () { if (back && back.under) { show(back.under, false); back.under.classList.remove('go'); } m.classList.remove('mein'); }, 340); }
+  }
+  document.addEventListener('click', function (ev) {
+    var b = ev.target.closest && ev.target.closest('#stage button[aria-label="マイページ"]'); var c = window.__comp;
+    if (!b || !c || !phone()) { if (back && ev.target.closest && ev.target.closest('#stage nav button')) drop(); return; }
+    if (c.state.tab === 'me') return; var m = main(); drop();
+    back = { tab: c.state.tab, sub: c.state.sub, top: m ? m.scrollTop : 0, under: m ? snap(m) : null };
+    setTimeout(slideIn, 0);
+  }, true);
+  function goBack(m) {
+    var c = window.__comp, g = back; if (!c) return;
+    c.setState({ tab: g ? g.tab : 'home', sub: g ? g.sub : null });
+    setTimeout(function () { var n = main(); if (n) { n.style.transform = ''; n.style.transition = ''; n.scrollTop = g ? g.top : 0; } drop(); }, 0);
+  }
+  // 左端から右へ：指についてくる
+  var d = null;
+  document.addEventListener('touchstart', function (ev) {
+    var c = window.__comp; if (!c || c.state.tab !== 'me' || c.state.sub || !phone() || ev.touches.length !== 1 || ev.touches[0].clientX > 24) return;
+    if (document.querySelector('#bxth, #bxnew, #bxiv, #thpop, #fnpop, .iqsheet, .nppanel')) return;
+    var m = main(); if (!m) return; d = { x: ev.touches[0].clientX, y: ev.touches[0].clientY, on: false, m: m };
+  }, { passive: true });
+  document.addEventListener('touchmove', function (ev) {
+    if (!d) return; var dx = ev.touches[0].clientX - d.x, dy = ev.touches[0].clientY - d.y;
+    if (!d.on) { if (Math.abs(dy) > Math.abs(dx)) { d = null; return; } if (dx < 8) return; d.on = true; d.m.style.transition = 'none'; if (back && back.under) { show(back.under, true); back.under.style.transition = 'none'; } }
+    var x = Math.max(0, dx), W = window.innerWidth; d.m.style.transform = 'translateX(' + x + 'px)'; d.m.classList.add('medrag');
+    if (back && back.under) { back.under.style.transform = 'translateX(' + (-W * .3 * (1 - x / W)) + 'px)'; back.under.style.opacity = String(.6 + .4 * x / W); }
+  }, { passive: true });
+  document.addEventListener('touchend', function (ev) {
+    if (!d) return; var g = d; d = null; if (!g.on) return; var dx = ev.changedTouches[0].clientX - g.x, W = window.innerWidth, u = back && back.under;
+    g.m.style.transition = 'transform .22s cubic-bezier(.2,.8,.2,1)'; if (u) u.style.transition = 'transform .22s cubic-bezier(.2,.8,.2,1), opacity .22s';
+    if (dx > W * .3) { g.m.style.transform = 'translateX(' + W + 'px)'; if (u) { u.style.transform = 'translateX(0)'; u.style.opacity = '1'; } setTimeout(function () { g.m.classList.remove('medrag'); goBack(g.m); }, 220); }
+    else { g.m.style.transform = ''; if (u) { u.style.transform = 'translateX(' + (-W * .3) + 'px)'; u.style.opacity = '.6'; } setTimeout(function () { g.m.style.transition = ''; g.m.classList.remove('medrag'); if (u) { show(u, false); u.style.transition = ''; } }, 230); }
+  }, { passive: true });
+})();

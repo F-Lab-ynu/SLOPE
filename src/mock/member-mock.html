@@ -308,6 +308,17 @@ a.pgn{color:inherit}
 @media (hover:hover){ .bxivp,.bxivn{display:flex} #bxiv.first .bxivp,#bxiv.last .bxivn{opacity:0;pointer-events:none} }
 #bxiv.bare .bxivx,#bxiv.bare .bxivc,#bxiv.zoom .bxivc,#bxiv[style*="--ivo"] .bxivx,#bxiv[style*="--ivo"] .bxivc{opacity:0;pointer-events:none}
 .bxp img{cursor:zoom-in}
+
+/* マイページ：右から重なって出る */
+#stage main.scroll{position:relative;z-index:2;background:#070707}
+#stage main.scroll.mein{animation:mein .32s cubic-bezier(.2,.8,.2,1)}
+#stage main.scroll.mein,#stage main.scroll.medrag{box-shadow:-12px 0 24px rgba(0,0,0,.35)}
+@keyframes mein{from{transform:translateX(100%)}}
+.meunder{pointer-events:none;background:#070707;transform:translateX(-30%);opacity:.6}
+.meunder.go{animation:meunder .32s cubic-bezier(.2,.8,.2,1)}
+@keyframes meunder{from{transform:none;opacity:1}}
+html.meslide #stage .app{background:transparent !important}
+@media (prefers-reduced-motion:reduce){#stage main.scroll.mein,.meunder.go{animation:none}}
 </style>
 <style id="bootcss">
 #boot{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;background:var(--bootbg);color:var(--bootfg);transition:opacity .28s ease}

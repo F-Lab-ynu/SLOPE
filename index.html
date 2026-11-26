@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '96cddbb2d2', FILE = 'index.ver';
+  var VER = '30ddcce59e', FILE = 'index.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -324,6 +324,17 @@ a.pgn{color:inherit}
 @media (hover:hover){ .bxivp,.bxivn{display:flex} #bxiv.first .bxivp,#bxiv.last .bxivn{opacity:0;pointer-events:none} }
 #bxiv.bare .bxivx,#bxiv.bare .bxivc,#bxiv.zoom .bxivc,#bxiv[style*="--ivo"] .bxivx,#bxiv[style*="--ivo"] .bxivc{opacity:0;pointer-events:none}
 .bxp img{cursor:zoom-in}
+
+/* マイページ：右から重なって出る */
+#stage main.scroll{position:relative;z-index:2;background:var(--bg)}
+#stage main.scroll.mein{animation:mein .32s cubic-bezier(.2,.8,.2,1)}
+#stage main.scroll.mein,#stage main.scroll.medrag{box-shadow:-12px 0 24px rgba(0,0,0,.35)}
+@keyframes mein{from{transform:translateX(100%)}}
+.meunder{pointer-events:none;background:var(--bg);transform:translateX(-30%);opacity:.6}
+.meunder.go{animation:meunder .32s cubic-bezier(.2,.8,.2,1)}
+@keyframes meunder{from{transform:none;opacity:1}}
+html.meslide #stage .app{background:transparent !important}
+@media (prefers-reduced-motion:reduce){#stage main.scroll.mein,.meunder.go{animation:none}}
 :root{--bg:#070707;--fg:#F3F1EC;--ac:#F2A93B;--n2:color-mix(in srgb,var(--fg) 2%,var(--bg));--n3:color-mix(in srgb,var(--fg) 3%,var(--bg));--n4:color-mix(in srgb,var(--fg) 4%,var(--bg));--n5:color-mix(in srgb,var(--fg) 5%,var(--bg));--n6:color-mix(in srgb,var(--fg) 6%,var(--bg));--n7:color-mix(in srgb,var(--fg) 7%,var(--bg));--n8:color-mix(in srgb,var(--fg) 8%,var(--bg));--n9:color-mix(in srgb,var(--fg) 9%,var(--bg));--n10:color-mix(in srgb,var(--fg) 10%,var(--bg));--n11:color-mix(in srgb,var(--fg) 11%,var(--bg));--n12:color-mix(in srgb,var(--fg) 12%,var(--bg));--n13:color-mix(in srgb,var(--fg) 13%,var(--bg));--n15:color-mix(in srgb,var(--fg) 15%,var(--bg));--n16:color-mix(in srgb,var(--fg) 16%,var(--bg));--n18:color-mix(in srgb,var(--fg) 18%,var(--bg));--n21:color-mix(in srgb,var(--fg) 21%,var(--bg));--n22:color-mix(in srgb,var(--fg) 22%,var(--bg));--n27:color-mix(in srgb,var(--fg) 27%,var(--bg));--n28:color-mix(in srgb,var(--fg) 28%,var(--bg));--n37:color-mix(in srgb,var(--fg) 37%,var(--bg));--n49:color-mix(in srgb,var(--fg) 49%,var(--bg));--n57:color-mix(in srgb,var(--fg) 57%,var(--bg));--n66:color-mix(in srgb,var(--fg) 66%,var(--bg));--n68:color-mix(in srgb,var(--fg) 68%,var(--bg));--n76:color-mix(in srgb,var(--fg) 76%,var(--bg));--n78:color-mix(in srgb,var(--fg) 78%,var(--bg));--n85:color-mix(in srgb,var(--fg) 85%,var(--bg));--n86:color-mix(in srgb,var(--fg) 86%,var(--bg));--n95:color-mix(in srgb,var(--fg) 95%,var(--bg));--n96:color-mix(in srgb,var(--fg) 96%,var(--bg));--n97:color-mix(in srgb,var(--fg) 97%,var(--bg));--n98:color-mix(in srgb,var(--fg) 98%,var(--bg));}
 [fill="var(--ac)"]{fill:var(--ac)}[stroke="var(--ac)"]{stroke:var(--ac)}[fill="var(--bg)"]{fill:var(--bg)}[stroke="var(--bg)"]{stroke:var(--bg)}[fill="var(--fg)"]{fill:var(--fg)}[stroke="var(--fg)"]{stroke:var(--fg)}[fill="var(--n10)"]{fill:var(--n10)}[stroke="var(--n10)"]{stroke:var(--n10)}[fill="var(--n11)"]{fill:var(--n11)}[stroke="var(--n11)"]{stroke:var(--n11)}[fill="var(--n12)"]{fill:var(--n12)}[stroke="var(--n12)"]{stroke:var(--n12)}[fill="var(--n13)"]{fill:var(--n13)}[stroke="var(--n13)"]{stroke:var(--n13)}[fill="var(--n15)"]{fill:var(--n15)}[stroke="var(--n15)"]{stroke:var(--n15)}[fill="var(--n16)"]{fill:var(--n16)}[stroke="var(--n16)"]{stroke:var(--n16)}[fill="var(--n18)"]{fill:var(--n18)}[stroke="var(--n18)"]{stroke:var(--n18)}[fill="var(--n2)"]{fill:var(--n2)}[stroke="var(--n2)"]{stroke:var(--n2)}[fill="var(--n21)"]{fill:var(--n21)}[stroke="var(--n21)"]{stroke:var(--n21)}[fill="var(--n22)"]{fill:var(--n22)}[stroke="var(--n22)"]{stroke:var(--n22)}[fill="var(--n27)"]{fill:var(--n27)}[stroke="var(--n27)"]{stroke:var(--n27)}[fill="var(--n28)"]{fill:var(--n28)}[stroke="var(--n28)"]{stroke:var(--n28)}[fill="var(--n3)"]{fill:var(--n3)}[stroke="var(--n3)"]{stroke:var(--n3)}[fill="var(--n37)"]{fill:var(--n37)}[stroke="var(--n37)"]{stroke:var(--n37)}[fill="var(--n4)"]{fill:var(--n4)}[stroke="var(--n4)"]{stroke:var(--n4)}[fill="var(--n49)"]{fill:var(--n49)}[stroke="var(--n49)"]{stroke:var(--n49)}[fill="var(--n5)"]{fill:var(--n5)}[stroke="var(--n5)"]{stroke:var(--n5)}[fill="var(--n57)"]{fill:var(--n57)}[stroke="var(--n57)"]{stroke:var(--n57)}[fill="var(--n6)"]{fill:var(--n6)}[stroke="var(--n6)"]{stroke:var(--n6)}[fill="var(--n66)"]{fill:var(--n66)}[stroke="var(--n66)"]{stroke:var(--n66)}[fill="var(--n68)"]{fill:var(--n68)}[stroke="var(--n68)"]{stroke:var(--n68)}[fill="var(--n7)"]{fill:var(--n7)}[stroke="var(--n7)"]{stroke:var(--n7)}[fill="var(--n76)"]{fill:var(--n76)}[stroke="var(--n76)"]{stroke:var(--n76)}[fill="var(--n78)"]{fill:var(--n78)}[stroke="var(--n78)"]{stroke:var(--n78)}[fill="var(--n8)"]{fill:var(--n8)}[stroke="var(--n8)"]{stroke:var(--n8)}[fill="var(--n85)"]{fill:var(--n85)}[stroke="var(--n85)"]{stroke:var(--n85)}[fill="var(--n86)"]{fill:var(--n86)}[stroke="var(--n86)"]{stroke:var(--n86)}[fill="var(--n9)"]{fill:var(--n9)}[stroke="var(--n9)"]{stroke:var(--n9)}[fill="var(--n95)"]{fill:var(--n95)}[stroke="var(--n95)"]{stroke:var(--n95)}[fill="var(--n96)"]{fill:var(--n96)}[stroke="var(--n96)"]{stroke:var(--n96)}[fill="var(--n97)"]{fill:var(--n97)}[stroke="var(--n97)"]{stroke:var(--n97)}[fill="var(--n98)"]{fill:var(--n98)}[stroke="var(--n98)"]{stroke:var(--n98)}
 html,body{background:var(--bg)}
@@ -1349,6 +1360,58 @@ function annPop(a) {
     if (!sw) return; var c = ev.changedTouches[0], dx = c.clientX - sw.x, dy = c.clientY - sw.y, s0 = sw; sw = null;
     if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5 || Date.now() - s0.t > 600) return;
     var ids = TABS.map(function (z) { return z[0]; }), i = ids.indexOf(cur()) + (dx < 0 ? 1 : -1); if (i < 0 || i >= ids.length) return; setTab(ids[i], dx < 0 ? 1 : -1);
+  }, { passive: true });
+})();
+
+// スマホ：右上の自分のアイコンでマイページを右からスライドで出し、左端から右へスワイプで元の画面へ戻す
+(function () {
+  var back = null; // { tab, sub, top, under }
+  function phone() { return !document.body.classList.contains('wide') && window.innerWidth < 600; }
+  function main() { return document.querySelector('#stage main.scroll'); }
+  function snap(m) { // 元の画面の写しを下に敷く（触れない・IDなし）
+    var u = m.cloneNode(true); u.removeAttribute('class'); u.className = 'meunder';
+    [].forEach.call(u.querySelectorAll('[id]'), function (x) { x.removeAttribute('id'); });
+    var st = document.getElementById('stage'), R = m.getBoundingClientRect();
+    u.style.cssText = 'position:fixed;left:' + R.left + 'px;top:' + R.top + 'px;width:' + R.width + 'px;height:' + R.height + 'px;overflow:hidden;';
+    var inner = document.createElement('div'); inner.style.transform = 'translateY(' + (-m.scrollTop) + 'px)'; while (u.firstChild) inner.appendChild(u.firstChild); u.appendChild(inner);
+    u.hidden = true; st.parentNode.insertBefore(u, st); return u;
+  }
+  function drop() { if (back && back.under) back.under.remove(); back = null; document.documentElement.classList.remove('meslide'); }
+  function show(u, on) { u.hidden = !on; document.documentElement.classList.toggle('meslide', on); }
+  function slideIn() {
+    var m = main(); if (!m) return; m.scrollTop = 0; m.classList.remove('meout'); void m.offsetWidth; m.classList.add('mein');
+    if (back && back.under) { show(back.under, true); back.under.classList.add('go'); setTimeout(function () { if (back && back.under) { show(back.under, false); back.under.classList.remove('go'); } m.classList.remove('mein'); }, 340); }
+  }
+  document.addEventListener('click', function (ev) {
+    var b = ev.target.closest && ev.target.closest('#stage button[aria-label="マイページ"]'); var c = window.__comp;
+    if (!b || !c || !phone()) { if (back && ev.target.closest && ev.target.closest('#stage nav button')) drop(); return; }
+    if (c.state.tab === 'me') return; var m = main(); drop();
+    back = { tab: c.state.tab, sub: c.state.sub, top: m ? m.scrollTop : 0, under: m ? snap(m) : null };
+    setTimeout(slideIn, 0);
+  }, true);
+  function goBack(m) {
+    var c = window.__comp, g = back; if (!c) return;
+    c.setState({ tab: g ? g.tab : 'home', sub: g ? g.sub : null });
+    setTimeout(function () { var n = main(); if (n) { n.style.transform = ''; n.style.transition = ''; n.scrollTop = g ? g.top : 0; } drop(); }, 0);
+  }
+  // 左端から右へ：指についてくる
+  var d = null;
+  document.addEventListener('touchstart', function (ev) {
+    var c = window.__comp; if (!c || c.state.tab !== 'me' || c.state.sub || !phone() || ev.touches.length !== 1 || ev.touches[0].clientX > 24) return;
+    if (document.querySelector('#bxth, #bxnew, #bxiv, #thpop, #fnpop, .iqsheet, .nppanel')) return;
+    var m = main(); if (!m) return; d = { x: ev.touches[0].clientX, y: ev.touches[0].clientY, on: false, m: m };
+  }, { passive: true });
+  document.addEventListener('touchmove', function (ev) {
+    if (!d) return; var dx = ev.touches[0].clientX - d.x, dy = ev.touches[0].clientY - d.y;
+    if (!d.on) { if (Math.abs(dy) > Math.abs(dx)) { d = null; return; } if (dx < 8) return; d.on = true; d.m.style.transition = 'none'; if (back && back.under) { show(back.under, true); back.under.style.transition = 'none'; } }
+    var x = Math.max(0, dx), W = window.innerWidth; d.m.style.transform = 'translateX(' + x + 'px)'; d.m.classList.add('medrag');
+    if (back && back.under) { back.under.style.transform = 'translateX(' + (-W * .3 * (1 - x / W)) + 'px)'; back.under.style.opacity = String(.6 + .4 * x / W); }
+  }, { passive: true });
+  document.addEventListener('touchend', function (ev) {
+    if (!d) return; var g = d; d = null; if (!g.on) return; var dx = ev.changedTouches[0].clientX - g.x, W = window.innerWidth, u = back && back.under;
+    g.m.style.transition = 'transform .22s cubic-bezier(.2,.8,.2,1)'; if (u) u.style.transition = 'transform .22s cubic-bezier(.2,.8,.2,1), opacity .22s';
+    if (dx > W * .3) { g.m.style.transform = 'translateX(' + W + 'px)'; if (u) { u.style.transform = 'translateX(0)'; u.style.opacity = '1'; } setTimeout(function () { g.m.classList.remove('medrag'); goBack(g.m); }, 220); }
+    else { g.m.style.transform = ''; if (u) { u.style.transform = 'translateX(' + (-W * .3) + 'px)'; u.style.opacity = '.6'; } setTimeout(function () { g.m.style.transition = ''; g.m.classList.remove('medrag'); if (u) { show(u, false); u.style.transition = ''; } }, 230); }
   }, { passive: true });
 })();
 
