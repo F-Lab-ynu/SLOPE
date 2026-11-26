@@ -31,8 +31,9 @@ async def main():
                 print(w, 'time:', await pg.input_value('[data-ce=time]'), '| closed:', await pg.locator('.tpk').count() == 0)
             # 出席
             await pg.click('[data-attopen]'); await pg.wait_for_timeout(300)
-            await pg.locator('[data-attm]').first.check(); await pg.wait_for_timeout(300)
-            await pg.mouse.click(5, 5); await pg.wait_for_timeout(300)
+            if await pg.locator('[data-attt=all]').count(): await pg.click('[data-attt=all]')
+            await pg.locator('[data-attm2]').first.click(); await pg.wait_for_timeout(300)
+            await pg.click('.attd [data-act=close].btn'); await pg.wait_for_timeout(300)
             print(w, 'attend chips:', await pg.locator('.p2box .attc').count(), '| button:', (await pg.locator('[data-attopen]').text_content()).strip())
             # 設定のスイッチ：順番に進める／公開は確認してから
             await pg.evaluate("document.querySelector('[data-act=go][data-view=tracks]').click()"); await pg.wait_for_timeout(300)
