@@ -4,7 +4,7 @@
 <script>
 // 新しい版が出ていたら、キャッシュを避けて読み直す（GitHub Pages は最大10分キャッシュするため）
 (function () {
-  var VER = '7f6ac699c5', FILE = 'index.ver';
+  var VER = '96cddbb2d2', FILE = 'index.ver';
   function check() {
     fetch(FILE + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
       v = (v || '').trim(); if (!v || v === VER) return;
@@ -25,13 +25,13 @@
                ['#070707','#F3F1EC','#6FA8DC'],['#070707','#F3F1EC','#9C82E8'],['#070707','#F3F1EC','#D98BB8'],['#070707','#F3F1EC','#EE5D52']]],
     ['夜', [['#0B1220','#DCE3EC','#7FB2E5'],['#0A0F1C','#E4E8F2','#F2C14E'],['#14110C','#EFE6D3','#E3B25A'],['#0D1611','#E2ECE6','#6ECB9E'],
             ['#071619','#DDEDEE','#4FC7C0'],['#140E18','#ECE4F2','#C29CF0'],['#1A0D10','#F2E4E6','#E8737F'],['#15181C','#E3E6EA','#A9B8C9']]],
-    ['ライト', [['#F4F2ED','#161615','#D9861A'],['#F4F2ED','#161615','#2F6FB0'],['#F4F2ED','#161615','#2E8B62'],['#F4F2ED','#161615','#C9374B'],
-               ['#F4F2ED','#161615','#6B4FC9'],['#FFFFFF','#111111','#111111'],['#FFFFFF','#111111','#2F6FB0'],['#FBF8F1','#2B2A27','#B0705A']]],
+    ['ライト', [['#FFFFFF','#161615','#D9861A'],['#FFFFFF','#161615','#2F6FB0'],['#FFFFFF','#161615','#2E8B62'],['#FFFFFF','#161615','#C9374B'],
+               ['#FFFFFF','#161615','#6B4FC9'],['#FFFFFF','#111111','#111111'],['#FFFFFF','#111111','#1F8A8A'],['#FBF8F1','#2B2A27','#B0705A']]],
     ['淡い色', [['#F2EADB','#2B2419','#B0703A'],['#FBEDE3','#2E1F16','#D9661A'],['#F7F3DC','#262314','#9A7B0A'],['#E6F2EC','#14261D','#2E8B62'],
                ['#E8F0F8','#14202E','#2F6FB0'],['#EEEAF7','#1F1A2E','#6B4FC9'],['#F8EAEA','#2E1A1C','#C9374B'],['#E9E9E6','#1C1C1B','#4A4A47']]]
   ];/*/NOTHEME*/
   function lightOf(bg) { var c = parseInt(bg.slice(1), 16); return ((c >> 16) + ((c >> 8) & 255) + (c & 255)) / 3 > 128; }
-  window.__theme = function () { try { var t = JSON.parse(localStorage.getItem('slope-theme') || 'null'); if (t && t.length === 3) return t; } catch (e) {} return T[0][1][7]; }; // 最初はダークの赤
+  window.__theme = function () { try { var t = JSON.parse(localStorage.getItem('slope-theme') || 'null'); if (t && t.length === 3) { if (t[0] === 'var(--fg)') { t[0] = 'var(--fg)'; localStorage.setItem('slope-theme', JSON.stringify(t)); } if (t.join() === 'var(--fg),var(--n4),#2F6FB0') t[1] = 'var(--n6)'; return t; } } catch (e) {} return T[0][1][7]; }; // 最初はダークの赤
   window.__applyTheme = function (t) {
     var r = document.documentElement; r.style.setProperty('--bg', t[0]); r.style.setProperty('--fg', t[1]); r.style.setProperty('--ac', t[2]);
     r.classList.toggle('light', lightOf(t[0])); var m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', t[0]);
