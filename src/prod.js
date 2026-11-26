@@ -658,7 +658,7 @@ function stkPaint() {
     var cw = Math.max(200, Math.min(520, s.w || 260)), ch = s.h ? Math.max(120, Math.min(640, s.h)) : 0; if (open) { x = Math.max(4, Math.min(W - cw - 4, s.x * W)); }
     if (open && PH) { // スマホ：その場で開く。下半分にあるとキーボードに隠れるので、開いている間だけ上の方へ寄せる（閉じれば元の場所）
       cw = Math.min(cw, W - 16); ch = 0; x = Math.max(8, Math.min(W - cw - 8, s.x * W));
-      var top0 = l.getBoundingClientRect().top, lim = window.innerHeight * 0.42 - top0; if (y + 180 > lim) y = 8; }
+    }
     if (!open) return '<button class="stk mini c-' + (s.color || 'y') + (left < 1 ? ' old' : '') + '" data-stk="' + s.id + '" style="left:' + x + 'px;top:' + y + 'px" title="' + esc((s.body || '付箋').slice(0, 60)) + '">' + esc(initials(member(s.author) ? member(s.author).name : '?')) + (ms.length ? '<i>' + ms.length + '</i>' : '') + '</button>';
     var who = s.mentions.filter(member).map(function (id) { return member(id).name; });
     return '<div class="stk card c-' + (s.color || 'y') + (left < 1 ? ' old' : '') + '" data-stk="' + s.id + '" style="left:' + x + 'px;top:' + y + 'px;width:' + cw + 'px' + (ch ? ';height:' + ch + 'px;max-height:none' : '') + '">' +
@@ -864,3 +864,14 @@ document.addEventListener('pointerdown', function (e) {
   if (e.target.closest('.stk.mini[data-stk="' + id + '"]')) e.preventDefault();
   stkClose(id);
 }, true);
+
+// スマホ：付箋に書き始めたとき（キーボードが出るとき）だけ、下の方の付箋を上に寄せる。書き終われば元の場所へ
+document.addEventListener('focusin', function (e) {
+  if (window.innerWidth > 760 || !e.target.closest) return; var c = e.target.closest('#stkl .stk.card'); if (!c || c.dataset.lift) return;
+  var l = document.getElementById('stkl'), lim = window.innerHeight * 0.42, r = c.getBoundingClientRect();
+  if (r.top + Math.min(r.height, 200) > lim) { c.dataset.lift = c.style.top; c.style.top = '8px'; }
+});
+document.addEventListener('focusout', function (e) {
+  if (!e.target.closest) return; var c = e.target.closest('#stkl .stk.card'); if (!c || c.dataset.lift == null) return;
+  setTimeout(function () { if (c.contains(document.activeElement)) return; c.style.top = c.dataset.lift; delete c.dataset.lift; }, 0);
+});
